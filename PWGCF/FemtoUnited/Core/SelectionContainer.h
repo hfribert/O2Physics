@@ -85,9 +85,11 @@ class SelectionContainer
   /// \param limitType Type of limit of the selection
   /// \param SkipLastBit Boolean whether to skip the last bit
   SelectionContainer(std::string baseName, T lowerLimit, T upperLimit, std::vector<std::string>& functions, limits::LimitType limitType, bool skipMostPermissiveBit, bool IsMinimalCut)
-    : mLimitType(limitType), mSkipMostPermissiveBit(skipMostPermissiveBit), mIsMinimalCut(IsMinimalCut)
+    : mLimitType(limitType),
+      mSkipMostPermissiveBit(skipMostPermissiveBit),
+      mIsMinimalCut(IsMinimalCut)
   {
-    if (mSelectionValues.size() > sizeof(BitmaskType) * CHAR_BIT) {
+    if (functions.size() > sizeof(BitmaskType) * CHAR_BIT) {
       LOG(fatal) << "Too many selections for single a observable. Limit is " << sizeof(BitmaskType) * CHAR_BIT;
     }
     for (std::size_t i = 0; i < functions.size(); i++) {
@@ -99,7 +101,9 @@ class SelectionContainer
     T midPoint = (lowerLimit + upperLimit) / 2.;
     sortFunctions(midPoint);
     // initialize the values also to the midpoint
-    this->updateLimits(midPoint);
+    for (std::size_t i = 0; i < functions.size(); i++) {
+      mSelectionValues.push_back(mSelectionFunctions.at(i).Eval(midPoint));
+    }
   }
 
   /// Destructor

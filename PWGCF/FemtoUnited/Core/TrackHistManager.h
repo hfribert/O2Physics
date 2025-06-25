@@ -32,6 +32,7 @@ namespace o2::analysis::femtounited
 {
 namespace trackhistmanager
 {
+
 // enum for track histograms
 enum TrackHist {
   // kinemtics
@@ -96,14 +97,77 @@ enum TrackHist {
   kTrackHistogramLast
 };
 
-constexpr char PrefixTrackQa[] = "TrackQA/";
-constexpr char PrefixTrack1[] = "Track1/";
-constexpr char PrefixTrack2[] = "Track2/";
-constexpr char PrefixTrack3[] = "Track3/";
+template <const char* Prefix>
+struct ConfTrackBinning : o2::framework::ConfigurableGroup {
+  std::string prefix = Prefix;
+  o2::framework::ConfigurableAxis pt{"pt", {{600, 0, 6}}, "Pt"};
+  o2::framework::ConfigurableAxis eta{"eta", {{300, -1.5, 1.5}}, "Eta"};
+  o2::framework::ConfigurableAxis phi{"phi", {{720, 0, 1.f * o2::constants::math::TwoPI}}, "Phi"};
+  o2::framework::ConfigurableAxis sign{"sign", {{3, -1.5, 1.5}}, "Sign"};
+};
 
-constexpr std::string_view AnalysisDir = "Analysis/";
-constexpr std::string_view QaDir = "QA/";
-constexpr std::string_view PidDir = "PID/";
+constexpr const char PrefixTrackBinning1[] = "TrackBinning1";
+constexpr const char PrefixTrackBinning2[] = "TrackBinning2";
+constexpr const char PrefixLambdaPosDauBinning[] = "LambdaPosDauBinning";
+constexpr const char PrefixLambdaNegDauBinning[] = "LambdaNegDauBinning";
+
+using ConfTrackBinning1 = ConfTrackBinning<PrefixTrackBinning1>;
+using ConfTrackBinning2 = ConfTrackBinning<PrefixTrackBinning2>;
+
+using ConfLambdaPosDauBinning = ConfTrackBinning<PrefixLambdaPosDauBinning>;
+using ConfLambdaNegDauBinning = ConfTrackBinning<PrefixLambdaNegDauBinning>;
+
+template <const char* Prefix>
+struct ConfTrackQaBinning : o2::framework::ConfigurableGroup {
+  std::string prefix = Prefix;
+  o2::framework::ConfigurableAxis itsCluster{"itsCluster", {{8, -0.5, 7.5}}, "ITS cluster"};
+  o2::framework::ConfigurableAxis itsClusterIb{"itsClusterIb", {{4, -0.5, 3.5}}, "ITS cluster in inner barrel"};
+  o2::framework::ConfigurableAxis tpcCluster{"tpcCluster", {{153, -0.5, 152.5}}, "TPC cluster"};
+  o2::framework::ConfigurableAxis tpcClusterShared{"tpcClusterShared", {{153, -0.5, 152.5}}, "TPC cluster shared"};
+  o2::framework::ConfigurableAxis dcaXy{"dcaXy", {{300, -0.3, 0.3}}, "DCA_xy"};
+  o2::framework::ConfigurableAxis dcaZ{"dcaZ", {{300, -0.3, 0.3}}, "DCA_Z"};
+  o2::framework::ConfigurableAxis dca{"dca", {{300, 0, 0.3}}, "DCA"};
+  o2::framework::ConfigurableAxis p{"p", {{300, 0, 6}}, "Momentum axis"};
+  o2::framework::ConfigurableAxis itsSignal{"itsSignal", {{150, 0, 15}}, "its Signal"};
+  o2::framework::ConfigurableAxis itsElectron{"itsElectron", {{300, -3, 3}}, "ITS PID for electron"};
+  o2::framework::ConfigurableAxis itsPion{"itsPion", {{300, -3, 3}}, "ITS PID for pion"};
+  o2::framework::ConfigurableAxis itsKaon{"itsKaon", {{300, -3, 3}}, "ITS PID for kaon"};
+  o2::framework::ConfigurableAxis itsProton{"itsProton", {{300, -3, 3}}, "ITS PID for proton"};
+  o2::framework::ConfigurableAxis itsDeuteron{"itsDeuteron", {{300, -3, 3}}, "ITS PID for deuteron"};
+  o2::framework::ConfigurableAxis itsTriton{"itsTriton", {{300, -3, 3}}, "ITS PID for triton"};
+  o2::framework::ConfigurableAxis itsHelium{"itsHelium", {{300, -3, 3}}, "ITS PID for helium"};
+  o2::framework::ConfigurableAxis tpcSignal{"tpcSignal", {{150, 0, 150}}, "TPC Signal"};
+  o2::framework::ConfigurableAxis tpcElectron{"tpcElectron", {{300, -3, 3}}, "TPC PID for electron"};
+  o2::framework::ConfigurableAxis tpcPion{"tpcPion", {{300, -3, 3}}, "TPC PID for pion"};
+  o2::framework::ConfigurableAxis tpcKaon{"tpcKaon", {{300, -3, 3}}, "TPC PID for kaon"};
+  o2::framework::ConfigurableAxis tpcProton{"tpcProton", {{300, -3, 3}}, "TPC PID for proton"};
+  o2::framework::ConfigurableAxis tpcDeuteron{"tpcDeuteron", {{300, -3, 3}}, "TPC PID for deuteron"};
+  o2::framework::ConfigurableAxis tpcTriton{"tpcTriton", {{300, -3, 3}}, "TPC PID for triton"};
+  o2::framework::ConfigurableAxis tpcHelium{"tpcHelium", {{300, -3, 3}}, "TPC PID for helium"};
+  o2::framework::ConfigurableAxis tofBeta{"tofBeta", {{150, 0, 1.5}}, "TPC Signal"};
+  o2::framework::ConfigurableAxis tofElectron{"tofElectron", {{300, -3, 3}}, "TOF PID for electron"};
+  o2::framework::ConfigurableAxis tofPion{"tofPion", {{300, -3, 3}}, "TOF PID for pion"};
+  o2::framework::ConfigurableAxis tofKaon{"tofKaon", {{300, -3, 3}}, "TOF PID for kaon"};
+  o2::framework::ConfigurableAxis tofProton{"tofProton", {{300, -3, 3}}, "TOF PID for proton"};
+  o2::framework::ConfigurableAxis tofDeuteron{"tofDeuteron", {{300, -3, 3}}, "TOF PID for deuteron"};
+  o2::framework::ConfigurableAxis tofTriton{"tofTriton", {{300, -3, 3}}, "TOF PID for triton"};
+  o2::framework::ConfigurableAxis tofHelium{"tofHelium", {{300, -3, 3}}, "TOF PID for helium"};
+  o2::framework::ConfigurableAxis tpctofElectron{"tpctofElectron", {{300, 0, 3}}, "tpctof PID for electron"};
+  o2::framework::ConfigurableAxis tpctofPion{"tpctofPion", {{300, 0, 3}}, "tpctof PID for pion"};
+  o2::framework::ConfigurableAxis tpctofKaon{"tpctofKaon", {{300, 0, 3}}, "tpctof PID for kaon"};
+  o2::framework::ConfigurableAxis tpctofProton{"tpctofProton", {{300, 0, 3}}, "tpctof PID for proton"};
+  o2::framework::ConfigurableAxis tpctofDeuteron{"tpctofDeuteron", {{300, 0, 3}}, "tpctof PID for deuteron"};
+  o2::framework::ConfigurableAxis tpctofTriton{"tpctofTriton", {{300, 0, 3}}, "tpctof PID for triton"};
+  o2::framework::ConfigurableAxis tpctofHelium{"tpctofHelium", {{300, 0, 3}}, "tpctof PID for helium"};
+};
+
+constexpr const char PrefixTrackQaBinning1[] = "TrackQaBinning1";
+constexpr const char PrefixLambdaPosDauQaBinning[] = "LambdaPosDauQaBinning";
+constexpr const char PrefixLambdaNegDauQaBinning[] = "LambdaNegDauQaBinning";
+
+using ConfTrackQaBinning1 = ConfTrackQaBinning<PrefixTrackQaBinning1>;
+using ConfLambdaPosDauQaBinning = ConfTrackQaBinning<PrefixLambdaPosDauQaBinning>;
+using ConfLambdaNegDauQaBinning = ConfTrackQaBinning<PrefixLambdaNegDauQaBinning>;
 
 // must be in sync with enum TrackVariables
 // the enum gives the correct index in the array
@@ -158,6 +222,86 @@ constexpr std::array<histmanager::HistInfo<TrackHist>, kTrackHistogramLast> Hist
    {kTpctofTriton, o2::framework::kTH2F, "hTpctofPidTriton", "TPC+TOF PID Triton; p (GeV/#it{c}) ; #sqrt{n#sigma_{TPC,tr}^{2}+n#sigma_{TOF,tr}^{2}}"},
    {kTpctofHelium, o2::framework::kTH2F, "hTpctofPidHelium", "TPC+TOF PID Helium; p (GeV/#it{c}) ; #sqrt{n#sigma_{TPC,he}^{2}+n#sigma_{TOF,he}^{2}}"}}};
 
+template <typename T>
+std::map<TrackHist, std::vector<framework::AxisSpec>> makeTrackHistSpecMap(const T& confBinningAnalysis)
+{
+  return std::map<trackhistmanager::TrackHist, std::vector<framework::AxisSpec>>{
+    {kPt, {confBinningAnalysis.pt}},
+    {kEta, {confBinningAnalysis.eta}},
+    {kPhi, {confBinningAnalysis.phi}},
+    {kSign, {confBinningAnalysis.sign}}};
+};
+
+template <typename T1, typename T2>
+std::map<TrackHist, std::vector<framework::AxisSpec>> makeTrackQaHistSpecMap(const T1& confBinningAnalysis, const T2 confiBinningQa)
+{
+  return std::map<trackhistmanager::TrackHist, std::vector<framework::AxisSpec>>{
+    {kPt, {confBinningAnalysis.pt}},
+    {kEta, {confBinningAnalysis.eta}},
+    {kPhi, {confBinningAnalysis.phi}},
+    {kSign, {confBinningAnalysis.sign}},
+    {kItsCluster, {confiBinningQa.itsCluster}},
+    {kItsClusterIb, {confiBinningQa.itsClusterIb}},
+    {kPtVsEta, {confBinningAnalysis.pt, confBinningAnalysis.eta}},
+    {kPtVsPhi, {confBinningAnalysis.pt, confBinningAnalysis.phi}},
+    {kPhiVsEta, {confBinningAnalysis.phi, confBinningAnalysis.eta}},
+    {kPtVsItsCluster, {confBinningAnalysis.pt, confiBinningQa.itsCluster}},
+    {kPtVsTpcCluster, {confBinningAnalysis.pt, confiBinningQa.tpcCluster}},
+    {kPtVsTpcClusterShared, {confBinningAnalysis.pt, confiBinningQa.tpcClusterShared}},
+    {kTpcClusterVsTpcClusterShared, {confiBinningQa.tpcCluster, confiBinningQa.tpcClusterShared}},
+    {kTpcCluster, {confiBinningQa.tpcCluster}},
+    {kTpcClusterShared, {confiBinningQa.tpcClusterShared}},
+    {kPtVsDcaxy, {confBinningAnalysis.pt, confiBinningQa.dcaXy}},
+    {kPtVsDcaz, {confBinningAnalysis.pt, confiBinningQa.dcaZ}},
+    {kPtVsDca, {confBinningAnalysis.pt, confiBinningQa.dca}},
+    {kItsSignal, {confiBinningQa.p, confiBinningQa.itsSignal}},
+    {kItsElectron, {confiBinningQa.p, confiBinningQa.itsElectron}},
+    {kItsPion, {confiBinningQa.p, confiBinningQa.itsPion}},
+    {kItsKaon, {confiBinningQa.p, confiBinningQa.itsKaon}},
+    {kItsProton, {confiBinningQa.p, confiBinningQa.itsProton}},
+    {kItsDeuteron, {confiBinningQa.p, confiBinningQa.itsDeuteron}},
+    {kItsTriton, {confiBinningQa.p, confiBinningQa.itsTriton}},
+    {kItsHelium, {confiBinningQa.p, confiBinningQa.itsHelium}},
+    {kTpcSignal, {confiBinningQa.p, confiBinningQa.tpcSignal}},
+    {kTpcElectron, {confiBinningQa.p, confiBinningQa.tpcElectron}},
+    {kTpcPion, {confiBinningQa.p, confiBinningQa.tpcPion}},
+    {kTpcKaon, {confiBinningQa.p, confiBinningQa.tpcKaon}},
+    {kTpcProton, {confiBinningQa.p, confiBinningQa.tpcProton}},
+    {kTpcDeuteron, {confiBinningQa.p, confiBinningQa.tpcDeuteron}},
+    {kTpcTriton, {confiBinningQa.p, confiBinningQa.tpcTriton}},
+    {kTpcHelium, {confiBinningQa.p, confiBinningQa.tpcHelium}},
+    {kTofBeta, {confiBinningQa.p, confiBinningQa.tofBeta}},
+    {kTofElectron, {confiBinningQa.p, confiBinningQa.tofElectron}},
+    {kTofPion, {confiBinningQa.p, confiBinningQa.tofPion}},
+    {kTofKaon, {confiBinningQa.p, confiBinningQa.tofKaon}},
+    {kTofProton, {confiBinningQa.p, confiBinningQa.tofProton}},
+    {kTofDeuteron, {confiBinningQa.p, confiBinningQa.tofDeuteron}},
+    {kTofTriton, {confiBinningQa.p, confiBinningQa.tofTriton}},
+    {kTofHelium, {confiBinningQa.p, confiBinningQa.tofHelium}},
+    {kTpctofElectron, {confiBinningQa.p, confiBinningQa.tpctofElectron}},
+    {kTpctofPion, {confiBinningQa.p, confiBinningQa.tpctofPion}},
+    {kTpctofKaon, {confiBinningQa.p, confiBinningQa.tpctofKaon}},
+    {kTpctofProton, {confiBinningQa.p, confiBinningQa.tpctofProton}},
+    {kTpctofDeuteron, {confiBinningQa.p, confiBinningQa.tpctofDeuteron}},
+    {kTpctofTriton, {confiBinningQa.p, confiBinningQa.tpctofTriton}},
+    {kTpctofHelium, {confiBinningQa.p, confiBinningQa.tpctofHelium}}};
+};
+
+constexpr char PrefixTrackQa[] = "Tracks/TrackQA/";
+constexpr char PrefixTrack1[] = "Tracks/Track1/";
+constexpr char PrefixTrack2[] = "Tracks/Track2/";
+constexpr char PrefixTrack3[] = "Tracks/Track3/";
+
+constexpr char PrefixLambdaPosDaughter[] = "LambdaPosDaugh/";
+constexpr char PrefixLambdaNegDaughter[] = "LambdaNegDaugh/";
+
+constexpr char PrefixLambdaPosDaughterQa[] = "LambdaPosDaughQa/";
+constexpr char PrefixLambdaNegDaughterQa[] = "LambdaNegDaughQa/";
+
+constexpr std::string_view AnalysisDir = "Kinematics/";
+constexpr std::string_view QaDir = "QA/";
+constexpr std::string_view PidDir = "PID/";
+
 /// \class FemtoDreamEventHisto
 /// \brief Class for histogramming event properties
 // template <femtomodes::Mode mode>
@@ -175,7 +319,7 @@ class TrackHistManager
   {
     mHistogramRegistry = registry;
 
-    if constexpr (isModeSet(mode, modes::Mode::kANALYSIS)) {
+    if constexpr (isFlagSet(mode, modes::Mode::kANALYSIS)) {
       std::string analysisDir = std::string(prefix) + std::string(AnalysisDir);
 
       mHistogramRegistry->add(analysisDir + GetHistNamev2(kPt, HistTable), GetHistDesc(kPt, HistTable), GetHistType(kPt, HistTable), {Specs[kPt]});
@@ -184,7 +328,7 @@ class TrackHistManager
       mHistogramRegistry->add(analysisDir + GetHistNamev2(kSign, HistTable), GetHistDesc(kSign, HistTable), GetHistType(kSign, HistTable), {Specs[kSign]});
     }
 
-    if constexpr (isModeSet(mode, modes::Mode::kQA)) {
+    if constexpr (isFlagSet(mode, modes::Mode::kQA)) {
       std::string qaDir = std::string(prefix) + std::string(QaDir);
 
       mHistogramRegistry->add(qaDir + GetHistNamev2(kItsCluster, HistTable), GetHistDesc(kItsCluster, HistTable), GetHistType(kItsCluster, HistTable), {Specs[kItsCluster]});
@@ -248,14 +392,14 @@ class TrackHistManager
   template <modes::Mode mode, typename T>
   void fill(T const& track)
   {
-    if constexpr (isModeSet(mode, modes::Mode::kANALYSIS)) {
+    if constexpr (isFlagSet(mode, modes::Mode::kANALYSIS)) {
       mHistogramRegistry->fill(HIST(prefix) + HIST(AnalysisDir) + HIST(GetHistName(kPt, HistTable)), track.pt());
       mHistogramRegistry->fill(HIST(prefix) + HIST(AnalysisDir) + HIST(GetHistName(kEta, HistTable)), track.eta());
       mHistogramRegistry->fill(HIST(prefix) + HIST(AnalysisDir) + HIST(GetHistName(kPhi, HistTable)), track.phi());
       mHistogramRegistry->fill(HIST(prefix) + HIST(AnalysisDir) + HIST(GetHistName(kSign, HistTable)), track.sign());
     }
 
-    if constexpr (isModeSet(mode, modes::Mode::kQA)) {
+    if constexpr (isFlagSet(mode, modes::Mode::kQA)) {
       mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kItsCluster, HistTable)), static_cast<float>(track.itsNCls()));
       mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kItsClusterIb, HistTable)), static_cast<float>(track.itsNClsInnerBarrel()));
       mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kTpcCluster, HistTable)), static_cast<float>(track.tpcNClsFound()));

@@ -75,7 +75,7 @@ struct ConfLambdaSelection : o2::framework::ConfigurableGroup {
   o2::framework::Configurable<float> massMax{"massMax", 1.2f, "Maximum invariant mass for Lambda"};
   o2::framework::Configurable<float> antiMassMin{"antiMassMin", 0.f, "Minimum invariant mass for AntiLambda"};
   o2::framework::Configurable<float> antiMassMax{"antiMassMax", 999.f, "Maximum invariant mass for AntiLambda"};
-  o2::framework::Configurable<o2::aod::femtodatatypes::LambdaMaskType> mask{"mask", 0, "Bitmask for lambda selection"};
+  o2::framework::Configurable<o2::aod::femtodatatypes::LambdaMaskType> mask{"mask", 6, "Bitmask for lambda selection"};
 };
 
 // Define unique prefixes as constexpr string literals

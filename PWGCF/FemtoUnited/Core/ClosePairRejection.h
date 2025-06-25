@@ -80,14 +80,14 @@ class ClosePairRejection
   {
     mHistogramRegistry = registry;
 
-    if constexpr (isModeSet(mode, modes::Mode::kANALYSIS)) {
+    if constexpr (isFlagSet(mode, modes::Mode::kANALYSIS)) {
       std::string analysisDir = std::string(prefix) + std::string(AnalysisDir);
       mHistogramRegistry->add(analysisDir + GetHistNamev2(kAverage, HistTable), GetHistDesc(kAverage, HistTable), GetHistType(kAverage, HistTable), {Specs[kAverage]});
       mHistogramRegistry->add(analysisDir + GetHistNamev2(kRadius0, HistTable), GetHistDesc(kRadius0, HistTable), GetHistType(kRadius0, HistTable), {Specs[kRadius0]});
       mHistogramRegistry->add(analysisDir + GetHistNamev2(kRadius1, HistTable), GetHistDesc(kRadius1, HistTable), GetHistType(kRadius1, HistTable), {Specs[kRadius1]});
     }
 
-    // if constexpr (isModeSet(mode, modes::Mode::kQA)) {
+    // if constexpr (isFlagSet(mode, modes::Mode::kQA)) {
     // std::string qaDir = std::string(prefix) + std::string(QaDir);
     // }
   }
@@ -148,13 +148,13 @@ class ClosePairRejection
   template <modes::Mode mode>
   void fill()
   {
-    if constexpr (isModeSet(mode, modes::Mode::kANALYSIS)) {
+    if constexpr (isFlagSet(mode, modes::Mode::kANALYSIS)) {
       mHistogramRegistry->fill(HIST(prefix) + HIST(AnalysisDir) + HIST(GetHistName(kAverage, HistTable)), mDeta, mAverageDphistar);
       mHistogramRegistry->fill(HIST(prefix) + HIST(AnalysisDir) + HIST(GetHistName(kRadius0, HistTable)), mDeta, mDphistar.at(0));
       mHistogramRegistry->fill(HIST(prefix) + HIST(AnalysisDir) + HIST(GetHistName(kRadius1, HistTable)), mDeta, mDphistar.at(1));
     }
 
-    // if constexpr (isModeSet(mode, modes::Mode::kQA)) {
+    // if constexpr (isFlagSet(mode, modes::Mode::kQA)) {
     //  mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kPtVsDcaz, HistTable)), track.pt(), track.dcaZ());
     // }
   }

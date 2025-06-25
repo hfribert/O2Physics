@@ -24,6 +24,7 @@
 #include <array>
 #include <map>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace o2::analysis::femtounited
@@ -38,13 +39,8 @@ enum LambdaHist {
   kPhi,
   kMass,
   kAntiMass,
-  kPosDauPt,
-  kPosDauEta,
-  kPosDauPhi,
-  kNegDauPt,
-  kNegDauEta,
-  kNegDauPhi,
   // qa variables
+  kCosinePointingAngle,
   kDecayDauDca,
   kDecayVtxX,
   kDecayVtxY,
@@ -56,25 +52,35 @@ enum LambdaHist {
   kPtVsEta,
   kPtVsPhi,
   kPhiVsEta,
+  kCosinePointingAngleVsPt,
   // qa for daughters
-  kPosDauTpcCluster,
-  kPosDauPtVsDcaxy,
-  kPosDauPtVsDcaz,
-  kPosDauPtVsDca,
-  kPosDauProtonTpcNsigma,
-  kPosDauPionTpcNsigma,
-  kNegDauTpcCluster,
-  kNegDauPtVsDcaxy,
-  kNegDauPtVsDcaz,
-  kNegDauPtVsDca,
-  kNegDauProtonTpcNsigma,
-  kNegDauPionTpcNsigma,
   kLambdaHistLast
 };
 
-constexpr std::string_view AnalysisDir = "LambdaHistograms/Analysis/";
-constexpr std::string_view QaDir = "LambdaHistograms/QA/";
-constexpr std::string_view PidDir = "LambdaHistograms/Daughters/";
+template <const char* Prefix>
+struct ConfLambdaBinning : o2::framework::ConfigurableGroup {
+  std::string prefix = Prefix;
+  o2::framework::ConfigurableAxis pt{"pt", {{600, 0, 6}}, "Pt"};
+  o2::framework::ConfigurableAxis eta{"eta", {{300, -1.5, 1.5}}, "Eta"};
+  o2::framework::ConfigurableAxis phi{"phi", {{720, 0, 1.f * o2::constants::math::TwoPI}}, "Phi"};
+  o2::framework::ConfigurableAxis mass{"mass", {{200, 1.0, 1.2}}, "Mass"};
+};
+
+constexpr const char PrefixLambdaBinning1[] = "LambdaBinning1";
+using ConfLambdaBinning1 = ConfLambdaBinning<PrefixLambdaBinning1>;
+
+template <const char* Prefix>
+struct ConfLambdaQaBinning : o2::framework::ConfigurableGroup {
+  std::string prefix = Prefix;
+  o2::framework::ConfigurableAxis cosinePointingAngle{"cosinePointingAngle", {{100, 0.9, 1}}, "Cosine of poiting angle"};
+  o2::framework::ConfigurableAxis dauDcaAtDecay{"dauDcaAtDecay", {{150, 0, 1.5}}, "Daughter DCA at decay vertex"};
+  o2::framework::ConfigurableAxis decayVertex{"decayVertex", {{100, 0, 100}}, "Decay vertex"};
+  o2::framework::ConfigurableAxis transRadius{"transRadius", {{100, 0, 100}}, "Transverse radius"};
+  o2::framework::ConfigurableAxis kaonMass{"kaonMass", {{100, 0.45, 0.55}}, "Mass for kaon hypothesis"};
+};
+
+constexpr const char PrefixLambdaQaBinning1[] = "LambdaQaBinning1";
+using ConfLambdaQaBinning1 = ConfLambdaQaBinning<PrefixLambdaQaBinning1>;
 
 // must be in sync with enum TrackVariables
 // the enum gives the correct index in the array
@@ -84,12 +90,7 @@ constexpr std::array<histmanager::HistInfo<LambdaHist>, kLambdaHistLast> HistTab
    {kPhi, o2::framework::kTH1F, "hPhi", "Azimuthal angle; #varphi; Entries"},
    {kMass, o2::framework::kTH1F, "hLambdaMass", "Invariant mass #{Lambda}; m_{p{#pi}^{-}} (GeV/#it{c}^{2}; Entries"},
    {kAntiMass, o2::framework::kTH1F, "hAntiLambdaMass", "hAntiLambdaMass #bar{#{Lambda}};Invariant mass; m_{#bar{p}{#pi}^{+}} (GeV/#it{c}^{2}; Entries"},
-   {kPosDauPt, o2::framework::kTH1F, "hPosDauPt", "Transverse Momentum of positive daughter; p_{T} (GeV/#it{c}); Entries"},
-   {kPosDauEta, o2::framework::kTH1F, "hPosDauEta", "Pseudorapdity of positive daughter; #eta; Entries"},
-   {kPosDauPhi, o2::framework::kTH1F, "hPosDauPhi", "Azimuthal angle of positive daughter; #varphi; Entries"},
-   {kNegDauPt, o2::framework::kTH1F, "hNegDauPt", "Transverse Momentum of negative daughter; p_{T} (GeV/#it{c}); Entries"},
-   {kNegDauEta, o2::framework::kTH1F, "hNegDauEta", "Pseudorapdity of negative daughter; #eta; Entries"},
-   {kNegDauPhi, o2::framework::kTH1F, "hNegDauPhi", "Azimuthal angle of negative daughter; #varphi; Entries"},
+   {kCosinePointingAngle, o2::framework::kTH1F, "hCosinePointingAngle", "Cosine of pointing angle; coa(#alpha); Entries"},
    {kDecayDauDca, o2::framework::kTH1F, "hDauDca", "Daughter DCA at decay vertex ; DCA_{Decay vertex} (cm); Entries"},
    {kDecayVtxX, o2::framework::kTH1F, "hDecayVtxX", "X coordinate of decay vertex ; DV_{X} (cm); Entries"},
    {kDecayVtxY, o2::framework::kTH1F, "hDecayVtxY", "Y coordinate of decay vertex ; DV_{Y} (cm); Entries"},
@@ -100,22 +101,56 @@ constexpr std::array<histmanager::HistInfo<LambdaHist>, kLambdaHistLast> HistTab
    {kPtVsEta, o2::framework::kTH2F, "hPtVsEta", "p_{T} vs #eta; p_{T} (GeV/#it{c}) ; #eta"},
    {kPtVsPhi, o2::framework::kTH2F, "hPtVsPhi", "p_{T} vs #varphi; p_{T} (GeV/#it{c}) ; #varphi"},
    {kPhiVsEta, o2::framework::kTH2F, "hPhiVsEta", "#varphi vs #eta; #varphi ; #eta"},
-   {kPosDauTpcCluster, o2::framework::kTH1F, "hPosDauTpcCluster", "TPC cluster found (daughter^{+}) ; TPC cluster found, Entries"},
-   {kPosDauPtVsDcaxy, o2::framework::kTH2F, "hPosDauPtVsDcaxy", "p_{T} vs DCA_{XY} (daughter +) ; p_{T} (GeV/#it{c}) ; DCA_{XY} (cm)"},
-   {kPosDauPtVsDcaz, o2::framework::kTH2F, "hPosDauPtVsDcaz", "p_{T} vs DCA_{Z} (daughter +) ; p_{T} (GeV/#it{c}) ; DCA_{Z}"},
-   {kPosDauPtVsDca, o2::framework::kTH2F, "hPosDauPtVsDca", "p_{T} vs DCA (daughter +) ; p_{T} (GeV/#it{c}) ; DCA"},
-   {kPosDauProtonTpcNsigma, o2::framework::kTH2F, "hPosDauProtonTpcNsigma", "TPC Proton PID (daughter +) ; p (GeV/#it{c}) ; n#sigma_{TPC}"},
-   {kPosDauPionTpcNsigma, o2::framework::kTH2F, "hPosDauPionTpcNsigma", "TPC Pion PID (daughter +) ; p (GeV/#it{c}) ; n#sigma_{TPC}"},
-   {kNegDauTpcCluster, o2::framework::kTH1F, "hNegDauTpcCluster", "TPC cluster found (daughter -) ; TPC cluster found; Entries"},
-   {kNegDauPtVsDcaxy, o2::framework::kTH2F, "hNegDauPtVsDcaxy", "p_{T} vs DCA_{XY} (daughter -) ; p_{T} (GeV/#it{c}) ; DCA_{XY} (cm)"},
-   {kNegDauPtVsDcaz, o2::framework::kTH2F, "hNegDauPtVsDcaz", "p_{T} vs DCA_{Z} (daughter -) ; p_{T} (GeV/#it{c}) ; DCA_{Z}"},
-   {kNegDauPtVsDca, o2::framework::kTH2F, "hNegDauPtVsDca", "p_{T} vs DCA (daughter -) ; p_{T} (GeV/#it{c}) ; DCA"},
-   {kNegDauProtonTpcNsigma, o2::framework::kTH2F, "hNegDauProtonTpcNsigma", "TPC Proton PID (daughter -) ; p (GeV/#it{c}) ; n#sigma_{TPC}"},
-   {kNegDauPionTpcNsigma, o2::framework::kTH2F, "hNegDauPionTpcNsigma", "TPC Pion PID (daughter -) ; p (GeV/#it{c}) ; n#sigma_{TPC}"}}};
+   {kCosinePointingAngleVsPt, o2::framework::kTH2F, "hCosinePointingAngleVsPt", "Cosine of poiting angle vs p_{T}; cos(#alpha); p_{T} (GeV/#it{c})"}}};
+
+template <typename T>
+std::map<LambdaHist, std::vector<framework::AxisSpec>> makeLambdaHistSpecMap(const T& confBinningAnalysis)
+{
+  return std::map<LambdaHist, std::vector<framework::AxisSpec>>{
+    {kPt, {confBinningAnalysis.pt}},
+    {kEta, {confBinningAnalysis.eta}},
+    {kPhi, {confBinningAnalysis.phi}},
+    {kMass, {confBinningAnalysis.mass}},
+    {kAntiMass, {confBinningAnalysis.mass}}};
+};
+
+template <typename T1, typename T2>
+std::map<LambdaHist, std::vector<framework::AxisSpec>> makeLambdaQaHistSpecMap(const T1& confBinningAnalysis, const T2 confiBinningQa)
+{
+  return std::map<LambdaHist, std::vector<framework::AxisSpec>>{
+    {kPt, {confBinningAnalysis.pt}},
+    {kEta, {confBinningAnalysis.eta}},
+    {kPhi, {confBinningAnalysis.phi}},
+    {kMass, {confBinningAnalysis.mass}},
+    {kAntiMass, {confBinningAnalysis.mass}},
+    {lambdahistmanager::kCosinePointingAngle, {confiBinningQa.cosinePointingAngle}},
+    {lambdahistmanager::kDecayDauDca, {confiBinningQa.dauDcaAtDecay}},
+    {lambdahistmanager::kDecayVtxX, {confiBinningQa.decayVertex}},
+    {lambdahistmanager::kDecayVtxY, {confiBinningQa.decayVertex}},
+    {lambdahistmanager::kDecayVtxZ, {confiBinningQa.decayVertex}},
+    {lambdahistmanager::kDecayVtx, {confiBinningQa.decayVertex}},
+    {lambdahistmanager::kTransRadius, {confiBinningQa.transRadius}},
+    {lambdahistmanager::kKaonMass, {confiBinningQa.kaonMass}},
+    {lambdahistmanager::kPtVsEta, {confBinningAnalysis.pt, confBinningAnalysis.eta}},
+    {lambdahistmanager::kPtVsPhi, {confBinningAnalysis.pt, confBinningAnalysis.phi}},
+    {lambdahistmanager::kPhiVsEta, {confBinningAnalysis.phi, confBinningAnalysis.eta}},
+    {lambdahistmanager::kCosinePointingAngleVsPt, {confiBinningQa.cosinePointingAngle, confBinningAnalysis.pt}}};
+};
+
+constexpr char PrefixLambdaQa[] = "Lambdas/LambdaQA/";
+constexpr char PrefixLambda1[] = "Lambdas/Lambda1/";
+constexpr char PrefixLambda2[] = "Lambdas/Lambda2/";
+constexpr char PrefixLambda3[] = "Lambdas/Lambda3/";
+
+constexpr char PrefixLambdaCascade[] = "LambdaPosDaughQa/";
+
+constexpr std::string_view AnalysisDir = "Kinematics/";
+constexpr std::string_view QaDir = "QA/";
 
 /// \class FemtoDreamEventHisto
 /// \brief Class for histogramming event properties
 // template <femtomodes::Mode mode>
+template <const char* prefix>
 class LambdaHistManager
 {
  public:
@@ -129,26 +164,18 @@ class LambdaHistManager
   {
     mHistogramRegistry = registry;
 
-    if constexpr (isModeSet(mode, modes::Mode::kANALYSIS)) {
-      std::string analysisDir = std::string(AnalysisDir);
+    if constexpr (isFlagSet(mode, modes::Mode::kANALYSIS)) {
+      std::string analysisDir = std::string(prefix) + std::string(AnalysisDir);
 
       mHistogramRegistry->add(analysisDir + GetHistNamev2(kPt, HistTable), GetHistDesc(kPt, HistTable), GetHistType(kPt, HistTable), {Specs[kPt]});
       mHistogramRegistry->add(analysisDir + GetHistNamev2(kEta, HistTable), GetHistDesc(kEta, HistTable), GetHistType(kEta, HistTable), {Specs[kEta]});
       mHistogramRegistry->add(analysisDir + GetHistNamev2(kPhi, HistTable), GetHistDesc(kPhi, HistTable), GetHistType(kPhi, HistTable), {Specs[kPhi]});
       mHistogramRegistry->add(analysisDir + GetHistNamev2(kMass, HistTable), GetHistDesc(kMass, HistTable), GetHistType(kMass, HistTable), {Specs[kMass]});
       mHistogramRegistry->add(analysisDir + GetHistNamev2(kAntiMass, HistTable), GetHistDesc(kAntiMass, HistTable), GetHistType(kAntiMass, HistTable), {Specs[kAntiMass]});
-
-      mHistogramRegistry->add(analysisDir + GetHistNamev2(kPosDauPt, HistTable), GetHistDesc(kPosDauPt, HistTable), GetHistType(kPosDauPt, HistTable), {Specs[kPosDauPt]});
-      mHistogramRegistry->add(analysisDir + GetHistNamev2(kPosDauEta, HistTable), GetHistDesc(kPosDauEta, HistTable), GetHistType(kPosDauEta, HistTable), {Specs[kPosDauEta]});
-      mHistogramRegistry->add(analysisDir + GetHistNamev2(kPosDauPhi, HistTable), GetHistDesc(kPosDauPhi, HistTable), GetHistType(kPosDauPhi, HistTable), {Specs[kPosDauPhi]});
-
-      mHistogramRegistry->add(analysisDir + GetHistNamev2(kNegDauPt, HistTable), GetHistDesc(kNegDauPt, HistTable), GetHistType(kNegDauPt, HistTable), {Specs[kNegDauPt]});
-      mHistogramRegistry->add(analysisDir + GetHistNamev2(kNegDauEta, HistTable), GetHistDesc(kNegDauEta, HistTable), GetHistType(kNegDauEta, HistTable), {Specs[kNegDauEta]});
-      mHistogramRegistry->add(analysisDir + GetHistNamev2(kNegDauPhi, HistTable), GetHistDesc(kNegDauPhi, HistTable), GetHistType(kNegDauPhi, HistTable), {Specs[kNegDauPhi]});
     }
 
-    if constexpr (isModeSet(mode, modes::Mode::kQA)) {
-      std::string qaDir = std::string(QaDir);
+    if constexpr (isFlagSet(mode, modes::Mode::kQA)) {
+      std::string qaDir = std::string(prefix) + std::string(QaDir);
 
       mHistogramRegistry->add(qaDir + GetHistNamev2(kDecayDauDca, HistTable), GetHistDesc(kDecayDauDca, HistTable), GetHistType(kDecayDauDca, HistTable), {Specs[kDecayDauDca]});
       mHistogramRegistry->add(qaDir + GetHistNamev2(kDecayVtxX, HistTable), GetHistDesc(kDecayVtxX, HistTable), GetHistType(kDecayVtxX, HistTable), {Specs[kDecayVtxX]});
@@ -162,73 +189,33 @@ class LambdaHistManager
       mHistogramRegistry->add(qaDir + GetHistNamev2(kPtVsEta, HistTable), GetHistDesc(kPtVsEta, HistTable), GetHistType(kPtVsEta, HistTable), {Specs[kPtVsEta]});
       mHistogramRegistry->add(qaDir + GetHistNamev2(kPtVsPhi, HistTable), GetHistDesc(kPtVsPhi, HistTable), GetHistType(kPtVsPhi, HistTable), {Specs[kPtVsPhi]});
       mHistogramRegistry->add(qaDir + GetHistNamev2(kPhiVsEta, HistTable), GetHistDesc(kPhiVsEta, HistTable), GetHistType(kPhiVsEta, HistTable), {Specs[kPhiVsEta]});
-
-      // qa daughters
-      mHistogramRegistry->add(qaDir + GetHistNamev2(kPosDauTpcCluster, HistTable), GetHistDesc(kPosDauTpcCluster, HistTable), GetHistType(kPosDauTpcCluster, HistTable), {Specs[kPosDauTpcCluster]});
-      mHistogramRegistry->add(qaDir + GetHistNamev2(kPosDauProtonTpcNsigma, HistTable), GetHistDesc(kPosDauProtonTpcNsigma, HistTable), GetHistType(kPosDauProtonTpcNsigma, HistTable), {Specs[kPosDauProtonTpcNsigma]});
-      mHistogramRegistry->add(qaDir + GetHistNamev2(kPosDauPionTpcNsigma, HistTable), GetHistDesc(kPosDauPionTpcNsigma, HistTable), GetHistType(kPosDauPionTpcNsigma, HistTable), {Specs[kPosDauPionTpcNsigma]});
-      mHistogramRegistry->add(qaDir + GetHistNamev2(kPosDauPtVsDcaxy, HistTable), GetHistDesc(kPosDauPtVsDcaxy, HistTable), GetHistType(kPosDauPtVsDcaxy, HistTable), {Specs[kPosDauPtVsDcaxy]});
-      mHistogramRegistry->add(qaDir + GetHistNamev2(kPosDauPtVsDcaz, HistTable), GetHistDesc(kPosDauPtVsDcaz, HistTable), GetHistType(kPosDauPtVsDcaz, HistTable), {Specs[kPosDauPtVsDcaz]});
-      mHistogramRegistry->add(qaDir + GetHistNamev2(kPosDauPtVsDca, HistTable), GetHistDesc(kPosDauPtVsDca, HistTable), GetHistType(kPosDauPtVsDca, HistTable), {Specs[kPosDauPtVsDca]});
-
-      mHistogramRegistry->add(qaDir + GetHistNamev2(kNegDauTpcCluster, HistTable), GetHistDesc(kNegDauTpcCluster, HistTable), GetHistType(kNegDauTpcCluster, HistTable), {Specs[kNegDauTpcCluster]});
-      mHistogramRegistry->add(qaDir + GetHistNamev2(kNegDauPtVsDcaxy, HistTable), GetHistDesc(kNegDauPtVsDcaxy, HistTable), GetHistType(kNegDauPtVsDcaxy, HistTable), {Specs[kNegDauPtVsDcaxy]});
-      mHistogramRegistry->add(qaDir + GetHistNamev2(kNegDauPtVsDcaz, HistTable), GetHistDesc(kNegDauPtVsDcaz, HistTable), GetHistType(kNegDauPtVsDcaz, HistTable), {Specs[kNegDauPtVsDcaz]});
-      mHistogramRegistry->add(qaDir + GetHistNamev2(kNegDauPtVsDca, HistTable), GetHistDesc(kNegDauPtVsDca, HistTable), GetHistType(kNegDauPtVsDca, HistTable), {Specs[kNegDauPtVsDca]});
-      mHistogramRegistry->add(qaDir + GetHistNamev2(kNegDauProtonTpcNsigma, HistTable), GetHistDesc(kNegDauProtonTpcNsigma, HistTable), GetHistType(kNegDauProtonTpcNsigma, HistTable), {Specs[kNegDauProtonTpcNsigma]});
-      mHistogramRegistry->add(qaDir + GetHistNamev2(kNegDauPionTpcNsigma, HistTable), GetHistDesc(kNegDauPionTpcNsigma, HistTable), GetHistType(kNegDauPionTpcNsigma, HistTable), {Specs[kNegDauPionTpcNsigma]});
     }
   }
 
-  template <modes::Mode mode, typename T1, typename T2>
-  void fill(T1 const& v0, T2 /*tracks*/)
+  template <modes::Mode mode, typename T>
+  void fill(T const& v0)
   {
 
-    auto posDaughter = v0.template posDauLambda_as<T2>();
-    auto negDaughter = v0.template negDauLambda_as<T2>();
-
-    if constexpr (isModeSet(mode, modes::Mode::kANALYSIS)) {
-      mHistogramRegistry->fill(HIST(AnalysisDir) + HIST(GetHistName(kPt, HistTable)), v0.pt());
-      mHistogramRegistry->fill(HIST(AnalysisDir) + HIST(GetHistName(kEta, HistTable)), v0.eta());
-      mHistogramRegistry->fill(HIST(AnalysisDir) + HIST(GetHistName(kPhi, HistTable)), v0.phi());
-      mHistogramRegistry->fill(HIST(AnalysisDir) + HIST(GetHistName(kMass, HistTable)), v0.lambdaMass());
-      mHistogramRegistry->fill(HIST(AnalysisDir) + HIST(GetHistName(kAntiMass, HistTable)), v0.antiLambdaMass());
-
-      mHistogramRegistry->fill(HIST(AnalysisDir) + HIST(GetHistName(kPosDauPt, HistTable)), posDaughter.pt());
-      mHistogramRegistry->fill(HIST(AnalysisDir) + HIST(GetHistName(kPosDauEta, HistTable)), posDaughter.eta());
-      mHistogramRegistry->fill(HIST(AnalysisDir) + HIST(GetHistName(kPosDauPhi, HistTable)), posDaughter.phi());
-
-      mHistogramRegistry->fill(HIST(AnalysisDir) + HIST(GetHistName(kNegDauPt, HistTable)), negDaughter.pt());
-      mHistogramRegistry->fill(HIST(AnalysisDir) + HIST(GetHistName(kNegDauEta, HistTable)), negDaughter.eta());
-      mHistogramRegistry->fill(HIST(AnalysisDir) + HIST(GetHistName(kNegDauPhi, HistTable)), negDaughter.phi());
+    if constexpr (isFlagSet(mode, modes::Mode::kANALYSIS)) {
+      mHistogramRegistry->fill(HIST(prefix) + HIST(AnalysisDir) + HIST(GetHistName(kPt, HistTable)), v0.pt());
+      mHistogramRegistry->fill(HIST(prefix) + HIST(AnalysisDir) + HIST(GetHistName(kEta, HistTable)), v0.eta());
+      mHistogramRegistry->fill(HIST(prefix) + HIST(AnalysisDir) + HIST(GetHistName(kPhi, HistTable)), v0.phi());
+      mHistogramRegistry->fill(HIST(prefix) + HIST(AnalysisDir) + HIST(GetHistName(kMass, HistTable)), v0.lambdaMass());
+      mHistogramRegistry->fill(HIST(prefix) + HIST(AnalysisDir) + HIST(GetHistName(kAntiMass, HistTable)), v0.antiLambdaMass());
     }
 
-    if constexpr (isModeSet(mode, modes::Mode::kQA)) {
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kDecayDauDca, HistTable)), v0.dauDCA());
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kDecayVtxX, HistTable)), v0.decayVtxX());
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kDecayVtxY, HistTable)), v0.decayVtxY());
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kDecayVtxZ, HistTable)), v0.decayVtxZ());
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kDecayVtx, HistTable)), std::hypot(v0.decayVtxX(), v0.decayVtxY(), v0.decayVtxZ()));
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kTransRadius, HistTable)), v0.transRadius());
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kKaonMass, HistTable)), v0.kaonMass());
+    if constexpr (isFlagSet(mode, modes::Mode::kQA)) {
+      mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kDecayDauDca, HistTable)), v0.dauDCA());
+      mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kDecayVtxX, HistTable)), v0.decayVtxX());
+      mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kDecayVtxY, HistTable)), v0.decayVtxY());
+      mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kDecayVtxZ, HistTable)), v0.decayVtxZ());
+      mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kDecayVtx, HistTable)), std::hypot(v0.decayVtxX(), v0.decayVtxY(), v0.decayVtxZ()));
+      mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kTransRadius, HistTable)), v0.transRadius());
+      mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kKaonMass, HistTable)), v0.kaonMass());
 
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kPtVsEta, HistTable)), v0.pt(), v0.eta());
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kPtVsPhi, HistTable)), v0.pt(), v0.phi());
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kPhiVsEta, HistTable)), v0.phi(), v0.eta());
-
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kPosDauTpcCluster, HistTable)), posDaughter.tpcNClsFound());
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kPosDauPtVsDcaxy, HistTable)), posDaughter.pt(), posDaughter.dcaXY());
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kPosDauPtVsDcaz, HistTable)), posDaughter.pt(), posDaughter.dcaZ());
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kPosDauPtVsDca, HistTable)), posDaughter.pt(), std::hypot(posDaughter.dcaXY(), posDaughter.dcaZ()));
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kPosDauPionTpcNsigma, HistTable)), posDaughter.p(), posDaughter.tpcNSigmaPi());
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kPosDauProtonTpcNsigma, HistTable)), posDaughter.p(), posDaughter.tpcNSigmaPr());
-
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kNegDauTpcCluster, HistTable)), negDaughter.tpcNClsFound());
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kNegDauPtVsDcaxy, HistTable)), negDaughter.pt(), negDaughter.dcaXY());
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kNegDauPtVsDcaz, HistTable)), negDaughter.pt(), negDaughter.dcaZ());
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kNegDauPtVsDca, HistTable)), negDaughter.pt(), std::hypot(negDaughter.dcaXY(), negDaughter.dcaZ()));
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kNegDauPionTpcNsigma, HistTable)), negDaughter.p(), negDaughter.tpcNSigmaPi());
-      mHistogramRegistry->fill(HIST(QaDir) + HIST(GetHistName(kNegDauProtonTpcNsigma, HistTable)), negDaughter.p(), negDaughter.tpcNSigmaPr());
+      mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kPtVsEta, HistTable)), v0.pt(), v0.eta());
+      mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kPtVsPhi, HistTable)), v0.pt(), v0.phi());
+      mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kPhiVsEta, HistTable)), v0.phi(), v0.eta());
     }
   }
 

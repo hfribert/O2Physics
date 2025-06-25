@@ -106,7 +106,7 @@ class CollisionSelection
   template <modes::System system, typename T>
   bool checkCuts(T const& col)
   {
-    if constexpr (modes::isSystemSet(system, modes::System::kPP) && modes::isSystemSet(system, modes::System::kRun3)) {
+    if constexpr (modes::isFlagSet(system, modes::System::kPP) && modes::isFlagSet(system, modes::System::kRun3)) {
       if (mOfflineSelection && !col.sel8()) {
         return false;
       }
@@ -130,15 +130,15 @@ class CollisionSelection
   bool mOfflineSelection = false;
   float mSphericityMin = 0.f;
   float mSphericityMax = 2.f;
-  float mMagFieldMin = -1.;
+  float mMagFieldMin = -1.f;
   float mMagFieldMax = 1.f;
   float mMultMin = 0.f;
   float mMultMax = 999.f;
   float mCentMin = 0.f;
   float mCentMax = 999.f;
 
-  float mMagField = 0;
-  float mSphericity = 0;
+  float mMagField = 0.f;
+  float mSphericity = 0.f;
 };
 }; // namespace collisionselection
 }; // namespace o2::analysis::femtounited

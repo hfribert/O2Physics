@@ -35,6 +35,7 @@ DECLARE_SOA_COLUMN(AntiLambdaMass, antiLambdaMass, float); //! Mass of anti Lamb
 DECLARE_SOA_COLUMN(LambdaMask, lambdaMask, femtodatatypes::LambdaMaskType); //! Bitmask for Lambda selections
 
 // columns for Lambda debug information
+DECLARE_SOA_COLUMN(CosPa, cosPa, float);             //! Lambda daughter DCA at decay vertex
 DECLARE_SOA_COLUMN(DauDCA, dauDCA, float);           //! Lambda daughter DCA at decay vertex
 DECLARE_SOA_COLUMN(TransRadius, transRadius, float); //! Lambda transvers radius
 DECLARE_SOA_COLUMN(DecayVtxX, decayVtxX, float);     //! x coordinate of Lambda decay vertex
@@ -71,6 +72,7 @@ DECLARE_SOA_TABLE_STAGED_VERSIONED(FULambdaMasks_001, "FULAMBDAMASKS", 1,
 using FULambdaMasks = FULambdaMasks_001;
 
 DECLARE_SOA_TABLE_STAGED_VERSIONED(FULambdaExtras_001, "FULAMBDAEXTRAS", 1,
+                                   femtolambdas::CosPa,
                                    femtolambdas::DauDCA,
                                    femtolambdas::DecayVtxX,
                                    femtolambdas::DecayVtxY,

@@ -64,7 +64,7 @@ using Run3Tracks = soa::Join<Tracks, TracksExtra, TracksDCA,
                              pidTPCEl, pidTPCPi, pidTPCKa, pidTPCPr, pidTPCDe, pidTPCTr, pidTPCHe,
                              pidTOFEl, pidTOFPi, pidTOFKa, pidTOFPr, pidTOFDe, pidTOFTr, pidTOFHe>;
 
-using Run3TracksFullPid =
+using Run3FullPidTracks =
   soa::Join<Tracks, TracksExtra, TracksDCA,
             pidTPCFullEl, pidTPCFullPi, pidTPCFullKa, pidTPCFullPr, pidTPCFullDe, pidTPCFullTr, pidTPCFullHe,
             pidTOFFullEl, pidTOFFullPi, pidTOFFullKa, pidTOFFullPr, pidTOFFullDe, pidTOFFullTr, pidTOFFullHe,
@@ -82,7 +82,7 @@ struct FemtoUnitedProducer {
   Preslice<V0Datas> perColV0s = v0data::collisionId;
 
   // produced objectes
-  struct ProducesGroup {
+  struct : ProducesGroup {
     Produces<FUCols> producedCollision;
 
     Produces<FUTracks> producedTracks;
@@ -342,7 +342,7 @@ struct FemtoUnitedProducer {
   template <modes::System sys, typename T>
   void fillCollision(T const& col)
   {
-    if constexpr (!modes::isSystemSet(sys, modes::System::kNoCentCal)) {
+    if constexpr (!modes::isFlagSet(sys, modes::System::kNoCentCal)) {
       products.producedCollision(col.posZ(),
                                  col.multNTracksPV(),
                                  col.centFT0M(),
@@ -350,7 +350,7 @@ struct FemtoUnitedProducer {
                                  collisionSel.getMagneticField());
     }
 
-    if constexpr (modes::isSystemSet(sys, modes::System::kNoCentCal)) {
+    if constexpr (modes::isFlagSet(sys, modes::System::kNoCentCal)) {
       products.producedCollision(col.posZ(),
                                  col.multNTracksPV(),
                                  0,
@@ -359,35 +359,35 @@ struct FemtoUnitedProducer {
     }
   }
 
-  template <modes::Mode mode, typename T1>
-  void fillTrack(T1 const& track, bool setBitmask = true)
+  template <modes::Mode mode, modes::TrackType type, typename T1>
+  void fillTrack(T1 const& track)
   {
-    if constexpr (modes::isModeSet(mode, modes::Mode::kANALYSIS)) {
+    if constexpr (modes::isFlagSet(mode, modes::Mode::kANALYSIS)) {
       products.producedTracks(products.producedCollision.lastIndex(),
                               track.pt() * track.sign(),
                               track.eta(),
                               track.phi());
-      if (setBitmask) {
+      if constexpr (type == modes::TrackType::kPrimaryTrack) {
         products.producedTrackMasks(trackSel.getBitmask());
       } else {
-        // if we call with setBitmaks set to false, this not a track that passed standard selections but the daugher of some other particle type
-        // for these we set the bitmask to 0, so they will never be selected by accident for other further analysis
         products.producedTrackMasks(static_cast<femtodatatypes::TrackMaskType>(0u));
       }
+    }
 
-      if constexpr (modes::isModeSet(mode, modes::Mode::kQA)) {
-        products.producedTrackDCAs(track.dcaXY(), track.dcaZ());
-        products.producedTrackExtras(track.isPVContributor(),
-                                     track.itsNCls(),
-                                     track.itsNClsInnerBarrel(),
-                                     track.itsChi2NCl(),
-                                     track.itsClusterSizes(),
-                                     track.tpcSignal(),
-                                     track.tpcInnerParam(),
-                                     track.tpcNClsFound(),
-                                     track.tpcNClsCrossedRows(),
-                                     track.tpcNClsShared(),
-                                     track.beta());
+    if constexpr (modes::isFlagSet(mode, modes::Mode::kQA)) {
+      products.producedTrackDCAs(track.dcaXY(), track.dcaZ());
+      products.producedTrackExtras(track.isPVContributor(),
+                                   track.itsNCls(),
+                                   track.itsNClsInnerBarrel(),
+                                   track.itsChi2NCl(),
+                                   track.itsClusterSizes(),
+                                   track.tpcSignal(),
+                                   track.tpcInnerParam(),
+                                   track.tpcNClsFound(),
+                                   track.tpcNClsCrossedRows(),
+                                   track.tpcNClsShared(),
+                                   track.beta());
+      if constexpr (type == modes::TrackType::kPrimaryTrack) {
         products.producedTrackPids(track.itsNSigmaEl(),
                                    track.itsNSigmaPi(),
                                    track.itsNSigmaKa(),
@@ -395,6 +395,28 @@ struct FemtoUnitedProducer {
                                    track.itsNSigmaDe(),
                                    track.itsNSigmaTr(),
                                    track.itsNSigmaHe(),
+                                   track.tpcNSigmaEl(),
+                                   track.tpcNSigmaPi(),
+                                   track.tpcNSigmaKa(),
+                                   track.tpcNSigmaPr(),
+                                   track.tpcNSigmaDe(),
+                                   track.tpcNSigmaTr(),
+                                   track.tpcNSigmaHe(),
+                                   track.tofNSigmaEl(),
+                                   track.tofNSigmaPi(),
+                                   track.tofNSigmaKa(),
+                                   track.tofNSigmaPr(),
+                                   track.tofNSigmaDe(),
+                                   track.tofNSigmaTr(),
+                                   track.tofNSigmaHe());
+      } else {
+        products.producedTrackPids(0,
+                                   0,
+                                   0,
+                                   0,
+                                   0,
+                                   0,
+                                   0,
                                    track.tpcNSigmaEl(),
                                    track.tpcNSigmaPi(),
                                    track.tpcNSigmaKa(),
@@ -425,14 +447,14 @@ struct FemtoUnitedProducer {
       if (!trackSel.passesMinimalCuts()) {
         continue;
       }
-      fillTrack<mode>(track);
+      fillTrack<mode, modes::TrackType::kPrimaryTrack>(track);
     }
   }
 
   template <modes::Mode mode, typename T>
   void fillLambda(T const& v0, int posDaughterIndex, int negDaughterIndex)
   {
-    if constexpr (modes::isModeSet(mode, modes::Mode::kANALYSIS)) {
+    if constexpr (modes::isFlagSet(mode, modes::Mode::kANALYSIS)) {
       products.producedLambdas(products.producedCollision.lastIndex(),
                                v0.pt(),
                                v0.eta(),
@@ -443,8 +465,9 @@ struct FemtoUnitedProducer {
                                negDaughterIndex);
       products.producedLambdaMasks(lambdaSel.getBitmask());
     }
-    if constexpr (modes::isModeSet(mode, modes::Mode::kQA)) {
+    if constexpr (modes::isFlagSet(mode, modes::Mode::kQA)) {
       products.producedLambdaExtras(
+        v0.v0cosPA(),
         v0.dcaV0daughters(),
         v0.x(),
         v0.y(),
@@ -455,8 +478,8 @@ struct FemtoUnitedProducer {
     indexMapLambdas.emplace(v0.globalIndex(), products.producedLambdas.lastIndex());
   }
 
-  template <modes::Mode mode, typename V, typename T>
-  void fillLambdas(V const& v0s, T const& tracks)
+  template <modes::Mode mode, typename T1, typename T2>
+  void fillLambdas(T1 const& v0s, T2 const& fullTracks)
   {
     for (const auto& v0 : v0s) {
       if (v0.pt() < confLambdaFilters.ptMin.value || v0.pt() > confLambdaFilters.ptMax.value ||
@@ -464,15 +487,15 @@ struct FemtoUnitedProducer {
           v0.phi() < confLambdaFilters.phiMin.value || v0.phi() > confLambdaFilters.phiMax.value) {
         continue;
       }
-      lambdaSel.applySelections(v0, tracks);
+      lambdaSel.applySelections(v0, fullTracks);
       if (!lambdaSel.checkK0ShortMass(v0) || !lambdaSel.passesMinimalCuts()) {
         continue;
       }
       if (!lambdaSel.checkDaughterPidsLambda() && !lambdaSel.checkDaughterPidsAntiLambda()) {
         continue;
       }
-      auto posDaughter = v0.template posTrack_as<T>();
-      auto negDaughter = v0.template negTrack_as<T>();
+      auto posDaughter = v0.template posTrack_as<T2>();
+      auto negDaughter = v0.template negTrack_as<T2>();
       int64_t posDaughterIndex;
       int64_t negDaughterIndex;
 
@@ -481,7 +504,7 @@ struct FemtoUnitedProducer {
       if (resultPosDaughter) {
         posDaughterIndex = resultPosDaughter.value();
       } else {
-        fillTrack<mode>(posDaughter, false);
+        fillTrack<mode, modes::TrackType::kLambdaDaugher>(posDaughter);
         posDaughterIndex = products.producedTracks.lastIndex();
       }
 
@@ -490,7 +513,7 @@ struct FemtoUnitedProducer {
       if (resultNegDaughter) {
         negDaughterIndex = resultNegDaughter.value();
       } else {
-        fillTrack<mode>(posDaughter, false);
+        fillTrack<mode, modes::TrackType::kLambdaDaugher>(posDaughter);
         negDaughterIndex = products.producedTracks.lastIndex();
       }
       fillLambda<mode>(v0, posDaughterIndex, negDaughterIndex);
@@ -517,7 +540,7 @@ struct FemtoUnitedProducer {
     if (resultPosDaughter) {
       posDaughterIndex = resultPosDaughter.value();
     } else {
-      fillTrack<mode>(posDaughter);
+      fillTrack<mode, modes::TrackType::kLambdaDaugher>(posDaughter);
       posDaughterIndex = products.producedTracks.lastIndex();
     }
 
@@ -526,11 +549,11 @@ struct FemtoUnitedProducer {
     if (resultNegDaughter) {
       negDaughterIndex = resultNegDaughter.value();
     } else {
-      fillTrack<mode>(negDaughter);
+      fillTrack<mode, modes::TrackType::kLambdaDaugher>(negDaughter);
       negDaughterIndex = products.producedTracks.lastIndex();
     }
 
-    if constexpr (modes::isModeSet(mode, modes::Mode::kANALYSIS)) {
+    if constexpr (modes::isFlagSet(mode, modes::Mode::kANALYSIS)) {
       products.producedResonances(
         products.producedCollision.lastIndex(),
         selectionContainer.getPt(),
@@ -584,13 +607,13 @@ struct FemtoUnitedProducer {
     }
   }
 
-  template <modes::System system, modes::Mode mode, typename T1, typename T2, typename T3, typename T4>
-  void processTracksV0s(T1 const& fullCols, T2 const& /* fullBcs*/, T3 const& fullTracks, T4 const& fullV0s)
+  template <modes::System system, modes::Mode mode, typename T1, typename T2, typename T3, typename T4, typename T5>
+  void processTracksV0s(T1 const& fullCols, T2 const& /* fullBcs*/, T3 const& fullTracks, T4 const& fullTracksWithItsPid, T5 const& fullV0s)
   {
     for (const auto& col : fullCols) {
       initFromCcdb(col.template bc_as<T2>());
       collisionSel.setMagneticField(magField);
-      auto tracks = fullTracks.sliceBy(perColTracks, col.globalIndex());
+      auto tracks = fullTracksWithItsPid.sliceBy(perColTracks, col.globalIndex());
       collisionSel.setSphericity(tracks);
       if (!collisionSel.checkCuts<modes::System::kPP_Run3>(col)) {
         continue;
@@ -600,7 +623,7 @@ struct FemtoUnitedProducer {
       fillTracks<mode>(tracks);
       indexMapLambdas.clear();
       auto v0s = fullV0s.sliceBy(perColV0s, col.globalIndex());
-      fillLambdas<mode>(v0s, tracks);
+      fillLambdas<mode>(v0s, fullTracks);
     }
   }
 
@@ -638,12 +661,12 @@ struct FemtoUnitedProducer {
   // produce tracks for QA
   void proccessQaTracksRun3pp(Filtered<consumeddata::Run3PpCollisions> const& cols,
                               BCsWithTimestamps const& bcs,
-                              Filtered<consumeddata::Run3TracksFullPid> const& tracks)
+                              Filtered<consumeddata::Run3FullPidTracks> const& tracks)
   {
     // its pid information is generated dynamically, so we need to add it here
-    auto tracksWithItsPid = o2::soa::Attach<consumeddata::Run3TracksFullPid, pidits::ITSNSigmaEl, pidits::ITSNSigmaPi,
+    auto tracksWithItsPid = o2::soa::Attach<consumeddata::Run3FullPidTracks, pidits::ITSNSigmaEl, pidits::ITSNSigmaPi,
                                             pidits::ITSNSigmaKa, pidits::ITSNSigmaPr, pidits::ITSNSigmaDe, pidits::ITSNSigmaTr, pidits::ITSNSigmaHe>(tracks);
-    processTracks<modes::System::kPP_Run3, modes::Mode::kANALYSIS>(cols, bcs, tracksWithItsPid);
+    processTracks<modes::System::kPP_Run3, modes::Mode::kANALYSIS_QA>(cols, bcs, tracksWithItsPid);
   }
   PROCESS_SWITCH(FemtoUnitedProducer, proccessQaTracksRun3pp, "Provide tracks for Run2 with QA", false);
 
@@ -651,25 +674,25 @@ struct FemtoUnitedProducer {
   void processTracksVzerosRun3pp(Filtered<consumeddata::Run3PpCollisions> const& cols,
                                  BCsWithTimestamps const& bcs,
                                  Filtered<consumeddata::Run3Tracks> const& tracks,
-                                 Filtered<consumeddata::Run3PpVzeros> const& v0s)
+                                 consumeddata::Run3PpVzeros const& v0s)
   {
     // its pid information is generated dynamically, so we need to add it here
     auto tracksWithItsPid = o2::soa::Attach<consumeddata::Run3Tracks, pidits::ITSNSigmaEl, pidits::ITSNSigmaPi,
                                             pidits::ITSNSigmaKa, pidits::ITSNSigmaPr, pidits::ITSNSigmaDe, pidits::ITSNSigmaTr, pidits::ITSNSigmaHe>(tracks);
-    processTracksV0s<modes::System::kPP_Run3, modes::Mode::kANALYSIS>(cols, bcs, tracksWithItsPid, v0s);
+    processTracksV0s<modes::System::kPP_Run3, modes::Mode::kANALYSIS>(cols, bcs, tracks, tracksWithItsPid, v0s);
   }
   PROCESS_SWITCH(FemtoUnitedProducer, processTracksVzerosRun3pp, "Provide Tracks and V0s for Run3 with QA", false);
 
   // produce tracks and v0s for QA
   void processQaTracksVzerosRun3pp(Filtered<consumeddata::Run3PpCollisions> const& cols,
                                    BCsWithTimestamps const& bcs,
-                                   Filtered<consumeddata::Run3TracksFullPid> const& tracks,
-                                   Filtered<consumeddata::Run3PpVzeros> const& v0s)
+                                   Filtered<consumeddata::Run3FullPidTracks> const& tracks,
+                                   consumeddata::Run3PpVzeros const& v0s)
   {
     // its pid information is generated dynamically, so we need to add it here
-    auto tracksWithItsPid = o2::soa::Attach<consumeddata::Run3TracksFullPid, pidits::ITSNSigmaEl, pidits::ITSNSigmaPi,
+    auto tracksWithItsPid = o2::soa::Attach<consumeddata::Run3FullPidTracks, pidits::ITSNSigmaEl, pidits::ITSNSigmaPi,
                                             pidits::ITSNSigmaKa, pidits::ITSNSigmaPr, pidits::ITSNSigmaDe, pidits::ITSNSigmaTr, pidits::ITSNSigmaHe>(tracks);
-    processTracksV0s<modes::System::kPP_Run3, modes::Mode::kANALYSIS_QA>(cols, bcs, tracksWithItsPid, v0s);
+    processTracksV0s<modes::System::kPP_Run3, modes::Mode::kANALYSIS_QA>(cols, bcs, tracks, tracksWithItsPid, v0s);
   }
   PROCESS_SWITCH(FemtoUnitedProducer, processQaTracksVzerosRun3pp, "Provide Tracks and V0s for Run3 with QA", false);
 
@@ -688,10 +711,10 @@ struct FemtoUnitedProducer {
   // produce tracks and v0s for QA
   void processQaTracksResonancesRun3pp(Filtered<consumeddata::Run3PpCollisions> const& cols,
                                        BCsWithTimestamps const& bcs,
-                                       Filtered<consumeddata::Run3TracksFullPid> const& tracks)
+                                       Filtered<consumeddata::Run3FullPidTracks> const& tracks)
   {
     // its pid information is generated dynamically, so we need to add it here
-    auto tracksWithItsPid = o2::soa::Attach<consumeddata::Run3TracksFullPid, pidits::ITSNSigmaEl, pidits::ITSNSigmaPi,
+    auto tracksWithItsPid = o2::soa::Attach<consumeddata::Run3FullPidTracks, pidits::ITSNSigmaEl, pidits::ITSNSigmaPi,
                                             pidits::ITSNSigmaKa, pidits::ITSNSigmaPr, pidits::ITSNSigmaDe, pidits::ITSNSigmaTr, pidits::ITSNSigmaHe>(tracks);
     processTracksResonances<modes::System::kPP_Run3, modes::Mode::kANALYSIS_QA>(cols, bcs, tracksWithItsPid);
   }

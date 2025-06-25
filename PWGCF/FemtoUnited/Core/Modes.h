@@ -17,11 +17,20 @@
 #define PWGCF_FEMTOUNITED_CORE_MODES_H_
 
 #include <cstdint>
+#include <type_traits>
 
 namespace o2::analysis::femtounited
 {
 namespace modes
 {
+
+// Generic flag check
+template <typename E>
+constexpr bool isFlagSet(E value, E flag)
+{
+  using U = std::underlying_type_t<E>;
+  return static_cast<U>(value) & static_cast<U>(flag);
+}
 
 enum class Mode : uint32_t {
   kANALYSIS = 0x1,
@@ -31,12 +40,6 @@ enum class Mode : uint32_t {
   kANALYSIS_MC = kANALYSIS | kMC,
   kANALYSIS_QA_MC = kANALYSIS | kQA | kMC,
 };
-
-// Function to check if a mode is activated
-constexpr bool isModeSet(Mode mode, Mode flag)
-{
-  return static_cast<uint32_t>(mode) & static_cast<uint32_t>(flag);
-}
 
 enum class System : uint32_t {
   kPP = 0x1,
@@ -52,11 +55,12 @@ enum class System : uint32_t {
   kPbPb_Run2 = kPbPb | kRun2,
 };
 
-// Function to check if a mode is activated
-constexpr bool isSystemSet(System sys, System flag)
-{
-  return static_cast<uint32_t>(sys) & static_cast<uint32_t>(flag);
-}
+enum class TrackType : uint32_t {
+  kPrimaryTrack,
+  kLambdaDaugher,
+  kCascadeBachelor,
+  kTrackTypeMax
+};
 
 }; // namespace modes
 }; // namespace o2::analysis::femtounited

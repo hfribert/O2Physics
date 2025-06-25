@@ -68,7 +68,7 @@ struct PairTrackTrack {
   using FilteredCollisions = o2::soa::Filtered<Collisions>;
   using FilteredCollision = FilteredCollisions::iterator;
 
-  colhistmanager::ConfCollisionBinning collisionBinning;
+  colhistmanager::ConfCollisionBinning confCollisionBinning;
 
   // Mixing configurables
   struct : ConfigurableGroup {
@@ -88,37 +88,33 @@ struct PairTrackTrack {
   using Tracks = o2::soa::Join<FUTracks, FUTrackMasks, FUTrackDCAs, FUTrackExtras, FUTrackPids>;
 
   trackselection::ConfTrackSelection1 trackSelections1;
-
   Partition<Tracks> TrackPartition1 =
-    (femtobase::pt > trackSelections1.ptMin) &&
-    (femtobase::pt < trackSelections1.ptMax) &&
+    ifnode(trackSelections1.sign.node() > 0, femtotracks::signedPt > 0.f, femtotracks::signedPt < 0.f) &&
+    (nabs(femtotracks::signedPt) > trackSelections1.ptMin) &&
+    (nabs(femtotracks::signedPt) < trackSelections1.ptMax) &&
     (femtobase::eta > trackSelections1.etaMin) &&
     (femtobase::eta < trackSelections1.etaMax) &&
     (femtobase::phi > trackSelections1.phiMin) &&
     (femtobase::phi < trackSelections1.phiMax) &&
-    ifnode(femtobase::pt * (nexp(femtobase::eta) + nexp(-1.f * femtobase::eta)) / 2.f <= trackSelections1.pidThres,
+    ifnode(nabs(femtotracks::signedPt) * (nexp(femtobase::eta) + nexp(-1.f * femtobase::eta)) / 2.f <= trackSelections1.pidThres,
            ncheckbit(femtotracks::trackMask, trackSelections1.maskLowMomentum), ncheckbit(femtotracks::trackMask, trackSelections1.maskHighMomentum));
 
   trackselection::ConfTrackSelection2 trackSelections2;
-
   Partition<Tracks> TrackPartition2 =
-    (femtobase::pt > trackSelections2.ptMin) &&
-    (femtobase::pt < trackSelections2.ptMax) &&
+    ifnode(trackSelections2.sign.node() > 0, femtotracks::signedPt > 0.f, femtotracks::signedPt < 0.f) &&
+    (nabs(femtotracks::signedPt) > trackSelections2.ptMin) &&
+    (nabs(femtotracks::signedPt) < trackSelections2.ptMax) &&
     (femtobase::eta > trackSelections2.etaMin) &&
     (femtobase::eta < trackSelections2.etaMax) &&
     (femtobase::phi > trackSelections2.phiMin) &&
     (femtobase::phi < trackSelections2.phiMax) &&
-    ifnode(femtobase::pt * (nexp(femtobase::eta) + nexp(-1.f * femtobase::eta)) / 2.f <= trackSelections2.pidThres,
+    ifnode(nabs(femtotracks::signedPt) * (nexp(femtobase::eta) + nexp(-1.f * femtobase::eta)) / 2.f <= trackSelections2.pidThres,
            ncheckbit(femtotracks::trackMask, trackSelections2.maskLowMomentum), ncheckbit(femtotracks::trackMask, trackSelections2.maskHighMomentum));
 
   Preslice<Tracks> perColReco = aod::femtobase::collisionId;
 
-  struct : ConfigurableGroup {
-    std::string prefix = std::string("TrackBinning");
-    ConfigurableAxis pt{"pt", {{600, 0, 6}}, "Pt"};
-    ConfigurableAxis eta{"eta", {{300, -1.5, 1.5}}, "Eta"};
-    ConfigurableAxis phi{"phi", {{720, 0, 1.f * o2::constants::math::TwoPI}}, "Phi"};
-  } TrackBinning;
+  trackhistmanager::ConfTrackBinning1 confTrackBinning1;
+  trackhistmanager::ConfTrackBinning2 confTrackBinning2;
 
   struct : ConfigurableGroup {
     std::string prefix = std::string("PairBinning");
@@ -169,38 +165,31 @@ struct PairTrackTrack {
     }
 
     // create a map for histogram specs
-    std::map<colhistmanager::ColHist, std::vector<framework::AxisSpec>> colHistSpec = {
-      {colhistmanager::kPosz, {collisionBinning.vtZ}},
-      {colhistmanager::kMult, {collisionBinning.mult}},
-      {colhistmanager::kCent, {collisionBinning.cent}},
-      {colhistmanager::kSphericity, {collisionBinning.spher}},
-      {colhistmanager::kMagField, {collisionBinning.magField}},
-      {colhistmanager::kPoszVsMult, {collisionBinning.vtZ, collisionBinning.mult}},
-      {colhistmanager::kPoszVsCent, {collisionBinning.vtZ, collisionBinning.cent}},
-      {colhistmanager::kCentVsMult, {collisionBinning.cent, collisionBinning.mult}},
-      {colhistmanager::kMultVsSphericity, {collisionBinning.mult, collisionBinning.spher}},
-      {colhistmanager::kCentVsSphericity, {collisionBinning.cent, collisionBinning.spher}}};
-    colHistManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, colHistSpec);
+    auto colHistSpec = colhistmanager::makeColHistSpecMap(confCollisionBinning);
+    colHistManager.init<modes::Mode::kANALYSIS>(&hRegistry, colHistSpec);
 
     std::map<trackhistmanager::TrackHist, std::vector<framework::AxisSpec>> trackHistSpec = {
-      {trackhistmanager::kPt, {TrackBinning.pt}},
-      {trackhistmanager::kEta, {TrackBinning.eta}},
-      {trackhistmanager::kPhi, {TrackBinning.phi}}};
-    trackHistManager1.init<modes::Mode::kANALYSIS>(&hRegistry, trackHistSpec);
+      {trackhistmanager::kPt, {confTrackBinning1.pt}},
+      {trackhistmanager::kEta, {confTrackBinning1.eta}},
+      {trackhistmanager::kPhi, {confTrackBinning1.phi}}};
+
+    auto trackHistSpec1 = makeTrackHistSpecMap(confTrackBinning1);
+    trackHistManager1.init<modes::Mode::kANALYSIS>(&hRegistry, trackHistSpec1);
     if (!Options.sameSpecies.value) {
-      trackHistManager2.init<modes::Mode::kANALYSIS>(&hRegistry, trackHistSpec);
+      auto trackHistSpec2 = makeTrackHistSpecMap(confTrackBinning2);
+      trackHistManager2.init<modes::Mode::kANALYSIS>(&hRegistry, trackHistSpec2);
     }
     std::map<pairhistmanager::PairHist, std::vector<framework::AxisSpec>> pairHistSpec = {
       {pairhistmanager::kKstar, {PairBinning.kstar}},
       {pairhistmanager::kKt, {PairBinning.kt}},
       {pairhistmanager::kMt, {PairBinning.mt}},
-      {pairhistmanager::kPt1VsPt2, {TrackBinning.pt, TrackBinning.pt}},
-      {pairhistmanager::kPt1VsKstar, {TrackBinning.pt, PairBinning.kstar}},
-      {pairhistmanager::kPt2VsKstar, {TrackBinning.pt, PairBinning.kstar}},
-      {pairhistmanager::kPt1VsKt, {TrackBinning.pt, PairBinning.kt}},
-      {pairhistmanager::kPt2VsKt, {TrackBinning.pt, PairBinning.kt}},
-      {pairhistmanager::kPt1VsMt, {TrackBinning.pt, PairBinning.mt}},
-      {pairhistmanager::kPt2VsMt, {TrackBinning.pt, PairBinning.mt}}};
+      {pairhistmanager::kPt1VsPt2, {confTrackBinning1.pt, confTrackBinning1.pt}},
+      {pairhistmanager::kPt1VsKstar, {confTrackBinning1.pt, PairBinning.kstar}},
+      {pairhistmanager::kPt2VsKstar, {confTrackBinning1.pt, PairBinning.kstar}},
+      {pairhistmanager::kPt1VsKt, {confTrackBinning1.pt, PairBinning.kt}},
+      {pairhistmanager::kPt2VsKt, {confTrackBinning1.pt, PairBinning.kt}},
+      {pairhistmanager::kPt1VsMt, {confTrackBinning1.pt, PairBinning.mt}},
+      {pairhistmanager::kPt2VsMt, {confTrackBinning1.pt, PairBinning.mt}}};
 
     pairHistManagerSe.init<modes::Mode::kANALYSIS>(&hRegistry, pairHistSpec);
     pairHistManagerSe.setMass(trackSelections1.pdgCode.value, trackSelections2.pdgCode.value);

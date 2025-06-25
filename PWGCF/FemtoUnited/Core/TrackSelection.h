@@ -211,13 +211,13 @@ class TrackSelection : public BaseSelection<float, o2::aod::femtodatatypes::Trac
     this->evaluateObservable(kDCAzMax, Track.dcaZ());
 
     // its pid
-    this->evaluateObservable(kItsElectron, Track.itsNSigmaEl());
-    this->evaluateObservable(kItsPion, Track.itsNSigmaPi());
-    this->evaluateObservable(kItsKaon, Track.itsNSigmaKa());
-    this->evaluateObservable(kItsProton, Track.itsNSigmaPr());
-    this->evaluateObservable(kItsDeuteron, Track.itsNSigmaDe());
-    this->evaluateObservable(kItsTriton, Track.itsNSigmaTr());
-    this->evaluateObservable(kItsHelium, Track.itsNSigmaHe());
+    // this->evaluateObservable(kItsElectron, Track.itsNSigmaEl());
+    // this->evaluateObservable(kItsPion, Track.itsNSigmaPi());
+    // this->evaluateObservable(kItsKaon, Track.itsNSigmaKa());
+    // this->evaluateObservable(kItsProton, Track.itsNSigmaPr());
+    // this->evaluateObservable(kItsDeuteron, Track.itsNSigmaDe());
+    // this->evaluateObservable(kItsTriton, Track.itsNSigmaTr());
+    // this->evaluateObservable(kItsHelium, Track.itsNSigmaHe());
 
     // tpc pid
     this->evaluateObservable(kTpcElectron, Track.tpcNSigmaEl());

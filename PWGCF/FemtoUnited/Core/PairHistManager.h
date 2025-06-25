@@ -92,7 +92,7 @@ class PairHistManager
   {
     mHistogramRegistry = registry;
 
-    if constexpr (isModeSet(mode, modes::Mode::kANALYSIS)) {
+    if constexpr (isFlagSet(mode, modes::Mode::kANALYSIS)) {
       std::string analysisDir = std::string(prefix) + std::string(AnalysisDir);
 
       mHistogramRegistry->add(analysisDir + GetHistNamev2(kKstar, HistTable), GetHistDesc(kKstar, HistTable), GetHistType(kKstar, HistTable), {Specs[kKstar]});
@@ -106,7 +106,7 @@ class PairHistManager
       mHistogramRegistry->add(analysisDir + GetHistNamev2(kPt2VsMt, HistTable), GetHistDesc(kPt2VsMt, HistTable), GetHistType(kPt2VsMt, HistTable), {Specs[kPt2VsMt]});
     }
 
-    // if constexpr (isModeSet(mode, modes::Mode::kQA)) {
+    // if constexpr (isFlagSet(mode, modes::Mode::kQA)) {
     // std::string qaDir = std::string(prefix) + std::string(QaDir);
     // }
   }
@@ -146,7 +146,7 @@ class PairHistManager
   template <modes::Mode mode>
   void fill()
   {
-    if constexpr (isModeSet(mode, modes::Mode::kANALYSIS)) {
+    if constexpr (isFlagSet(mode, modes::Mode::kANALYSIS)) {
       mHistogramRegistry->fill(HIST(prefix) + HIST(AnalysisDir) + HIST(GetHistName(kKstar, HistTable)), mKstar);
       mHistogramRegistry->fill(HIST(prefix) + HIST(AnalysisDir) + HIST(GetHistName(kMt, HistTable)), mMt);
       mHistogramRegistry->fill(HIST(prefix) + HIST(AnalysisDir) + HIST(GetHistName(kPt1VsPt2, HistTable)), mTrack1.Pt(), mTrack2.Pt());
@@ -158,7 +158,7 @@ class PairHistManager
       mHistogramRegistry->fill(HIST(prefix) + HIST(AnalysisDir) + HIST(GetHistName(kPt2VsKt, HistTable)), mTrack2.Pt(), mKt);
     }
 
-    // if constexpr (isModeSet(mode, modes::Mode::kQA)) {
+    // if constexpr (isFlagSet(mode, modes::Mode::kQA)) {
     //  mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kPtVsDcaz, HistTable)), track.pt(), track.dcaZ());
     // }
   }
