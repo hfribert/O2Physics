@@ -66,19 +66,19 @@ constexpr std::array<histmanager::HistInfo<ColHist>, kColHistLast> HistTable = {
   }};
 
 template <typename BinningStruct>
-std::map<ColHist, std::vector<framework::AxisSpec>> makeColHistSpecMap(const BinningStruct& binning)
+auto makeColHistSpecMap(const BinningStruct& binning)
 {
   return std::map<ColHist, std::vector<framework::AxisSpec>>{
-    {ColHist::kPosz, {binning.vtZ}},
-    {ColHist::kMult, {binning.mult}},
-    {ColHist::kCent, {binning.cent}},
-    {ColHist::kSphericity, {binning.spher}},
-    {ColHist::kMagField, {binning.magField}},
-    {ColHist::kPoszVsMult, {binning.vtZ, binning.mult}},
-    {ColHist::kPoszVsCent, {binning.vtZ, binning.cent}},
-    {ColHist::kCentVsMult, {binning.cent, binning.mult}},
-    {ColHist::kMultVsSphericity, {binning.mult, binning.spher}},
-    {ColHist::kCentVsSphericity, {binning.cent, binning.spher}}};
+    {kPosz, {binning.vtZ}},
+    {kMult, {binning.mult}},
+    {kCent, {binning.cent}},
+    {kSphericity, {binning.spher}},
+    {kMagField, {binning.magField}},
+    {kPoszVsMult, {binning.vtZ, binning.mult}},
+    {kPoszVsCent, {binning.vtZ, binning.cent}},
+    {kCentVsMult, {binning.cent, binning.mult}},
+    {kMultVsSphericity, {binning.mult, binning.spher}},
+    {kCentVsSphericity, {binning.cent, binning.spher}}};
 }
 
 struct ConfCollisionBinning : o2::framework::ConfigurableGroup {

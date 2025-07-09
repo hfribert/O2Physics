@@ -24,18 +24,22 @@ namespace femtodatatypes
 {
 // Note: Length of the bitmask is the limit of how many selections can be configured
 
-// Bitmaks for tracks
+// datatypes for tracks
 using TrackMaskType = uint64_t;
+using TrackType = uint16_t;
 
-// Bitmaks for lambdas
-using LambdaMaskType = uint32_t;
+// datatypes for v0s
+using V0MaskType = uint32_t;
+using V0Type = uint16_t;
 
-// Bitmaks for resonances and daughters
+// datatypes for two track resonances
 using TwoTrackResonaceMaskType = uint32_t;
-using TwoTrackResonaceType = uint8_t;
+// two track resonance types
+using TwoTrackResonaceType = uint16_t;
 
-// Bitmaks for cascades, vzero daughter and bachelor
+// datatypes for cascades
 using CascadeMaskType = uint32_t;
+using CascadeType = uint16_t;
 
 } // namespace femtodatatypes
 

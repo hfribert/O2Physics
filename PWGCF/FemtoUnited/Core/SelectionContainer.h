@@ -60,7 +60,7 @@ class SelectionContainer
   /// \param values Vector of values for the selection
   /// \param limitType Type of limit of the selection
   /// \param SkipLastBit Boolean whether to skip the last bit
-  SelectionContainer(std::vector<T>& SelectionValues, limits::LimitType limitType, bool SkipMostPermissiveBit, bool IsMinimalCut)
+  SelectionContainer(std::vector<T> const& SelectionValues, limits::LimitType limitType, bool SkipMostPermissiveBit, bool IsMinimalCut)
     : mSelectionValues(SelectionValues),
       mLimitType(limitType),
       mSkipMostPermissiveBit(SkipMostPermissiveBit),
@@ -84,7 +84,7 @@ class SelectionContainer
   /// \param function vector of strings for initializing of the TF1 object
   /// \param limitType Type of limit of the selection
   /// \param SkipLastBit Boolean whether to skip the last bit
-  SelectionContainer(std::string baseName, T lowerLimit, T upperLimit, std::vector<std::string>& functions, limits::LimitType limitType, bool skipMostPermissiveBit, bool IsMinimalCut)
+  SelectionContainer(std::string const& baseName, T lowerLimit, T upperLimit, std::vector<std::string> const& functions, limits::LimitType limitType, bool skipMostPermissiveBit, bool IsMinimalCut)
     : mLimitType(limitType),
       mSkipMostPermissiveBit(skipMostPermissiveBit),
       mIsMinimalCut(IsMinimalCut)

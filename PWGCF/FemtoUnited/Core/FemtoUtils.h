@@ -13,8 +13,8 @@
 /// \brief Collision selection
 /// \author Anton Riedel, TU München, anton.riedel@cern.ch
 
-#ifndef PWGCF_FEMTOUNITED_UTILS_FEMTOUTILS_H_
-#define PWGCF_FEMTOUNITED_UTILS_FEMTOUTILS_H_
+#ifndef PWGCF_FEMTOUNITED_CORE_FEMTOUTILS_H_
+#define PWGCF_FEMTOUNITED_CORE_FEMTOUTILS_H_
 
 #include "FairLogger.h"
 
@@ -160,4 +160,4 @@ inline float dphistar(float magfield, float radius, float charge, float pt, floa
 
 }; // namespace utils
 }; // namespace o2::analysis::femtounited
-#endif // PWGCF_FEMTOUNITED_UTILS_FEMTOUTILS_H_
+#endif // PWGCF_FEMTOUNITED_CORE_FEMTOUTILS_H_

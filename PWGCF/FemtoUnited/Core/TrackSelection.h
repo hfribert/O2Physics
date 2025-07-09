@@ -179,16 +179,51 @@ class TrackSelection : public BaseSelection<float, o2::aod::femtodatatypes::Trac
   TrackSelection() {}
   virtual ~TrackSelection() = default;
 
-  void setMinimalMomentumForTof(float minimalMomentumForTof)
+  template <typename T1, typename T2>
+  void configure(T1 const& config, T2 const& filter)
   {
-    mMinimalMomentumForTof = minimalMomentumForTof;
-  }
-
-  template <typename T>
-  bool hasTofAboveThreshold(T const& track) const
-  {
-    // If track momentum exceeds threshold, we require valid TOF info
-    return !(track.p() > mMinimalMomentumForTof && !track.hasTOF());
+    mMinimalMomentumForTof = config.minMomentumForTof.value;
+    // add selections for track quality
+    this->addSelection(config.tpcClustersMin.value, trackselection::kTPCnClsMin, limits::kLowerLimit, true, true);
+    this->addSelection(config.tpcCrossedRowsMin.value, trackselection::kTPCcRowsMin, limits::kLowerLimit, true, true);
+    this->addSelection(config.tpcSharedClustersMax.value, trackselection::kTPCsClsMax, limits::kUpperLimit, true, true);
+    this->addSelection(config.tpcSharedClusterFractionMax.value, trackselection::kTPCsClsFracMax, limits::kUpperLimit, true, true);
+    this->addSelection(config.itsClustersMin.value, trackselection::kITSnClsMin, limits::kLowerLimit, true, true);
+    this->addSelection(config.itsIbClustersMin.value, trackselection::kITSnClsIbMin, limits::kLowerLimit, true, true);
+    this->addSelection(config.dcaxyMax.name, filter.ptMin.value, filter.ptMax.value, config.dcaxyMax.value, trackselection::kDCAxyMax, limits::kAbsUpperFunctionLimit, true, true);
+    this->addSelection(config.dcazMax.name, filter.ptMin.value, filter.ptMax.value, config.dcazMax.value, trackselection::kDCAzMax, limits::kAbsUpperFunctionLimit, true, true);
+    // add selections for its pid
+    this->addSelection(config.itsElectron.value, trackselection::kItsElectron, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.itsPion.value, trackselection::kItsPion, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.itsKaon.value, trackselection::kItsKaon, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.itsProton.value, trackselection::kItsProton, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.itsDeuteron.value, trackselection::kItsDeuteron, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.itsTriton.value, trackselection::kItsTriton, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.itsHelium.value, trackselection::kItsHelium, limits::kAbsUpperLimit, false, false);
+    // add selections for tpc pid
+    this->addSelection(config.tpcElectron.value, trackselection::kTpcElectron, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tpcPion.value, trackselection::kTpcPion, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tpcKaon.value, trackselection::kTpcKaon, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tpcProton.value, trackselection::kTpcProton, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tpcDeuteron.value, trackselection::kTpcDeuteron, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tpcTriton.value, trackselection::kTpcTriton, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tpcHelium.value, trackselection::kTpcHelium, limits::kAbsUpperLimit, false, false);
+    // add selections for tof pid
+    this->addSelection(config.tofElectron.value, trackselection::kTofElectron, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tofPion.value, trackselection::kTofPion, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tofKaon.value, trackselection::kTofKaon, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tofProton.value, trackselection::kTofProton, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tofDeuteron.value, trackselection::kTofDeuteron, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tofTriton.value, trackselection::kTofTriton, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tofHelium.value, trackselection::kTofHelium, limits::kAbsUpperLimit, false, false);
+    // add selections for tpctof pid
+    this->addSelection(config.tpctofElectron.value, trackselection::kTpctofElectron, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tpctofPion.value, trackselection::kTpctofPion, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tpctofKaon.value, trackselection::kTpctofKaon, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tpctofProton.value, trackselection::kTpctofProton, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tpctofDeuteron.value, trackselection::kTpctofDeuteron, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tpctofTriton.value, trackselection::kTpctofTriton, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.tpctofHelium.value, trackselection::kTpctofHelium, limits::kAbsUpperLimit, false, false);
   }
 
   template <typename T>
@@ -211,13 +246,13 @@ class TrackSelection : public BaseSelection<float, o2::aod::femtodatatypes::Trac
     this->evaluateObservable(kDCAzMax, Track.dcaZ());
 
     // its pid
-    // this->evaluateObservable(kItsElectron, Track.itsNSigmaEl());
-    // this->evaluateObservable(kItsPion, Track.itsNSigmaPi());
-    // this->evaluateObservable(kItsKaon, Track.itsNSigmaKa());
-    // this->evaluateObservable(kItsProton, Track.itsNSigmaPr());
-    // this->evaluateObservable(kItsDeuteron, Track.itsNSigmaDe());
-    // this->evaluateObservable(kItsTriton, Track.itsNSigmaTr());
-    // this->evaluateObservable(kItsHelium, Track.itsNSigmaHe());
+    this->evaluateObservable(kItsElectron, Track.itsNSigmaEl());
+    this->evaluateObservable(kItsPion, Track.itsNSigmaPi());
+    this->evaluateObservable(kItsKaon, Track.itsNSigmaKa());
+    this->evaluateObservable(kItsProton, Track.itsNSigmaPr());
+    this->evaluateObservable(kItsDeuteron, Track.itsNSigmaDe());
+    this->evaluateObservable(kItsTriton, Track.itsNSigmaTr());
+    this->evaluateObservable(kItsHelium, Track.itsNSigmaHe());
 
     // tpc pid
     this->evaluateObservable(kTpcElectron, Track.tpcNSigmaEl());
@@ -248,6 +283,13 @@ class TrackSelection : public BaseSelection<float, o2::aod::femtodatatypes::Trac
 
     this->assembleBitmask();
   };
+
+  template <typename T>
+  bool hasTofAboveThreshold(T const& track) const
+  {
+    // If track momentum exceeds threshold, we require valid TOF info
+    return !(track.p() > mMinimalMomentumForTof && !track.hasTOF());
+  }
 
  protected:
   float mMinimalMomentumForTof = 99.f;

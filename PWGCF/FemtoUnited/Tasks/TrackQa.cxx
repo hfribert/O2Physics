@@ -50,7 +50,7 @@ struct TrackQa {
   Filter filterVtxz = femtocollisions::posZ >= collisionSelection.vtxZMin && femtocollisions::posZ <= collisionSelection.vtxZMax;
   Filter filterMult = femtocollisions::mult >= collisionSelection.multMin && femtocollisions::mult <= collisionSelection.multMax;
   Filter filterCent = femtocollisions::cent >= collisionSelection.centMin && femtocollisions::cent <= collisionSelection.centMax;
-  Filter filterSpher = femtocollisions::sphericity >= collisionSelection.centMin && femtocollisions::sphericity <= collisionSelection.centMax;
+  Filter filterSpher = femtocollisions::sphericity >= collisionSelection.spherMin && femtocollisions::sphericity <= collisionSelection.spherMax;
   Filter filterMagField = femtocollisions::magField >= collisionSelection.magFieldMin && femtocollisions::magField <= collisionSelection.magFieldMax;
 
   // using Collisions = o2::soa::Join<FUCols, FUColPos, FUColMults, FUColCents>;

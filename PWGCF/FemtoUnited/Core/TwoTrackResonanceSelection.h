@@ -9,17 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file ResonanceSelection.h
+/// \file TwoTrackResonanceSelection.h
 /// \brief Vzero selection
 /// \author anton.riedel@tum.de, TU München, anton.riedel@tum.de
 
-#ifndef PWGCF_FEMTOUNITED_CORE_RESONANCESELECTION_H_
-#define PWGCF_FEMTOUNITED_CORE_RESONANCESELECTION_H_
+#ifndef PWGCF_FEMTOUNITED_CORE_TWOTRACKRESONANCESELECTION_H_
+#define PWGCF_FEMTOUNITED_CORE_TWOTRACKRESONANCESELECTION_H_
 
 #include "RecoDecay.h"
 
 #include "PWGCF/FemtoUnited/Core/BaseSelection.h"
 #include "PWGCF/FemtoUnited/Core/DataTypes.h"
+#include "PWGCF/FemtoUnited/Core/Modes.h"
 
 #include "CommonConstants/MathConstants.h"
 #include "Framework/Configurable.h"
@@ -34,15 +35,6 @@ namespace o2::analysis::femtounited
 {
 namespace twotrackresonanceselection
 {
-
-// enum of supported resonances
-enum class TwoTrackResonace : o2::aod::femtodatatypes::TwoTrackResonaceType {
-  kRho,
-  kPhi,
-  kKstar,
-  kAntiKstar,
-  kTwoTrackResonaceMax
-};
 
 struct ConfTwoTrackResonanceDaughterFilters : o2::framework::ConfigurableGroup {
   std::string prefix = std::string("TwoTrackResonanceDaughterFilter");
@@ -76,9 +68,11 @@ struct ConfTwoTrackResonanceFilters : o2::framework::ConfigurableGroup {
 constexpr const char PrefixRhoFilters[] = "RhoFilters1";
 constexpr const char PrefixPhiFilters[] = "PhiFilters1";
 constexpr const char PrefixKstarFilters[] = "KstarFilters1";
+constexpr const char PrefixAntiKstarFilters[] = "AntiKstarFilters1";
 using ConfRhoFilters = ConfTwoTrackResonanceFilters<PrefixRhoFilters>;
 using ConfPhiFilters = ConfTwoTrackResonanceFilters<PrefixPhiFilters>;
 using ConfKstarFilters = ConfTwoTrackResonanceFilters<PrefixKstarFilters>;
+using ConfAntiKstarFilters = ConfTwoTrackResonanceFilters<PrefixAntiKstarFilters>;
 
 template <const char* Prefix>
 struct ConfTwoTrackResonanceBits : o2::framework::ConfigurableGroup {
@@ -91,7 +85,12 @@ struct ConfTwoTrackResonanceBits : o2::framework::ConfigurableGroup {
   o2::framework::Configurable<std::vector<std::string>> negDaughDcaxyMax{"negDaughDcaxyMax", {"0.0105+(0.035/x^(1.1))"}, "Maximum |dca_xy| as a function of pT"};
   o2::framework::Configurable<std::vector<std::string>> negDaughDcazMax{"negDaughDcazMax", {"0.0105+(0.035/x^(1.1))"}, "Maximum |dca_z| as a function of pT"};
 
-  o2::framework::Configurable<float> minMomentumForTof{"minMomentumForTof", 0.5f, "Minimum momentum to required TOF PID (all daughers)"};
+  // momentum threshold for TOF PID
+  // this is set and fixed in the producer, not in the pair task
+  // like this we just need to store 2 additional bits instead of two floats containg the momentum of the daughters
+  // for initalization of the partition we cannnot access the information which is linked in another table
+  o2::framework::Configurable<float> posDaughMinMomentumForTof{"posDaughMinMomentumForTof", 0.5f, "Minimum momentum to required TOF PID (positive daughers)"};
+  o2::framework::Configurable<float> negDaughMinMomentumForTof{"negDaughMinMomentumForTof", 0.5f, "Minimum momentum to required TOF PID (negative daughers)"};
 
   // track pid cuts for positive daughters
   o2::framework::Configurable<std::vector<float>> posDaughItsPion{"posDaughItsPion", {}, "Maximum |nsimga_Pion| ITS for positive daughter tracks"};
@@ -116,31 +115,40 @@ struct ConfTwoTrackResonanceBits : o2::framework::ConfigurableGroup {
 constexpr const char PrefixRhoBits[] = "RhoBits";
 constexpr const char PrefixPhiBits[] = "PhiBits";
 constexpr const char PrefixKstarBits[] = "KstarBits";
+constexpr const char PrefixAntiKstarBits[] = "AntiKstarBits";
 using ConfRhoBits = ConfTwoTrackResonanceBits<PrefixRhoBits>;
 using ConfPhiBits = ConfTwoTrackResonanceBits<PrefixPhiBits>;
 using ConfKstarBits = ConfTwoTrackResonanceBits<PrefixKstarBits>;
+using ConfAntiKstarBits = ConfTwoTrackResonanceBits<PrefixAntiKstarBits>;
 
 template <const char* Prefix>
-struct ConfResonanceSelection : o2::framework::ConfigurableGroup {
+struct ConfTwoTrackResonaceSelection : o2::framework::ConfigurableGroup {
   std::string prefix = Prefix;
   o2::framework::Configurable<float> ptMin{"ptMin", 0.f, "Minimum pT"};
-  o2::framework::Configurable<float> ptMax{"ptMax", 999.f, "Maximum pT"};
-  o2::framework::Configurable<float> etaMin{"etaMin", -10.f, "Minimum eta"};
-  o2::framework::Configurable<float> etaMax{"etaMax", 10.f, "Maximum eta"};
+  o2::framework::Configurable<float> ptMax{"ptMax", 6.f, "Maximum pT"};
+  o2::framework::Configurable<float> etaMin{"etaMin", -0.9f, "Minimum eta"};
+  o2::framework::Configurable<float> etaMax{"etaMax", 0.9f, "Maximum eta"};
   o2::framework::Configurable<float> phiMin{"phiMin", 0.f, "Minimum eta"};
   o2::framework::Configurable<float> phiMax{"phiMax", 1.f * o2::constants::math::TwoPI, "Maximum phi"};
   o2::framework::Configurable<float> massMin{"massMin", 0.f, "Minimum invariant mass for Resonance"};
   o2::framework::Configurable<float> massMax{"massMax", 6.f, "Maximum invariant mass for Resonance"};
-  o2::framework::Configurable<o2::aod::femtodatatypes::TwoTrackResonaceMaskType> mask{"mask", 0, "Bitmask for resonance selection"};
-  o2::framework::Configurable<o2::aod::femtodatatypes::TwoTrackResonaceMaskType> type{"type", 1, "Resonance type (Rho=1, Phi=2, Kstar=4)"};
+  o2::framework::Configurable<o2::aod::femtodatatypes::TwoTrackResonaceMaskType> maskPosDauBelowThres{"maskPosDauBelowThres", 0u, "Bitmask for resonance selection"};
+  o2::framework::Configurable<o2::aod::femtodatatypes::TwoTrackResonaceMaskType> maskPosDauAboveThres{"maskPosDauAboveThres", 0u, "Bitmask for resonance selection"};
+  o2::framework::Configurable<o2::aod::femtodatatypes::TwoTrackResonaceMaskType> maskNegDauBelowThres{"maskNegDauBelowThres", 0u, "Bitmask for resonance selection"};
+  o2::framework::Configurable<o2::aod::femtodatatypes::TwoTrackResonaceMaskType> maskNegDauAboveThres{"maskNegDauAboveThres", 0u, "Bitmask for resonance selection"};
+  o2::framework::Configurable<o2::aod::femtodatatypes::TwoTrackResonaceType> type{"type", 4u, "Resonance type (Rho=0, Phi=1, Kstar=2, AntiKstar=3)"};
 };
 
+constexpr const char PrefixTwoTrackResonanceSelection1[] = "TwoTrackResonanceSelection1";
 constexpr const char PrefixRhoSelection1[] = "RhoSelection1";
 constexpr const char PrefixPhiSelection1[] = "PhiSelection1";
 constexpr const char PrefixKstarSelection1[] = "KstarSelection1";
-using ConfRhoSelection1 = ConfResonanceSelection<PrefixRhoSelection1>;
-using ConfPhiSelection1 = ConfResonanceSelection<PrefixPhiSelection1>;
-using ConfKstarSelection1 = ConfResonanceSelection<PrefixKstarSelection1>;
+constexpr const char PrefixAntiKstarSelection1[] = "AntiKstarSelection1";
+using ConfTwoTrackResonaceSelection1 = ConfTwoTrackResonaceSelection<PrefixTwoTrackResonanceSelection1>;
+using ConfRhoSelection1 = ConfTwoTrackResonaceSelection<PrefixRhoSelection1>;
+using ConfPhiSelection1 = ConfTwoTrackResonaceSelection<PrefixPhiSelection1>;
+using ConfKstarSelection1 = ConfTwoTrackResonaceSelection<PrefixKstarSelection1>;
+using ConfAntiKstarSelection1 = ConfTwoTrackResonaceSelection<PrefixAntiKstarSelection1>;
 
 /// The different selections this task is capable of doing
 enum TwoTrackResonanceSels {
@@ -148,11 +156,9 @@ enum TwoTrackResonanceSels {
   kPosDauTpcClsMin, ///< Min. number of TPC clusters of positive daughter
   kPosDauDcaxyMax,  ///< Min. DCA of the positive daughers at primary vertex
   kPosDauDcazMax,   ///< Min. DCA of the positive daughers at primary vertex
-  kPosDaughItsPion,
   kPosDaughTpcPion,
   kPosDaughTofPion,
   kPosDaughTpctofPion,
-  kPosDaughItsKaon,
   kPosDaughTpcKaon,
   kPosDaughTofKaon,
   kPosDaughTpctofKaon,
@@ -161,11 +167,9 @@ enum TwoTrackResonanceSels {
   kNegDauTpcClsMin, ///< Min. number of TPC clusters of positive daughter
   kNegDauDcaxyMax,  ///< Min. DCA of the positive daughers at primary vertex
   kNegDauDcazMax,   ///< Min. DCA of the positive daughers at primary vertex
-  kNegDaughItsPion,
   kNegDaughTpcPion,
   kNegDaughTofPion,
   kNegDaughTpctofPion,
-  kNegDaughItsKaon,
   kNegDaughTpcKaon,
   kNegDaughTofKaon,
   kNegDaughTpctofKaon,
@@ -181,23 +185,25 @@ class TwoTrackResonanceSelection : public BaseSelection<float, o2::aod::femtodat
   TwoTrackResonanceSelection() {}
   virtual ~TwoTrackResonanceSelection() = default;
 
-  void setResonanceType(TwoTrackResonace type)
+  void setResonanceType(o2::analysis::femtounited::modes::TwoTrackResonace type)
   {
     mType = type;
-    if (mType == TwoTrackResonace::kRho) {
+    if (modes::isFlagSet(mType, o2::analysis::femtounited::modes::TwoTrackResonace::kRho)) {
       mPosDaughterMass = o2::constants::physics::MassPiPlus;
-      mPosDaughterMass = o2::constants::physics::MassPiMinus;
-    } else if (mType == TwoTrackResonace::kPhi) {
+      mNegDaughterMass = o2::constants::physics::MassPiMinus;
+    } else if (modes::isFlagSet(mType, o2::analysis::femtounited::modes::TwoTrackResonace::kPhi)) {
       mPosDaughterMass = o2::constants::physics::MassKPlus;
-      mPosDaughterMass = o2::constants::physics::MassKMinus;
-    } else if (mType == TwoTrackResonace::kKstar) {
+      mNegDaughterMass = o2::constants::physics::MassKMinus;
+    } else if (modes::isFlagSet(mType, o2::analysis::femtounited::modes::TwoTrackResonace::kKstar)) {
       mPosDaughterMass = o2::constants::physics::MassKPlus;
-      mPosDaughterMass = o2::constants::physics::MassPiMinus;
-    } else if (mType == TwoTrackResonace::kAntiKstar) {
+      mNegDaughterMass = o2::constants::physics::MassPiMinus;
+    } else if (modes::isFlagSet(mType, o2::analysis::femtounited::modes::TwoTrackResonace::kAntiKstar)) {
       mPosDaughterMass = o2::constants::physics::MassKMinus;
-      mPosDaughterMass = o2::constants::physics::MassPiPlus;
+      mNegDaughterMass = o2::constants::physics::MassPiPlus;
     } else {
-      LOG(warn) << "Resonance type is not supported";
+      LOG(warn) << "Resonance type is not supported. Set daughter masses to 0";
+      mPosDaughterMass = 0.f;
+      mNegDaughterMass = 0.f;
     }
   }
 
@@ -208,6 +214,18 @@ class TwoTrackResonanceSelection : public BaseSelection<float, o2::aod::femtodat
     ROOT::Math::PtEtaPhiMVector vecPosDaughter{posDaughter.pt(), posDaughter.eta(), posDaughter.phi(), mPosDaughterMass};
     ROOT::Math::PtEtaPhiMVector vecNegDaughter{negDaughter.pt(), negDaughter.eta(), negDaughter.phi(), mNegDaughterMass};
     ROOT::Math::PtEtaPhiMVector vecResonance = vecPosDaughter + vecNegDaughter;
+
+    // if (posDaughter.p() > mPosDaughMinimalMomentumForTof) {
+    //   mType = modes::setFlag(mType, o2::analysis::femtounited::modes::TwoTrackResonace::kPosDauAboveThres);
+    // } else {
+    //   mType = modes::clearFlag(mType, o2::analysis::femtounited::modes::TwoTrackResonace::kPosDauAboveThres);
+    // }
+    //
+    // if (negDaughter.p() > mNegDaughMinimalMomentumForTof) {
+    //   mType = modes::setFlag(mType, o2::analysis::femtounited::modes::TwoTrackResonace::kNegDauAboveThres);
+    // } else {
+    //   mType = modes::clearFlag(mType, o2::analysis::femtounited::modes::TwoTrackResonace::kNegDauAboveThres);
+    // }
 
     // cache kinematics
     mMass = vecResonance.M();
@@ -251,23 +269,24 @@ class TwoTrackResonanceSelection : public BaseSelection<float, o2::aod::femtodat
     return true;
   }
 
-  float getPt() const { return mPt; };
-  float getEta() const { return mEta; };
-  float getPhi() const { return mPhi; };
-  float getMass() const { return mMass; };
-  TwoTrackResonace getType() const { return mType; };
+  float getPt() const { return mPt; }
+  float getEta() const { return mEta; }
+  float getPhi() const { return mPhi; }
+  float getMass() const { return mMass; }
+  o2::analysis::femtounited::modes::TwoTrackResonace getType() const { return mType; }
 
-  void setMinimalMomentumForTof(float minimalMomentumForTof)
+  void setMinimalMomentumForTof(float posDaughMinimalMomentumForTof, float negDaughMinimalMomentumForTof)
   {
-    mMinimalMomentumForTof = minimalMomentumForTof;
+    mPosDaughMinimalMomentumForTof = posDaughMinimalMomentumForTof;
+    mNegDaughMinimalMomentumForTof = negDaughMinimalMomentumForTof;
   }
 
   template <typename T>
   bool hasTofAboveThreshold(T const& positiveDaughter, T const& negativeDaughter) const
   {
     // If track momentum exceeds threshold, we require valid TOF info
-    return !(positiveDaughter.p() > mMinimalMomentumForTof && !positiveDaughter.hasTOF()) &&
-           !(negativeDaughter.p() > mMinimalMomentumForTof && !negativeDaughter.hasTOF());
+    return !(positiveDaughter.p() > mPosDaughMinimalMomentumForTof && !positiveDaughter.hasTOF()) &&
+           !(negativeDaughter.p() > mNegDaughMinimalMomentumForTof && !negativeDaughter.hasTOF());
   }
 
   template <typename Tracks>
@@ -282,50 +301,46 @@ class TwoTrackResonanceSelection : public BaseSelection<float, o2::aod::femtodat
     this->updateLimits(kPosDauDcazMax, posDaughter.pt());
     this->evaluateObservable(kPosDauDcazMax, posDaughter.dcaZ());
     this->evaluateObservable(kPosDauTpcClsMin, posDaughter.tpcNClsFound());
-    this->evaluateObservable(kPosDaughItsPion, posDaughter.itsNsigmaPi());
-    this->evaluateObservable(kPosDaughTpcPion, posDaughter.tpcNsigmaPi());
-    this->evaluateObservable(kPosDaughTofPion, posDaughter.tofNsigmaPi());
-    this->evaluateObservable(kPosDaughTpctofPion, std::hypot(posDaughter.tpcNsigmaPi(), posDaughter.tofNsigmaPi()));
-    this->evaluateObservable(kPosDaughItsKaon, posDaughter.itsNsigmaKa());
-    this->evaluateObservable(kPosDaughTpcKaon, posDaughter.tpcNsigmaKa());
-    this->evaluateObservable(kPosDaughTofKaon, posDaughter.tofNsigmaKa());
-    this->evaluateObservable(kPosDaughTpctofKaon, std::hypot(posDaughter.tpcNsigmaKa(), posDaughter.tofNsigmaKa()));
+    this->evaluateObservable(kPosDaughTpcPion, posDaughter.tpcNSigmaPi());
+    this->evaluateObservable(kPosDaughTofPion, posDaughter.tofNSigmaPi());
+    this->evaluateObservable(kPosDaughTpctofPion, std::hypot(posDaughter.tpcNSigmaPi(), posDaughter.tofNSigmaPi()));
+    this->evaluateObservable(kPosDaughTpcKaon, posDaughter.tpcNSigmaKa());
+    this->evaluateObservable(kPosDaughTofKaon, posDaughter.tofNSigmaKa());
+    this->evaluateObservable(kPosDaughTpctofKaon, std::hypot(posDaughter.tpcNSigmaKa(), posDaughter.tofNSigmaKa()));
 
     // negative daughter selections
-    this->updateLimits(kNegDauDcaxyMax, posDaughter.pt());
+    this->updateLimits(kNegDauDcaxyMax, negDaughter.pt());
     this->evaluateObservable(kNegDauDcaxyMax, negDaughter.dcaXY());
-    this->updateLimits(kNegDauDcazMax, posDaughter.pt());
+    this->updateLimits(kNegDauDcazMax, negDaughter.pt());
     this->evaluateObservable(kNegDauDcazMax, negDaughter.dcaZ());
     this->evaluateObservable(kNegDauTpcClsMin, negDaughter.tpcNClsFound());
-    this->evaluateObservable(kNegDaughItsPion, negDaughter.itsNsigmaPi());
-    this->evaluateObservable(kNegDaughTpcPion, negDaughter.tpcNsigmaPi());
-    this->evaluateObservable(kNegDaughTofPion, negDaughter.tofNsigmaPi());
-    this->evaluateObservable(kNegDaughTpctofPion, std::hypot(negDaughter.tpcNsigmaPi(), negDaughter.tofNsigmaPi()));
+    this->evaluateObservable(kNegDaughTpcPion, negDaughter.tpcNSigmaPi());
+    this->evaluateObservable(kNegDaughTofPion, negDaughter.tofNSigmaPi());
+    this->evaluateObservable(kNegDaughTpctofPion, std::hypot(negDaughter.tpcNSigmaPi(), negDaughter.tofNSigmaPi()));
 
-    this->evaluateObservable(kNegDaughItsKaon, negDaughter.itsNsigmaKa());
-    this->evaluateObservable(kNegDaughTpcKaon, negDaughter.tpcNsigmaKa());
-    this->evaluateObservable(kNegDaughTofKaon, negDaughter.tofNsigmaKa());
-    this->evaluateObservable(kNegDaughTpctofKaon, std::hypot(negDaughter.tpcNsigmaKa(), negDaughter.tofNsigmaKa()));
+    this->evaluateObservable(kNegDaughTpcKaon, negDaughter.tpcNSigmaKa());
+    this->evaluateObservable(kNegDaughTofKaon, negDaughter.tofNSigmaKa());
+    this->evaluateObservable(kNegDaughTpctofKaon, std::hypot(negDaughter.tpcNSigmaKa(), negDaughter.tofNSigmaKa()));
 
     this->assembleBitmask();
   };
 
   bool checkDaughterPids()
   {
-    if (mType == TwoTrackResonace::kRho) {
+    if (modes::isFlagSet(mType, o2::analysis::femtounited::modes::TwoTrackResonace::kRho)) {
       return (this->passesOptionalCut(kPosDaughTpcPion) || this->passesOptionalCut(kPosDaughTofPion) || this->passesOptionalCut(kPosDaughTofPion)) &&
              (this->passesOptionalCut(kNegDaughTpcPion) || this->passesOptionalCut(kNegDaughTofPion) || this->passesOptionalCut(kNegDaughTofPion));
-    } else if (mType == TwoTrackResonace::kPhi) {
+    } else if (modes::isFlagSet(mType, o2::analysis::femtounited::modes::TwoTrackResonace::kPhi)) {
       return (this->passesOptionalCut(kPosDaughTpcKaon) || this->passesOptionalCut(kPosDaughTofKaon) || this->passesOptionalCut(kPosDaughTofKaon)) &&
              (this->passesOptionalCut(kNegDaughTpcKaon) || this->passesOptionalCut(kNegDaughTofKaon) || this->passesOptionalCut(kNegDaughTofKaon));
-    } else if (mType == TwoTrackResonace::kKstar) {
+    } else if (modes::isFlagSet(mType, o2::analysis::femtounited::modes::TwoTrackResonace::kKstar)) {
       return (this->passesOptionalCut(kPosDaughTpcKaon) || this->passesOptionalCut(kPosDaughTofKaon) || this->passesOptionalCut(kPosDaughTofKaon)) &&
              (this->passesOptionalCut(kNegDaughTpcPion) || this->passesOptionalCut(kNegDaughTofPion) || this->passesOptionalCut(kNegDaughTofPion));
-    } else if (mType == TwoTrackResonace::kAntiKstar) {
+    } else if (modes::isFlagSet(mType, o2::analysis::femtounited::modes::TwoTrackResonace::kAntiKstar)) {
       return (this->passesOptionalCut(kPosDaughTpcPion) || this->passesOptionalCut(kPosDaughTofPion) || this->passesOptionalCut(kPosDaughTofPion)) &&
              (this->passesOptionalCut(kNegDaughTpcKaon) || this->passesOptionalCut(kNegDaughTofKaon) || this->passesOptionalCut(kNegDaughTofKaon));
     } else {
-      LOG(warn) << "Resonance type is not supported";
+      LOG(warn) << "Resonance type is not supported. Return false for daughter pid check";
       return false;
     }
   }
@@ -348,13 +363,14 @@ class TwoTrackResonanceSelection : public BaseSelection<float, o2::aod::femtodat
   float mPhiMax = o2::constants::math::TwoPI;
 
   // minimum momentum of the daughers to ask for tof information
-  float mMinimalMomentumForTof = 99.f;
+  float mPosDaughMinimalMomentumForTof = 99.f;
+  float mNegDaughMinimalMomentumForTof = 99.f;
 
-  TwoTrackResonace mType;
+  o2::analysis::femtounited::modes::TwoTrackResonace mType;
   float mPosDaughterMass = 0.f;
   float mNegDaughterMass = 0.f;
 };
 
 } // namespace twotrackresonanceselection
 } // namespace o2::analysis::femtounited
-#endif // PWGCF_FEMTOUNITED_CORE_RESONANCESELECTION_H_
+#endif // PWGCF_FEMTOUNITED_CORE_TWOTRACKRESONANCESELECTION_H_

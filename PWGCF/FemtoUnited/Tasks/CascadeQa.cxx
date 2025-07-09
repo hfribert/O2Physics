@@ -9,19 +9,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file LambdaQa.cxx
+/// \file CascadeQa.cxx
 /// \brief Tasks that reads the particle tables and fills QA histograms for vzeros
 /// \author Anton Riedel, TU München, anton.riedel@cern.ch
 
+#include "PWGCF/FemtoUnited/Core/CascadeHistManager.h"
+#include "PWGCF/FemtoUnited/Core/CascadeSelection.h"
 #include "PWGCF/FemtoUnited/Core/CollisionHistManager.h"
 #include "PWGCF/FemtoUnited/Core/CollisionSelection.h"
-#include "PWGCF/FemtoUnited/Core/LambdaHistManager.h"
 #include "PWGCF/FemtoUnited/Core/Modes.h"
 #include "PWGCF/FemtoUnited/Core/TrackHistManager.h"
-#include "PWGCF/FemtoUnited/Core/V0Selection.h"
+#include "PWGCF/FemtoUnited/DataModel/FemtoCascadesDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoCollisionsDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoTracksDerived.h"
-#include "PWGCF/FemtoUnited/DataModel/FemtoV0sDerived.h"
 
 #include "Framework/ASoA.h"
 #include "Framework/AnalysisTask.h"
@@ -41,7 +41,7 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 using namespace o2::analysis::femtounited;
 
-struct LambdaQa {
+struct CascadeQa {
 
   struct : ConfigurableGroup {
     std::string prefix = std::string("Options");
@@ -64,41 +64,41 @@ struct LambdaQa {
 
   colhistmanager::ConfCollisionBinning confCollisionBinning;
 
-  using Lambdas = o2::soa::Join<FULambdas, FULambdaMasks, FULambdaExtras>;
+  using Cascades = o2::soa::Join<FUCascades, FUCascadeMasks, FUCascadeExtras>;
   using Tracks = o2::soa::Join<FUTracks, FUTrackMasks, FUTrackDCAs, FUTrackExtras, FUTrackPids>;
 
   SliceCache cache;
 
-  v0selection::ConfLambdaSelection1 confLambdaSelection;
+  lambdaselection::ConfCascadeSelection1 confCascadeSelection;
 
-  Partition<Lambdas> LambdaPartition =
-    (femtobase::pt > confLambdaSelection.ptMin) &&
-    (femtobase::pt < confLambdaSelection.ptMax) &&
-    (femtobase::eta > confLambdaSelection.etaMin) &&
-    (femtobase::eta < confLambdaSelection.etaMax) &&
-    (femtobase::phi > confLambdaSelection.phiMin) &&
-    (femtobase::phi < confLambdaSelection.phiMax) &&
-    (femtov0s::lambdaMass > confLambdaSelection.massMin) &&
-    (femtov0s::lambdaMass < confLambdaSelection.massMax) &&
-    (femtov0s::antiLambdaMass > confLambdaSelection.antiMassMin) &&
-    (femtov0s::antiLambdaMass < confLambdaSelection.antiMassMax) &&
-    ncheckbit(femtov0s::lambdaMask, confLambdaSelection.mask);
-  Preslice<Lambdas> perColReco = aod::femtobase::collisionId;
+  Partition<Cascades> CascadePartition =
+    (femtobase::pt > confCascadeSelection.ptMin) &&
+    (femtobase::pt < confCascadeSelection.ptMax) &&
+    (femtobase::eta > confCascadeSelection.etaMin) &&
+    (femtobase::eta < confCascadeSelection.etaMax) &&
+    (femtobase::phi > confCascadeSelection.phiMin) &&
+    (femtobase::phi < confCascadeSelection.phiMax) &&
+    (femtolambdas::lambdaMass > confCascadeSelection.massMin) &&
+    (femtolambdas::lambdaMass < confCascadeSelection.massMax) &&
+    (femtolambdas::antiCascadeMass > confCascadeSelection.antiMassMin) &&
+    (femtolambdas::antiCascadeMass < confCascadeSelection.antiMassMax) &&
+    ncheckbit(femtolambdas::lambdaMask, confCascadeSelection.mask);
+  Preslice<Cascades> perColReco = aod::femtobase::collisionId;
 
-  lambdahistmanager::ConfLambdaBinning1 confLambdaBinning;
-  lambdahistmanager::ConfLambdaQaBinning1 confLambdaQaBinning;
+  lambdahistmanager::ConfCascadeBinning1 confCascadeBinning;
+  lambdahistmanager::ConfCascadeQaBinning1 confCascadeQaBinning;
 
-  trackhistmanager::ConfLambdaPosDauBinning confPosDaughterBinning;
-  trackhistmanager::ConfLambdaPosDauQaBinning confPosDaughterQaBinning;
-  trackhistmanager::ConfLambdaNegDauBinning confNegDaughterBinning;
-  trackhistmanager::ConfLambdaNegDauQaBinning confNegDaughterQaBinning;
+  trackhistmanager::ConfCascadePosDauBinning confPosDaughterBinning;
+  trackhistmanager::ConfCascadePosDauQaBinning confPosDaughterQaBinning;
+  trackhistmanager::ConfCascadeNegDauBinning confNegDaughterBinning;
+  trackhistmanager::ConfCascadeNegDauQaBinning confNegDaughterQaBinning;
 
-  HistogramRegistry hRegistry{"LambdaQA", {}, OutputObjHandlingPolicy::AnalysisObject};
+  HistogramRegistry hRegistry{"CascadeQA", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   colhistmanager::CollisionHistManager colHistManager;
-  lambdahistmanager::LambdaHistManager<lambdahistmanager::PrefixLambdaQa> lambdaHistManager;
-  trackhistmanager::TrackHistManager<trackhistmanager::PrefixLambdaPosDaughterQa> posDaughterManager;
-  trackhistmanager::TrackHistManager<trackhistmanager::PrefixLambdaNegDaughterQa> negDaughterManager;
+  lambdahistmanager::CascadeHistManager<lambdahistmanager::PrefixCascadeQa> lambdaHistManager;
+  trackhistmanager::TrackHistManager<trackhistmanager::PrefixCascadePosDaughterQa> posDaughterManager;
+  trackhistmanager::TrackHistManager<trackhistmanager::PrefixCascadeNegDaughterQa> negDaughterManager;
 
   void init(InitContext&)
   {
@@ -106,7 +106,7 @@ struct LambdaQa {
     auto colHistSpec = colhistmanager::makeColHistSpecMap(confCollisionBinning);
     colHistManager.init<modes::Mode::kANALYSIS>(&hRegistry, colHistSpec);
 
-    auto lambdaHistSpec = lambdahistmanager::makeLambdaQaHistSpecMap(confLambdaBinning, confLambdaQaBinning);
+    auto lambdaHistSpec = lambdahistmanager::makeCascadeQaHistSpecMap(confCascadeBinning, confCascadeQaBinning);
     lambdaHistManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, lambdaHistSpec);
 
     auto posDaughterHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confPosDaughterBinning, confPosDaughterQaBinning);
@@ -116,15 +116,15 @@ struct LambdaQa {
     negDaughterManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, negDaughterHistSpec);
   };
 
-  void process(FilteredCollision const& col, Lambdas const& /*lambdas*/, Tracks const& /*tracks*/)
+  void process(FilteredCollision const& col, Cascades const& /*lambdas*/, Tracks const& /*tracks*/)
   {
     colHistManager.fill<modes::Mode::kANALYSIS_QA>(col);
-    auto lambdaSlice = LambdaPartition->sliceByCached(femtobase::collisionId, col.globalIndex(), cache);
+    auto lambdaSlice = CascadePartition->sliceByCached(femtobase::collisionId, col.globalIndex(), cache);
     for (auto const& lambda : lambdaSlice) {
       lambdaHistManager.fill<modes::Mode::kANALYSIS_QA>(lambda);
-      auto posDaugther = lambda.posDau_as<Tracks>();
+      auto posDaugther = lambda.posDauCascade_as<Tracks>();
       posDaughterManager.fill<modes::Mode::kANALYSIS_QA>(posDaugther);
-      auto negDaugther = lambda.negDau_as<Tracks>();
+      auto negDaugther = lambda.negDauCascade_as<Tracks>();
       negDaughterManager.fill<modes::Mode::kANALYSIS_QA>(negDaugther);
     }
   }
@@ -133,7 +133,7 @@ struct LambdaQa {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<LambdaQa>(cfgc),
+    adaptAnalysisTask<CascadeQa>(cfgc),
   };
   return workflow;
 }

@@ -1,4 +1,3 @@
-
 // Copyright 2019-2024 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
@@ -18,6 +17,7 @@
 #define PWGCF_FEMTOUNITED_DATAMODEL_FEMTOBASEDERIVED_H_
 
 #include "Framework/ASoA.h"
+#include "Framework/AnalysisDataModel.h"
 #include "Framework/Expressions.h"
 
 #include <cmath>

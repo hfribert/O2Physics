@@ -18,8 +18,8 @@
 
 #include "PWGCF/FemtoUnited/Core/DataTypes.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoBaseDerived.h"
-#include "PWGCF/FemtoUnited/DataModel/FemtoLambdasDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoTracksDerived.h"
+#include "PWGCF/FemtoUnited/DataModel/FemtoV0sDerived.h"
 
 #include "Framework/ASoA.h"
 
@@ -27,6 +27,8 @@ namespace o2::aod
 {
 namespace femtocascades
 {
+
+DECLARE_SOA_COLUMN(SignedPt, signedPt, float); //! signed Pt of the track
 // columns for lambdas
 DECLARE_SOA_COLUMN(XiMass, xiMass, float);       //! Mass of Lambda
 DECLARE_SOA_COLUMN(OmegaMass, omegaMass, float); //! Mass of anti Lambda
@@ -34,14 +36,20 @@ DECLARE_SOA_COLUMN(OmegaMass, omegaMass, float); //! Mass of anti Lambda
 // columns for Lambda bit masks
 DECLARE_SOA_COLUMN(CascadeMask, cascadeMask, femtodatatypes::CascadeMaskType); //! Bitmask for Lambda selections
 
-// columns for Lambda debug information
-DECLARE_SOA_COLUMN(DauDCA, dauDCA, float);           //! Lambda daughter DCA at decay vertex
-DECLARE_SOA_COLUMN(TransRadius, transRadius, float); //! Lambda transvers radius
-DECLARE_SOA_COLUMN(DecayVtxX, decayVtxX, float);     //! x coordinate of Lambda decay vertex
-DECLARE_SOA_COLUMN(DecayVtxY, decayVtxY, float);     //! y coordinate of Lambda decay vertex
-DECLARE_SOA_COLUMN(DecayVtxZ, decayVtxZ, float);     //! z coordinate of Lambda decay vertex
-DECLARE_SOA_COLUMN(KaonMass, kaonMass, float);       //! Lambda mass using Kaon hypothesis
+// columns for cascad debug information
+DECLARE_SOA_COLUMN(CascadeCosPa, cascadeCosPa, float);             //! cosine of the poiting angle at decay vertex
+DECLARE_SOA_COLUMN(CascadeDauDca, cascadeDauDca, float);           //! Lambda daughter DCA at decay vertex
+DECLARE_SOA_COLUMN(CascadeTransRadius, cascadeTransRadius, float); //! Lambda transvers radius
+DECLARE_SOA_COLUMN(LambdaCosPa, lambdaCosPa, float);               //! cosine of the poiting angle at decay vertex
+DECLARE_SOA_COLUMN(LambdaDauDca, lambdaDauDca, float);             //! Lambda daughter DCA at decay vertex
+DECLARE_SOA_COLUMN(LambdaTransRadius, lambdaTransRadius, float);   //! Lambda transvers radius
+DECLARE_SOA_COLUMN(LambdaDcaToPv, lambdaDcaToPv, float);           //! Lambda transvers radius
 
+// id columns for daughter lambda
+// DECLARE_SOA_INDEX_COLUMN_FULL(LambdaDaughter, lambdaDaughter, int32_t, FULambdas, "_LambdaDaughter"); //!
+
+// id columns for bachelor
+DECLARE_SOA_INDEX_COLUMN_FULL(CascadeBachelor, cascadeBachelor, int32_t, FUTracks, "_CascadeBachelor"); //!
 // id columns for Lambda daughter tracks
 DECLARE_SOA_INDEX_COLUMN_FULL(PosDauLambda, posDauLambda, int32_t, FUTracks, "_PosDauLambda"); //!
 DECLARE_SOA_INDEX_COLUMN_FULL(NegDauLambda, negDauLambda, int32_t, FUTracks, "_NegDauLambda"); //!
@@ -49,35 +57,37 @@ DECLARE_SOA_INDEX_COLUMN_FULL(NegDauLambda, negDauLambda, int32_t, FUTracks, "_N
 } // namespace femtocascades
 
 // table for basic vzero information
-DECLARE_SOA_TABLE_STAGED_VERSIONED(FULambdas_001, "FUCASCADES", 1,
+DECLARE_SOA_TABLE_STAGED_VERSIONED(FUCascades_001, "FUCASCADES", 1,
                                    o2::soa::Index<>,
                                    femtobase::CollisionId,
-                                   femtobase::Pt,
+                                   femtocascades::SignedPt,
                                    femtobase::Eta,
                                    femtobase::Phi,
-                                   femtolambdas::LambdaMass,
-                                   femtolambdas::AntiLambdaMass,
-                                   femtolambdas::PosDauLambdaId,
-                                   femtolambdas::NegDauLambdaId,
+                                   femtocascades::XiMass,
+                                   femtocascades::OmegaMass,
+                                   femtocascades::CascadeBachelorId,
+                                   femtocascades::PosDauLambdaId,
+                                   femtocascades::NegDauLambdaId,
                                    femtobase::Theta<femtobase::Eta>,
                                    femtobase::Px<femtobase::Pt, femtobase::Eta>,
                                    femtobase::Py<femtobase::Pt, femtobase::Eta>,
                                    femtobase::Pz<femtobase::Pt, femtobase::Eta>,
                                    femtobase::P<femtobase::Pt, femtobase::Eta>);
-using FULambdas = FULambdas_001;
+using FUCascades = FUCascades_001;
 
-DECLARE_SOA_TABLE_STAGED_VERSIONED(FULambdaMasks_001, "FULAMBDAMASKS", 1,
-                                   femtolambdas::LambdaMask);
-using FULambdaMasks = FULambdaMasks_001;
+DECLARE_SOA_TABLE_STAGED_VERSIONED(FUCascadeMasks_001, "FUCASCADEMASKS", 1,
+                                   femtocascades::CascadeMask);
+using FUCascadeMasks = FUCascadeMasks_001;
 
-DECLARE_SOA_TABLE_STAGED_VERSIONED(FULambdaExtras_001, "FULAMBDAEXTRAS", 1,
-                                   femtolambdas::DauDCA,
-                                   femtolambdas::DecayVtxX,
-                                   femtolambdas::DecayVtxY,
-                                   femtolambdas::DecayVtxZ,
-                                   femtolambdas::TransRadius,
-                                   femtolambdas::KaonMass);
-using FULambdaExtras = FULambdaExtras_001;
+DECLARE_SOA_TABLE_STAGED_VERSIONED(FUCascadeExtras_001, "FUCASCADEEXTRAS", 1,
+                                   femtocascades::CascadeCosPa,
+                                   femtocascades::CascadeDauDca,
+                                   femtocascades::CascadeTransRadius,
+                                   femtocascades::LambdaCosPa,
+                                   femtocascades::LambdaDauDca,
+                                   femtocascades::LambdaTransRadius,
+                                   femtocascades::LambdaDcaToPv);
+using FUCascadeExtras = FUCascadeExtras_001;
 
 } // namespace o2::aod
 

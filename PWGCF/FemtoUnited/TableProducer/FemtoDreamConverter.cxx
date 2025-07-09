@@ -15,8 +15,8 @@
 
 #include "PWGCF/DataModel/FemtoDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoCollisionsDerived.h"
-#include "PWGCF/FemtoUnited/DataModel/FemtoLambdasDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoTracksDerived.h"
+#include "PWGCF/FemtoUnited/DataModel/FemtoV0sDerived.h"
 
 #include "Framework/AnalysisTask.h"
 #include "Framework/runDataProcessing.h"
@@ -74,7 +74,7 @@ struct FemtoDreamConverter {
         outputLambdas(outputCollisions.lastIndex(), part.pt(), part.eta(), part.phi(), part.mLambda(), part.mAntiLambda(), posChild.childrenIds()[0], negChild.childrenIds()[1]);
         // vzero daughters
       }
-    };
+    }
   };
 };
 

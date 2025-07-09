@@ -45,7 +45,7 @@ class BaseSelection
   /// \param configSelections Vector of configurables containing the values employed for the selection
   /// \param Observable Observable to be employed for the selection
   /// \param limitType Type of the selection limit
-  void addSelection(std::vector<T>& selectionValues, int observableIndex, limits::LimitType limitType, bool skipMostPermissiveBit, bool isMinimalCut)
+  void addSelection(std::vector<T> const& selectionValues, int observableIndex, limits::LimitType limitType, bool skipMostPermissiveBit, bool isMinimalCut)
   {
     if (static_cast<size_t>(observableIndex) >= NumObservables) {
       LOG(fatal) << "Observable is not valid. Observable (index) has to be smaller than " << NumObservables;
@@ -61,7 +61,7 @@ class BaseSelection
   /// \param configSelection Vector from configurable containing the values employed for the selection
   /// \param observableType Observable to be employed for the selection
   /// \param limitType Type of the selection limit
-  void addSelection(std::string baseName, T lowerLimit, T upperLimit, std::vector<std::string>& selectionValues, int observableIndex, limits::LimitType limitType, bool skipMostPermissiveBit, bool isMinimalCut)
+  void addSelection(std::string const& baseName, T lowerLimit, T upperLimit, std::vector<std::string> const& selectionValues, int observableIndex, limits::LimitType limitType, bool skipMostPermissiveBit, bool isMinimalCut)
   {
     if (static_cast<size_t>(observableIndex) >= NumObservables) {
       LOG(fatal) << "Observable is not valid. Observable (index) has to be smaller than " << NumObservables;
