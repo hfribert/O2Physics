@@ -11,7 +11,6 @@
 
 ///
 /// \file   OTFPIDTrk.h
-/// \author Berkin Ulukutlu TUM
 /// \author Henrik Fribert TUM
 /// \author Nicolò Jacazio Università del Piemonte Orientale
 /// \since  May 22, 2025
@@ -40,6 +39,7 @@ DECLARE_SOA_COLUMN(NSigmaTrkPr, nSigmaPr, float); //! NSigma proton from the tra
 DECLARE_SOA_COLUMN(NSigmaTrkDe, nSigmaDe, float); //! NSigma deuteron from the tracker layers
 DECLARE_SOA_COLUMN(NSigmaTrkTr, nSigmaTr, float); //! NSigma triton from the tracker layers
 DECLARE_SOA_COLUMN(NSigmaTrkHe, nSigmaHe, float); //! NSigma helium-3 from the tracker layers
+DECLARE_SOA_COLUMN(NSigmaTrkAl, nSigmaAl, float); //! NSigma alpha from the tracker layers
 
 DECLARE_SOA_DYNAMIC_COLUMN(NSigmaTrk, nSigmaTrk, //! General function to get the nSigma for the tracker layers
                            [](const float el,
@@ -50,6 +50,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(NSigmaTrk, nSigmaTrk, //! General function to get the
                               const float de,
                               const float tr,
                               const float he,
+                              const float al,
                               const int id) -> float {
                              switch (std::abs(id)) {
                                case 0:
@@ -68,6 +69,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(NSigmaTrk, nSigmaTrk, //! General function to get the
                                  return tr;
                                case 7:
                                  return he;
+                               case 8:
+                                 return al;
                                default:
                                  LOG(fatal) << "Unrecognized PDG code";
                                  return 999.f;
@@ -88,6 +91,7 @@ DECLARE_SOA_TABLE(UpgradeTrkPids, "AOD", "UPGRADETRKPID",
                   upgrade::trk::NSigmaTrkDe,
                   upgrade::trk::NSigmaTrkTr,
                   upgrade::trk::NSigmaTrkHe,
+                  upgrade::trk::NSigmaTrkAl,
                   upgrade::trk::NSigmaTrk<upgrade::trk::NSigmaTrkEl,
                                           upgrade::trk::NSigmaTrkMu,
                                           upgrade::trk::NSigmaTrkPi,
@@ -95,7 +99,8 @@ DECLARE_SOA_TABLE(UpgradeTrkPids, "AOD", "UPGRADETRKPID",
                                           upgrade::trk::NSigmaTrkPr,
                                           upgrade::trk::NSigmaTrkDe,
                                           upgrade::trk::NSigmaTrkTr,
-                                          upgrade::trk::NSigmaTrkHe>);
+                                          upgrade::trk::NSigmaTrkHe,
+                                          upgrade::trk::NSigmaTrkAl>);
 
 using UpgradeTrkPidSignal = UpgradeTrkPidSignals::iterator;
 using UpgradeTrkPid = UpgradeTrkPids::iterator;
