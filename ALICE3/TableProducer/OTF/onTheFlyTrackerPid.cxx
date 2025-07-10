@@ -11,11 +11,8 @@
 ///
 /// \file onTheFlyTrackerPid.cxx
 ///
-/// \brief This task produces the PID information that can be obtained from the tracker layers (i.e. ToT and possibly cluster size).
-///        So far only ToT implemented. It currently contemplates 5 particle types: electrons, muons, pions, kaons and
-///        protons (deuterons, tritons and helium-3 are available if added to the event generator).
+/// \brief Task for simulating ToT-based PID in the barrel tracker.
 ///
-/// \author Berkin Ulukutlu TUM
 /// \author Henrik Fribert TUM
 /// \author Nicolò Jacazio Università del Piemonte Orientale
 /// \since  May 22, 2025
@@ -33,7 +30,7 @@
 #include <TFile.h>
 #include <TH1F.h>
 #include <TProfile.h>
-#include <TString.h>
+#include <TRandom3.h>
 
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisTask.h"
@@ -55,12 +52,10 @@
 #include "DataFormatsCalibration/MeanVertexObject.h"
 #include "CommonConstants/GeomConstants.h"
 #include "CommonConstants/PhysicsConstants.h"
-#include "TRandom3.h"
 #include "TF1.h"
 #include "TH2F.h"
 #include "TVector3.h"
 #include "TString.h"
-#include "ALICE3/DataModel/OTFRICH.h"
 #include "DetectorsVertexing/HelixHelper.h"
 #include "TableHelper.h"
 #include "ALICE3/Core/DelphesO2TrackSmearer.h"
@@ -78,12 +73,27 @@ static constexpr float kEtaMax = 2.5;
 static constexpr int kPtBins = 500;
 static constexpr float kPtMin = 0.0;
 static constexpr float kPtMax = 10.0;
+static constexpr int kNumLogBins = 200;
 }
 
 class ToTLUT {
 public:
-  ToTLUT() = default;
-  ~ToTLUT() = default;
+  ToTLUT(float truncationFractionVal) : mTruncationFraction(truncationFractionVal) {}
+  ToTLUT() = delete;
+
+  ~ToTLUT() {
+    for (auto& pdg_array : mLUTHistograms) {
+        for (auto& layer_array : pdg_array) {
+            for (auto& eta_array : layer_array) {
+                for (auto hist_ptr : eta_array) {
+                    if (hist_ptr) {
+                        delete hist_ptr;
+                      }
+                  }
+              }
+          }
+      }
+  }
 
   bool load(int pdg, const std::string& filename) {
     TFile* f = TFile::Open(filename.c_str());
@@ -92,23 +102,48 @@ public:
       return false;
     }
 
+    int current_pdg_idx;
+    auto it = mPdgToIndexMap.find(pdg);
+    if (it == mPdgToIndexMap.end()) {
+        current_pdg_idx = mIndexToPdgMap.size();
+        mPdgToIndexMap[pdg] = current_pdg_idx;
+        mIndexToPdgMap.push_back(pdg);
+        if (mLUTData.size() <= static_cast<size_t>(current_pdg_idx)) {
+            mLUTData.resize(current_pdg_idx + 1);
+            mLUTHistograms.resize(current_pdg_idx + 1);
+        }
+    } else {
+        current_pdg_idx = it->second;
+    }
+
     bool success = true;
-    // Iterate through all possible layers (0 to kMaxBarrelLayers - 1)
     for (int layer = 0; layer < TrackerConstants::kMaxBarrelLayers; ++layer) {
       for (int etaBin = 0; etaBin < TrackerConstants::kEtaBins; ++etaBin) {
-        float etaMin = TrackerConstants::kEtaMin + etaBin * (TrackerConstants::kEtaMax - TrackerConstants::kEtaMin) / TrackerConstants::kEtaBins;
-        float etaMax = etaMin + (TrackerConstants::kEtaMax - TrackerConstants::kEtaMin) / TrackerConstants::kEtaBins;
-
         for (int ptBin = 0; ptBin < TrackerConstants::kPtBins; ++ptBin) {
+          float etaMin = TrackerConstants::kEtaMin + etaBin * (TrackerConstants::kEtaMax - TrackerConstants::kEtaMin) / TrackerConstants::kEtaBins;
+          float etaMax = etaMin + (TrackerConstants::kEtaMax - TrackerConstants::kEtaMin) / TrackerConstants::kEtaBins;
           float ptMin = TrackerConstants::kPtMin + ptBin * (TrackerConstants::kPtMax - TrackerConstants::kPtMin) / TrackerConstants::kPtBins;
           float ptMax = ptMin + (TrackerConstants::kPtMax - TrackerConstants::kPtMin) / TrackerConstants::kPtBins;
-
           TString histName = Form("tot_%d_barrel%d_eta%.2f-%.2f_pt%.2f-%.2f", pdg, layer, etaMin, etaMax, ptMin, ptMax);
-          TH1F* hist = dynamic_cast<TH1F*>(f->Get(histName));
-          if (hist) {
-            mLUT[pdg][{layer, etaBin, ptBin}] = *hist;
+
+          TH1F* hist_from_file = dynamic_cast<TH1F*>(f->Get(histName));
+          if (hist_from_file) {
+            TH1F* cloned_hist = static_cast<TH1F*>(hist_from_file->Clone());
+            cloned_hist->SetDirectory(nullptr);
+            mLUTHistograms[current_pdg_idx][layer][etaBin][ptBin] = cloned_hist;
+
+            if (cloned_hist->GetEntries() > 50) {
+              float mpv = cloned_hist->GetBinLowEdge(cloned_hist->GetMaximumBin());
+              float resolution = calculateTruncatedStdDev(cloned_hist);
+              mLUTData[current_pdg_idx][layer][etaBin][ptBin] = {mpv, resolution};
+            } else {
+              mLUTData[current_pdg_idx][layer][etaBin][ptBin] = {-1.f, -1.f};
+            }
+          } else {
+            mLUTHistograms[current_pdg_idx][layer][etaBin][ptBin] = nullptr;
+            mLUTData[current_pdg_idx][layer][etaBin][ptBin] = {-1.f, -1.f};
+            success = false;
           }
-          if (hist) delete hist;
         }
       }
     }
@@ -118,32 +153,64 @@ public:
     return success;
   }
 
-  TH1F* getHistogram(int pdg, int layer, int etaBin, int ptBin) {
-    auto pdgIt = mLUT.find(pdg);
-    if (pdgIt == mLUT.end()) return nullptr;
-
-    auto key = std::make_tuple(layer, etaBin, ptBin);
-    auto histIt = pdgIt->second.find(key);
-    return (histIt != pdgIt->second.end()) ? &histIt->second : nullptr;
-  }
-
-  // Get Most Probable Value (MPV) from the ToT distributions
-  float getMPV(int pdg, int layer, int etaBin, int ptBin) {
-    TH1F* hist = getHistogram(pdg, layer, etaBin, ptBin);
-    if (hist && hist->GetEntries() > 0) {
-      // For now returning maximum bin position, compared to fitting Landau's (could be done separately and added to the LUTs in the future)
-      return hist->GetBinLowEdge(hist->GetMaximumBin());
+  TH1F* getHistogramForSampling(int pdg_idx, int layer, int etaBin, int ptBin) const {
+    if (static_cast<size_t>(pdg_idx) >= mLUTHistograms.size() || layer < 0 || layer >= TrackerConstants::kMaxBarrelLayers ||
+        etaBin < 0 || etaBin >= TrackerConstants::kEtaBins || ptBin < 0 || ptBin >= TrackerConstants::kPtBins) {
+        return nullptr;
     }
-    return -1.f;
+    return mLUTHistograms[pdg_idx][layer][etaBin][ptBin];
   }
 
-  // Calculate truncated standard deviation using a cumulative fraction
-  float getTruncatedStdDev(int pdg, int layer, int etaBin, int ptBin, float fraction = 0.80) {
-      TH1F* hist = getHistogram(pdg, layer, etaBin, ptBin);
-      if (!hist || hist->GetEntries() < 100) return -1.f;
+  float getMPV(int pdg_idx, int layer, int etaBin, int ptBin) const {
+    if (static_cast<size_t>(pdg_idx) >= mLUTData.size() || layer < 0 || layer >= TrackerConstants::kMaxBarrelLayers ||
+        etaBin < 0 || etaBin >= TrackerConstants::kEtaBins || ptBin < 0 || ptBin >= TrackerConstants::kPtBins) {
+        return -1.f;
+    }
+    return mLUTData[pdg_idx][layer][etaBin][ptBin][0];
+  }
+
+  float getResolution(int pdg_idx, int layer, int etaBin, int ptBin) const {
+    if (static_cast<size_t>(pdg_idx) >= mLUTData.size() || layer < 0 || layer >= TrackerConstants::kMaxBarrelLayers ||
+        etaBin < 0 || etaBin >= TrackerConstants::kEtaBins || ptBin < 0 || ptBin >= TrackerConstants::kPtBins) {
+        return -1.f;
+    }
+    return mLUTData[pdg_idx][layer][etaBin][ptBin][1];
+  }
+
+  int getPdgIndex(int pdgCode) const {
+      auto it = mPdgToIndexMap.find(pdgCode);
+      if (it != mPdgToIndexMap.end()) {
+          return it->second;
+      }
+      return -1;
+  }
+
+  int getPdgCodeFromIndex(int index) const {
+      if (index >= 0 && static_cast<size_t>(index) < mIndexToPdgMap.size()) {
+          return mIndexToPdgMap[index];
+      }
+      return 0;
+  }
+
+private:
+  std::vector<std::array<std::array<std::array<std::array<float, 2>, TrackerConstants::kPtBins>,
+                                               TrackerConstants::kEtaBins>,
+                                         TrackerConstants::kMaxBarrelLayers>> mLUTData;
+
+  std::vector<std::array<std::array<std::array<TH1F*, TrackerConstants::kPtBins>,
+                                               TrackerConstants::kEtaBins>,
+                                         TrackerConstants::kMaxBarrelLayers>> mLUTHistograms;
+
+  std::map<int, int> mPdgToIndexMap;
+  std::vector<int> mIndexToPdgMap;
+
+  float mTruncationFraction;
+
+  float calculateTruncatedStdDev(TH1F* hist) {
+      if (!hist || hist->GetEntries() < 50) return -1.f;
 
       double total_entries_hist = hist->Integral(1, hist->GetNbinsX());
-      double target_entries = total_entries_hist * fraction;
+      double target_entries = total_entries_hist * mTruncationFraction;
       double accumulated_entries = 0;
       int lastBin = 0;
 
@@ -159,6 +226,8 @@ public:
       double sum_x_sq = 0;
       double entries_in_range = 0;
 
+      if (lastBin == 0 || accumulated_entries == 0) return -1.f;
+
       for (int bin = 1; bin <= lastBin; ++bin) {
           double bin_center = hist->GetBinCenter(bin);
           double bin_content = hist->GetBinContent(bin);
@@ -167,6 +236,8 @@ public:
           entries_in_range += bin_content;
       }
 
+      if (entries_in_range == 0) return -1.f;
+
       double mean = sum_x / entries_in_range;
       double variance = (sum_x_sq / entries_in_range) - (mean * mean);
 
@@ -174,66 +245,52 @@ public:
 
       return static_cast<float>(std::sqrt(variance));
   }
-
-private:
-  std::map<int, std::map<std::tuple<int, int, int>, TH1F>> mLUT;
 };
+
+static constexpr int kNumHypothesisParticles = 9;
+std::array<std::array<std::shared_ptr<TH2>, kNumHypothesisParticles>, kNumHypothesisParticles> h2dBarrelNsigmaTrue;
+std::array<std::shared_ptr<TH2>, kNumHypothesisParticles> h2dHitsPerTrackVsP;
 
 // On-The-Fly Tracker Pid
 struct OnTheFlyTrackerPid {
 
 private:
   float calculateNsigma(float measuredToT, float expectedToT, float resolution) {
+    if (resolution <= 0) return 999.f;
     return (measuredToT - expectedToT) / resolution;
   }
 
-  // Helper function adapted from OnTheFlyTofPid to calculate track length to a given radius
-  /// function to calculate track length of this track up to a certain radius
-  /// \param track the input track
-  /// \param radius the radius of the layer you're calculating the length to
-  /// \param magneticField the magnetic field to use when propagating
+  /// function to calculate track length of this track up to a certain radius, adapted from OnTheFlyTofPid
   float computeTrackLength(o2::track::TrackParCov track, float radius, float magneticField)
   {
-    // don't make use of the track parametrization
     float length = -100;
-
     o2::math_utils::CircleXYf_t trcCircle;
     float sna, csa;
     track.getCircleParams(magneticField, trcCircle, sna, csa);
 
-    // distance between circle centers (one circle is at origin -> easy)
     const float centerDistance = std::hypot(trcCircle.xC, trcCircle.yC);
 
-    // condition of circles touching - if not satisfied returned length will be -100
     if (centerDistance < trcCircle.rC + radius && centerDistance > std::fabs(trcCircle.rC - radius)) {
       length = 0.0f;
-
-      // base radical direction
       const float ux = trcCircle.xC / centerDistance;
       const float uy = trcCircle.yC / centerDistance;
-      // calculate perpendicular vector (normalized) for +/- displacement
       const float vx = -uy;
       const float vy = +ux;
-      // calculate coordinate for radical line
       const float radical = (centerDistance * centerDistance - trcCircle.rC * trcCircle.rC + radius * radius) / (2.0f * centerDistance);
-      // calculate absolute displacement from center-to-center axis
       const float displace = (0.5f / centerDistance) * std::sqrt(
                                                          (-centerDistance + trcCircle.rC - radius) *
                                                          (-centerDistance - trcCircle.rC + radius) *
                                                          (-centerDistance + trcCircle.rC + radius) *
                                                          (centerDistance + trcCircle.rC + radius));
 
-      // possible intercept points of track and TOF layer in 2D plane
       const float point1[2] = {radical * ux + displace * vx, radical * uy + displace * vy};
       const float point2[2] = {radical * ux - displace * vx, radical * uy - displace * vy};
 
-      // decide on correct intercept point
       std::array<float, 3> mom;
       track.getPxPyPzGlo(mom);
       const float scalarProduct1 = point1[0] * mom[0] + point1[1] * mom[1];
       const float scalarProduct2 = point2[0] * mom[0] + point2[1] * mom[1];
 
-      // get start point
       std::array<float, 3> startPoint;
       track.getXYZGlo(startPoint);
 
@@ -258,7 +315,7 @@ public:
   Produces<aod::UpgradeTrkPids> tableUpgradeTrkPids;
 
   Service<o2::framework::O2DatabasePDG> pdg;
-  ToTLUT mToTLUT;
+  std::unique_ptr<ToTLUT> mToTLUT;
 
   HistogramRegistry histos{"histos", {}, OutputObjHandlingPolicy::AnalysisObject};
 
@@ -270,32 +327,38 @@ public:
   Configurable<std::string> lutTotDe{"lutTotDe", "lut_tot_1000010020.root", "ToT LUT for deuteron"};
   Configurable<std::string> lutTotTr{"lutTotTr", "lut_tot_1000010030.root", "ToT LUT for triton"};
   Configurable<std::string> lutTotHe{"lutTotHe", "lut_tot_1000020030.root", "ToT LUT for helium-3"};
-  Configurable<float> truncationFraction{"truncationFraction", 0.80f, "Fraction of lower entries to consider for truncated standard deviation (e.g., 0.80 for lower 80%)"};
+  Configurable<std::string> lutTotAl{"lutTotAl", "lut_tot_1000020040.root", "ToT LUT for alphas"};
+  Configurable<float> truncationFraction{"truncationFraction", 0.80f, "Fraction of lower entries to consider for truncated standard deviation"};
   Configurable<float> dBz{"dBz", 20, "magnetic field (kilogauss) for track propagation"};
 
   std::vector<double> mLogBins;
-  static constexpr int kNumLogBins = 200;
 
-  std::map<int, std::string> mPdgToName = {
-      {11, "e"}, {13, "mu"}, {211, "pi"}, {321, "ka"}, {2212, "pr"},
-      {1000010020, "de"}, {1000010030, "tr"}, {1000020030, "he"}
+  std::array<int, kNumHypothesisParticles> mHypothesisPdgCodes = {
+      11,         // Electron
+      13,         // Muon
+      211,        // Pion
+      321,        // Kaon
+      2212,       // Proton
+      1000010020, // Deuteron
+      1000010030, // Triton
+      1000020030, // Helium-3
+      1000020040  // Alpha
   };
 
-  std::vector<int> mPIDSortedPdgCodes = {
-      11, 13, 211, 321, 2212, 1000010020, 1000010030, 1000020030
-  };
 
   void init(o2::framework::InitContext&) {
-    bool loaded = true;
+    mToTLUT = std::make_unique<ToTLUT>(truncationFraction.value);
 
-    loaded &= mToTLUT.load(11, lutTotEl.value);
-    loaded &= mToTLUT.load(13, lutTotMu.value);
-    loaded &= mToTLUT.load(211, lutTotPi.value);
-    loaded &= mToTLUT.load(321, lutTotKa.value);
-    loaded &= mToTLUT.load(2212, lutTotPr.value);
-    loaded &= mToTLUT.load(1000010020, lutTotDe.value);
-    loaded &= mToTLUT.load(1000010030, lutTotTr.value);
-    loaded &= mToTLUT.load(1000020030, lutTotHe.value);
+    bool loaded = true;
+    loaded &= mToTLUT->load(11, lutTotEl.value);
+    loaded &= mToTLUT->load(13, lutTotMu.value);
+    loaded &= mToTLUT->load(211, lutTotPi.value);
+    loaded &= mToTLUT->load(321, lutTotKa.value);
+    loaded &= mToTLUT->load(2212, lutTotPr.value);
+    loaded &= mToTLUT->load(1000010020, lutTotDe.value);
+    loaded &= mToTLUT->load(1000010030, lutTotTr.value);
+    loaded &= mToTLUT->load(1000020030, lutTotHe.value);
+    loaded &= mToTLUT->load(1000020040, lutTotAl.value);
 
     if (!loaded) {
         std::cerr << "WARNING: Failed to load one or more ToT LUTs. PID results might be incomplete." << std::endl;
@@ -307,103 +370,80 @@ public:
     double pMax = 10;
     double logMin = std::log10(pMin);
     double logMax = std::log10(pMax);
-    double dLog = (logMax - logMin) / kNumLogBins;
-    for (int i = 0; i <= kNumLogBins; ++i) {
+    double dLog = (logMax - logMin) / TrackerConstants::kNumLogBins;
+    for (int i = 0; i <= TrackerConstants::kNumLogBins; ++i) {
       mLogBins.push_back(std::pow(10, logMin + i * dLog));
     }
 
-    // To be done: loop through particles/histograms instead of creating every hist by hand
-    histos.add("hToTvsP", "ToT vs #it{p}; #it{p} (GeV/#it{c}); ToT (#mus/10#mum)",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(400, 0., 200.)});
-    histos.add("hToTvsPt", "ToT vs #it{p}_{T}; #it{p}_{T} (GeV/#it{c}); ToT (#mus/10#mum)",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(400, 0., 200.)});
-    histos.add("hHitLayers", "Number of hits on each detector layer;Layer;Counts",
-               kTH1F, {AxisSpec(TrackerConstants::kMaxBarrelLayers, -0.5, TrackerConstants::kMaxBarrelLayers - 0.5)});
-    histos.add("hHitMultiplicity", "Hit multiplicity along the track; # Hits per track;Counts",
-               kTH1F, {AxisSpec(TrackerConstants::kMaxBarrelLayers, -0.5, TrackerConstants::kMaxBarrelLayers - 0.5)});
+    const AxisSpec axisMomentum{mLogBins, "#it{p} (GeV/#it{c})"};
+    const AxisSpec axisToT{600, 0., 300., "ToT (#mus/10#mum)"};
+    const AxisSpec axisNsigma{200, -10., 10., "N#sigma"};
+    const AxisSpec axisLayer{TrackerConstants::kMaxBarrelLayers, -0.5, TrackerConstants::kMaxBarrelLayers - 0.5, "Layer"};
+    const AxisSpec axisHitsPerTrack{TrackerConstants::kMaxBarrelLayers + 1, -0.5, TrackerConstants::kMaxBarrelLayers + 0.5, "# Hits per track"};
 
-    histos.add("h2dBarrelNsigmaTrueElecVsElecHypothesis", "Nsigma (True e vs Hyp e); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTrueMuonVsMuonHypothesis", "Nsigma (True #mu vs Hyp #mu); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTruePionVsPionHypothesis", "Nsigma (True #pi vs Hyp #pi); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTrueKaonVsKaonHypothesis", "Nsigma (True K vs Hyp K); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTrueProtVsProtHypothesis", "Nsigma (True p vs Hyp p); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    // histos.add("h2dBarrelNsigmaTrueDeutVsDeutHypothesis", "Nsigma (True d vs Hyp d); #it{p} (GeV/#it{c}); N#sigma",
-    //            kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    // histos.add("h2dBarrelNsigmaTrueTritVsTritHypothesis", "Nsigma (True t vs Hyp t); #it{p} (GeV/#it{c}); N#sigma",
-    //            kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    // histos.add("h2dBarrelNsigmaTrueHe3VsHe3Hypothesis", "Nsigma (True He vs Hyp He); #it{p} (GeV/#it{c}); N#sigma",
-    //            kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
+    histos.add("hToTvsP", "ToT vs #it{p}; #it{p} (GeV/#it{c}); ToT (#mus/10#mum)", kTH2F, {axisMomentum, axisToT});
+    histos.add("hToTvsPt", "ToT vs #it{p}_{T}; #it{p}_{T} (GeV/#it{c}); ToT (#mus/10#mum)", kTH2F, {mLogBins, axisToT});
+    histos.add("hHitLayers", "Number of hits on each detector layer;Layer;Counts", kTH1F, {axisLayer});
+    histos.add("hHitMultiplicity", "Hit multiplicity along the track; # Hits per track;Counts", kTH1F, {axisHitsPerTrack});
 
-    histos.add("h2dBarrelNsigmaTrueElecVsMuonHypothesis", "Nsigma (True e vs Hyp #mu); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTrueMuonVsElecHypothesis", "Nsigma (True #mu vs Hyp e); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTrueElecVsPionHypothesis", "Nsigma (True e vs Hyp #pi); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTruePionVsElecHypothesis", "Nsigma (True #pi vs Hyp e); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTrueElecVsKaonHypothesis", "Nsigma (True e vs Hyp K); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTrueKaonVsElecHypothesis", "Nsigma (True K vs Hyp e); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTrueElecVsProtHypothesis", "Nsigma (True e vs Hyp p); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTrueProtVsElecHypothesis", "Nsigma (True p vs Hyp e); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
+    std::vector<std::pair<int, std::string>> particleInfo = {
+        {11, "Elec"}, {13, "Muon"}, {211, "Pion"}, {321, "Kaon"}, {2212, "Prot"},
+        {1000010020, "Deut"}, {1000010030, "Trit"}, {1000020030, "He3"}, {1000020040, "Al"}
+    };
 
-    histos.add("h2dBarrelNsigmaTrueMuonVsPionHypothesis", "Nsigma (True #mu vs Hyp #pi); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTruePionVsMuonHypothesis", "Nsigma (True #pi vs Hyp #mu); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTrueMuonVsKaonHypothesis", "Nsigma (True #mu vs Hyp K); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTrueKaonVsMuonHypothesis", "Nsigma (True K vs Hyp #mu); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTrueMuonVsProtHypothesis", "Nsigma (True #mu vs Hyp p); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTrueProtVsMuonHypothesis", "Nsigma (True p vs Hyp #mu); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
+    for (size_t i_true = 0; i_true < particleInfo.size(); ++i_true) {
+        std::string trueName = particleInfo[i_true].second;
+        std::string trueNamePretty = trueName; // Fallback
+        if (trueName == "Elec") trueNamePretty = "#it{e}";
+        else if (trueName == "Muon") trueNamePretty = "#it{#mu}";
+        else if (trueName == "Pion") trueNamePretty = "#it{#pi}";
+        else if (trueName == "Kaon") trueNamePretty = "#it{K}";
+        else if (trueName == "Prot") trueNamePretty = "#it{p}";
+        else if (trueName == "Deut") trueNamePretty = "#it{d}";
+        else if (trueName == "Trit") trueNamePretty = "#it{t}";
+        else if (trueName == "He3") trueNamePretty = "#it{^{3}He}";
+        else if (trueName == "Al") trueNamePretty = "#it{^{4}He}";
 
-    histos.add("h2dBarrelNsigmaTruePionVsKaonHypothesis", "Nsigma (True #pi vs Hyp K); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTrueKaonVsPionHypothesis", "Nsigma (True K vs Hyp #pi); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTruePionVsProtHypothesis", "Nsigma (True #pi vs Hyp p); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTrueProtVsPionHypothesis", "Nsigma (True p vs Hyp #pi); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
+        std::string hitsVsPName = "HitsPerTrack/hHitsPerTrackVsP_" + trueName;
+        std::string hitsVsPTitle = "N_hits vs #it{p} for " + trueNamePretty + "; #it{p} (GeV/#it{c}); N_hits";
+        h2dHitsPerTrackVsP[i_true] = histos.add<TH2>(hitsVsPName.c_str(), hitsVsPTitle.c_str(), kTH2F, {axisMomentum, axisHitsPerTrack});
 
-    histos.add("h2dBarrelNsigmaTrueKaonVsProtHypothesis", "Nsigma (True K vs Hyp p); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
-    histos.add("h2dBarrelNsigmaTrueProtVsKaonHypothesis", "Nsigma (True p vs Hyp K); #it{p} (GeV/#it{c}); N#sigma",
-               kTH2F, {AxisSpec(mLogBins), AxisSpec(200, -10., 10.)});
+
+        for (size_t i_hyp = 0; i_hyp < particleInfo.size(); ++i_hyp) {
+            std::string hypName = particleInfo[i_hyp].second;
+            std::string hypNamePretty = hypName; // Fallback
+            if (hypName == "Elec") hypNamePretty = "#it{e}";
+            else if (hypName == "Muon") hypNamePretty = "#it{#mu}";
+            else if (hypName == "Pion") hypNamePretty = "#it{#pi}";
+            else if (hypName == "Kaon") hypNamePretty = "#it{K}";
+            else if (hypName == "Prot") hypNamePretty = "#it{p}";
+            else if (hypName == "Deut") hypNamePretty = "#it{d}";
+            else if (hypName == "Trit") hypNamePretty = "#it{t}";
+            else if (hypName == "He3") hypNamePretty = "#it{^{3}He}";
+            else if (hypName == "Al") hypNamePretty = "#it{^{4}He}";
+
+            std::string histName = "NSigma/BarrelNsigmaTrue" + trueName + "Vs" + hypName + "Hypothesis";
+            std::string histTitle = "Nsigma (True " + trueNamePretty + " vs Hyp " + hypNamePretty + "); #it{p} (GeV/#it{c}); N#sigma";
+            h2dBarrelNsigmaTrue[i_true][i_hyp] = histos.add<TH2>(histName.c_str(), histTitle.c_str(), kTH2F, {axisMomentum, axisNsigma});
+        }
+    }
   }
 
   void process(soa::Join<aod::Collisions, aod::McCollisionLabels>::iterator const& collision,
                soa::Join<aod::Tracks, aod::TracksCov, aod::McTrackLabels> const& tracks,
-               aod::McParticles const&,
-               aod::McCollisions const&) {
+               aod::McParticles const& /*mcParticles*/,
+               aod::McCollisions const& mcCollisions) {
+    
+    o2::dataformats::VertexBase mcPvVtx({0.0f, 0.0f, 0.0f}, {0.});
 
-    std::array<float, 6> mcPvCov = {0.};
-    o2::dataformats::VertexBase mcPvVtx({0.0f, 0.0f, 0.0f}, mcPvCov);
-
-    std::array<float, TrackerConstants::kMaxBarrelLayers> timeOverThresholdBarrel;
-
-    std::array<int, 8> hypothesisPdgCodes = {
-        11,         // Electron
-        13,         // Muon
-        211,        // Pion
-        321,        // Kaon
-        2212,       // Proton
-        1000010020, // Deuteron
-        1000010030, // Triton
-        1000020030  // Helium-3
-    };
+    if (collision.has_mcCollision()) {
+        const auto& mcCollisionObject = collision.mcCollision();
+        mcPvVtx.setX(mcCollisionObject.posX());
+        mcPvVtx.setY(mcCollisionObject.posY());
+        mcPvVtx.setZ(mcCollisionObject.posZ());
+    } else {
+        LOG(warning) << "Collision without associated MC collision label. Using default (0,0,0) MC primary vertex.";
+    }
 
     for (const auto& track : tracks) {
       if (!track.has_mcParticle()) {
@@ -413,6 +453,7 @@ public:
       const auto& mcParticle = track.mcParticle();
       const auto& pdgInfo = pdg->GetParticle(mcParticle.pdgCode());
       if (!pdgInfo) {
+        LOG(warning) << "PDG code " << mcParticle.pdgCode() << " not found in the database";
         continue;
       }
 
@@ -421,12 +462,15 @@ public:
       const float eta = mcParticle.eta();
       const int truePdgCode = std::abs(mcParticle.pdgCode());
 
-      // Get momentum bin index for histograms
+      int true_pdg_idx = mToTLUT->getPdgIndex(truePdgCode);
+      if (true_pdg_idx == -1) {
+          continue;
+      }
+
       auto it_p = std::upper_bound(mLogBins.begin(), mLogBins.end(), p);
       int pLogBin = std::distance(mLogBins.begin(), it_p) - 1;
-      pLogBin = std::max(0, std::min(pLogBin, kNumLogBins - 1));
+      pLogBin = std::max(0, std::min(pLogBin, TrackerConstants::kNumLogBins - 1));
 
-      // Compute bin indices in (pt, eta) for accessing the appropriate ToT LUT histogram
       const float clampedPt = std::max(TrackerConstants::kPtMin, std::min(pt, TrackerConstants::kPtMax - 1e-6f));
       const float ptFraction = (clampedPt - TrackerConstants::kPtMin)/(TrackerConstants::kPtMax - TrackerConstants::kPtMin);
       const int binnedPt = std::min(static_cast<int>(ptFraction * TrackerConstants::kPtBins), TrackerConstants::kPtBins-1);
@@ -439,20 +483,21 @@ public:
       uint16_t hitMap = 0;
       int nHitLayers = 0;
       o2::track::TrackParCov o2track = o2::upgrade::convertMCParticleToO2Track(mcParticle, pdg);
-      // Propagate the MC track to DCA for proper starting point for length calculation
+      
+      // Propagate the MC track to DCA with the actual primary vertex
       float xPv = -100.f;
-      static constexpr float kTrkXThreshold = -99.f; // Threshold to consider a good propagation of the track
+      static constexpr float kTrkXThreshold = -99.f;
       if (o2track.propagateToDCA(mcPvVtx, dBz)) {
         xPv = o2track.getX();
       }
 
-      if (xPv > kTrkXThreshold) { // Only proceed if propagation to vertex was successful
+      if (xPv > kTrkXThreshold) {
         for (int layer = 0; layer < TrackerConstants::kMaxBarrelLayers; ++layer) {
           float layerRadius = TrackerConstants::kTrackerRadii[layer];
           float trackLength = computeTrackLength(o2track, layerRadius, dBz);
           
-          if (trackLength > 0) { // If a valid length is returned, the layer is considered "hit"
-            hitMap |= (1 << layer); // Set the bit for this layer
+          if (trackLength > 0) {
+            hitMap |= (1 << layer);
             histos.fill(HIST("hHitLayers"), layer);
             nHitLayers++;
           }
@@ -460,18 +505,19 @@ public:
       }
 
       histos.fill(HIST("hHitMultiplicity"), nHitLayers);
+      h2dHitsPerTrackVsP[true_pdg_idx]->Fill(p, nHitLayers);
 
       std::vector<float> validToTs;
 
-      // Simulate measured ToT for the track by sampling from the true particle's LUTs
-      for (int layer = 3; layer < TrackerConstants::kMaxBarrelLayers; ++layer) { // don't consider vertex layers for ToT
-        timeOverThresholdBarrel[layer] = -1;
-        if ((hitMap >> layer) & 0x1) { // Check if this layer was hit geometrically
-          TH1F* totHist = mToTLUT.getHistogram(truePdgCode, layer, binnedEta, binnedPt);
-          if (totHist && totHist->GetEntries() > 100) {
-            float val = totHist->GetRandom();
-            timeOverThresholdBarrel[layer] = val;
-            validToTs.push_back(val);
+      // Simulate measured ToT for the track by sampling directly from the loaded histograms
+      for (int layer = 3; layer < TrackerConstants::kMaxBarrelLayers; ++layer) {
+        if ((hitMap >> layer) & 0x1) {
+          TH1F* totHist = mToTLUT->getHistogramForSampling(true_pdg_idx, layer, binnedEta, binnedPt);
+          
+          if (totHist && totHist->GetEntries() > 10) {
+            float simulatedToT = totHist->GetRandom();
+            if (simulatedToT < 0) simulatedToT = 0;
+            validToTs.push_back(simulatedToT);
           }
         }
       }
@@ -480,10 +526,9 @@ public:
       const size_t nValid = validToTs.size();
       size_t nUse = 0;
 
-      // Number of points to be used for truncated (geometric) mean calculation
       if (nValid == 4) nUse = 2;
       else if (nValid == 5 || nValid == 6) nUse = 3;
-      else if (nValid >= 7) nUse = 4; // Since only tracks with > 6 hits, this line would be enough for now
+      else if (nValid >= 7) nUse = 4;
 
       if (nUse > 0 && nValid >= nUse) {
         std::sort(validToTs.begin(), validToTs.end());
@@ -491,36 +536,38 @@ public:
         for (size_t i = 0; i < nUse; ++i) {
           product *= validToTs[i];
         }
-        truncatedMeanToT = std::pow(product, 1.0f / static_cast<float>(nUse)); // geometric mean
+        truncatedMeanToT = std::pow(product, 1.0f / static_cast<float>(nUse));
 
         histos.fill(HIST("hToTvsPt"), pt, truncatedMeanToT);
         histos.fill(HIST("hToTvsP"), p, truncatedMeanToT);
       }
 
-      std::array<float, 8> nSigmaValues;
+      std::array<float, kNumHypothesisParticles> nSigmaValues;
       nSigmaValues.fill(999.f);
 
       if (truncatedMeanToT > 0) {
-        for (size_t i = 0; i < hypothesisPdgCodes.size(); ++i) {
-          int hypPdgCode = hypothesisPdgCodes[i];
+        for (size_t i_hyp = 0; i_hyp < mHypothesisPdgCodes.size(); ++i_hyp) {
+          int hypPdgCode = mHypothesisPdgCodes[i_hyp];
+          int hyp_pdg_idx = mToTLUT->getPdgIndex(hypPdgCode);
+
+          if (hyp_pdg_idx == -1) {
+              nSigmaValues[i_hyp] = 999.f;
+              continue;
+          }
 
           float sumExpectedToTMPV = 0.f;
           float sumExpectedToTResolution = 0.f;
           int numValidHistograms = 0;
 
-          // Iterate through layers based on the geometrically determined 'hitMap'
           for (int layer = 0; layer < TrackerConstants::kMaxBarrelLayers; ++layer) {
-              if ((hitMap >> layer) & 0x1) { // Check if this layer was hit geometrically
-                  TH1F* hypToTHist = mToTLUT.getHistogram(hypPdgCode, layer, binnedEta, binnedPt);
-                  if (hypToTHist && hypToTHist->GetEntries() > 100) {
-                      float mpv = mToTLUT.getMPV(hypPdgCode, layer, binnedEta, binnedPt);
-                      float resolution = mToTLUT.getTruncatedStdDev(hypPdgCode, layer, binnedEta, binnedPt, truncationFraction.value);
+              if ((hitMap >> layer) & 0x1) {
+                  float mpv = mToTLUT->getMPV(hyp_pdg_idx, layer, binnedEta, binnedPt);
+                  float resolution = mToTLUT->getResolution(hyp_pdg_idx, layer, binnedEta, binnedPt);
 
-                      if (mpv > 0 && resolution > 0) {
-                          sumExpectedToTMPV += mpv;
-                          sumExpectedToTResolution += resolution;
-                          numValidHistograms++;
-                      }
+                  if (mpv > 0 && resolution > 0) {
+                      sumExpectedToTMPV += mpv;
+                      sumExpectedToTResolution += resolution;
+                      numValidHistograms++;
                   }
               }
           }
@@ -529,55 +576,17 @@ public:
           float averagedResolution = (numValidHistograms > 0) ? sumExpectedToTResolution / numValidHistograms : -1.f;
 
           if (expectedToT > 0 && averagedResolution > 0) {
-              nSigmaValues[i] = calculateNsigma(truncatedMeanToT, expectedToT, averagedResolution);
-
-              // Same particle
-              if (truePdgCode == 11 && hypPdgCode == 11) histos.fill(HIST("h2dBarrelNsigmaTrueElecVsElecHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 13 && hypPdgCode == 13) histos.fill(HIST("h2dBarrelNsigmaTrueMuonVsMuonHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 211 && hypPdgCode == 211) histos.fill(HIST("h2dBarrelNsigmaTruePionVsPionHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 321 && hypPdgCode == 321) histos.fill(HIST("h2dBarrelNsigmaTrueKaonVsKaonHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 2212 && hypPdgCode == 2212) histos.fill(HIST("h2dBarrelNsigmaTrueProtVsProtHypothesis"), p, nSigmaValues[i]);
-              // else if (truePdgCode == 1000010020 && hypPdgCode == 1000010020) histos.fill(HIST("h2dBarrelNsigmaTrueDeutVsDeutHypothesis"), p, nSigmaValues[i]);
-              // else if (truePdgCode == 1000010030 && hypPdgCode == 1000010030) histos.fill(HIST("h2dBarrelNsigmaTrueTritVsTritHypothesis"), p, nSigmaValues[i]);
-              // else if (truePdgCode == 1000020030 && hypPdgCode == 1000020030) histos.fill(HIST("h2dBarrelNsigmaTrueHe3VsHe3Hypothesis"), p, nSigmaValues[i]);
-
-              // Electron combinations
-              else if (truePdgCode == 11 && hypPdgCode == 13) histos.fill(HIST("h2dBarrelNsigmaTrueElecVsMuonHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 13 && hypPdgCode == 11) histos.fill(HIST("h2dBarrelNsigmaTrueMuonVsElecHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 11 && hypPdgCode == 211) histos.fill(HIST("h2dBarrelNsigmaTrueElecVsPionHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 211 && hypPdgCode == 11) histos.fill(HIST("h2dBarrelNsigmaTruePionVsElecHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 11 && hypPdgCode == 321) histos.fill(HIST("h2dBarrelNsigmaTrueElecVsKaonHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 321 && hypPdgCode == 11) histos.fill(HIST("h2dBarrelNsigmaTrueKaonVsElecHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 11 && hypPdgCode == 2212) histos.fill(HIST("h2dBarrelNsigmaTrueElecVsProtHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 2212 && hypPdgCode == 11) histos.fill(HIST("h2dBarrelNsigmaTrueProtVsElecHypothesis"), p, nSigmaValues[i]);
-
-              // Muon combinations
-              else if (truePdgCode == 13 && hypPdgCode == 211) histos.fill(HIST("h2dBarrelNsigmaTrueMuonVsPionHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 211 && hypPdgCode == 13) histos.fill(HIST("h2dBarrelNsigmaTruePionVsMuonHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 13 && hypPdgCode == 321) histos.fill(HIST("h2dBarrelNsigmaTrueMuonVsKaonHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 321 && hypPdgCode == 13) histos.fill(HIST("h2dBarrelNsigmaTrueKaonVsMuonHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 13 && hypPdgCode == 2212) histos.fill(HIST("h2dBarrelNsigmaTrueMuonVsProtHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 2212 && hypPdgCode == 13) histos.fill(HIST("h2dBarrelNsigmaTrueProtVsMuonHypothesis"), p, nSigmaValues[i]);
-
-              // Pion combinations
-              else if (truePdgCode == 211 && hypPdgCode == 321) histos.fill(HIST("h2dBarrelNsigmaTruePionVsKaonHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 321 && hypPdgCode == 211) histos.fill(HIST("h2dBarrelNsigmaTrueKaonVsPionHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 211 && hypPdgCode == 2212) histos.fill(HIST("h2dBarrelNsigmaTruePionVsProtHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 2212 && hypPdgCode == 211) histos.fill(HIST("h2dBarrelNsigmaTrueProtVsPionHypothesis"), p, nSigmaValues[i]);
-
-              // Kaon-Proton
-              else if (truePdgCode == 321 && hypPdgCode == 2212) histos.fill(HIST("h2dBarrelNsigmaTrueKaonVsProtHypothesis"), p, nSigmaValues[i]);
-              else if (truePdgCode == 2212 && hypPdgCode == 321) histos.fill(HIST("h2dBarrelNsigmaTrueProtVsKaonHypothesis"), p, nSigmaValues[i]);
-
+              nSigmaValues[i_hyp] = calculateNsigma(truncatedMeanToT, expectedToT, averagedResolution);
+              h2dBarrelNsigmaTrue[true_pdg_idx][i_hyp]->Fill(p, nSigmaValues[i_hyp]);
           } else {
-              nSigmaValues[i] = 999.f; // Dummy holder
+              nSigmaValues[i_hyp] = 999.f;
           }
         }
       }
 
       tableUpgradeTrkPidSignals(truncatedMeanToT);
       tableUpgradeTrkPids(nSigmaValues[0], nSigmaValues[1], nSigmaValues[2], nSigmaValues[3],
-                         nSigmaValues[4], nSigmaValues[5], nSigmaValues[6], nSigmaValues[7]);
+                         nSigmaValues[4], nSigmaValues[5], nSigmaValues[6], nSigmaValues[7], nSigmaValues[8]);
     }
   }
 };
