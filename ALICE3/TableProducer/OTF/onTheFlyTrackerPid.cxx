@@ -11,7 +11,9 @@
 ///
 /// \file onTheFlyTrackerPid.cxx
 ///
-/// \brief Task for simulating ToT-based PID in the barrel tracker.
+/// \brief This task produces the PID information that can be obtained from the tracker layers (i.e. ToT and possibly cluster size).
+///        So far only ToT implemented. It currently contemplates 5 (9) particle types: electrons, muons, pions, kaons and
+///        protons (as well as deuterons, tritons, helium-3 and alphas/helium-4 if added via the event generator).
 ///
 /// \author Henrik Fribert TUM
 /// \author Nicolò Jacazio Università del Piemonte Orientale
@@ -64,21 +66,22 @@
 using namespace o2;
 using namespace o2::framework;
 
-namespace TrackerConstants {
-static constexpr int kMaxBarrelLayers = 11;
-static constexpr std::array<float, kMaxBarrelLayers> kTrackerRadii = {0.5f, 1.2f, 2.5f, 3.75f, 7.0f, 12.0f, 20.0f, 30.0f, 45.0f, 60.0f, 80.0f}; // Radii in cm
-static constexpr int kEtaBins = 50;
-static constexpr float kEtaMin = -2.5;
-static constexpr float kEtaMax = 2.5;
-static constexpr int kPtBins = 500;
-static constexpr float kPtMin = 0.0;
-static constexpr float kPtMax = 10.0;
-static constexpr int kNumLogBins = 200;
-}
+static constexpr std::array<float, 11> kTrackerRadii = {0.5f, 1.2f, 2.5f, 3.75f, 7.0f, 12.0f, 20.0f, 30.0f, 45.0f, 60.0f, 80.0f}; // Radii in cm
 
 class ToTLUT {
 public:
-  ToTLUT(float truncationFractionVal) : mTruncationFraction(truncationFractionVal) {}
+  ToTLUT(float truncationFractionVal, int maxLayers, int etaBins, float etaMin, float etaMax, int ptBins, float ptMin, float ptMax)
+      : mTruncationFraction(truncationFractionVal),
+        mMaxLayers(maxLayers),
+        mEtaBins(etaBins),
+        mEtaMin(etaMin),
+        mEtaMax(etaMax),
+        mPtBins(ptBins),
+        mPtMin(ptMin),
+        mPtMax(ptMax) {
+    mLUTData.resize(1);
+    mLUTHistograms.resize(1);
+  }
   ToTLUT() = delete;
 
   ~ToTLUT() {
@@ -112,19 +115,29 @@ public:
             mLUTData.resize(current_pdg_idx + 1);
             mLUTHistograms.resize(current_pdg_idx + 1);
         }
+        mLUTData[current_pdg_idx].resize(mMaxLayers);
+        mLUTHistograms[current_pdg_idx].resize(mMaxLayers);
+        for (int layer = 0; layer < mMaxLayers; ++layer) {
+            mLUTData[current_pdg_idx][layer].resize(mEtaBins);
+            mLUTHistograms[current_pdg_idx][layer].resize(mEtaBins);
+            for (int etaBin = 0; etaBin < mEtaBins; ++etaBin) {
+                mLUTData[current_pdg_idx][layer][etaBin].resize(mPtBins, {-1.f, -1.f});
+                mLUTHistograms[current_pdg_idx][layer][etaBin].resize(mPtBins, nullptr);
+            }
+        }
     } else {
         current_pdg_idx = it->second;
     }
 
     bool success = true;
-    for (int layer = 0; layer < TrackerConstants::kMaxBarrelLayers; ++layer) {
-      for (int etaBin = 0; etaBin < TrackerConstants::kEtaBins; ++etaBin) {
-        for (int ptBin = 0; ptBin < TrackerConstants::kPtBins; ++ptBin) {
-          float etaMin = TrackerConstants::kEtaMin + etaBin * (TrackerConstants::kEtaMax - TrackerConstants::kEtaMin) / TrackerConstants::kEtaBins;
-          float etaMax = etaMin + (TrackerConstants::kEtaMax - TrackerConstants::kEtaMin) / TrackerConstants::kEtaBins;
-          float ptMin = TrackerConstants::kPtMin + ptBin * (TrackerConstants::kPtMax - TrackerConstants::kPtMin) / TrackerConstants::kPtBins;
-          float ptMax = ptMin + (TrackerConstants::kPtMax - TrackerConstants::kPtMin) / TrackerConstants::kPtBins;
-          TString histName = Form("tot_%d_barrel%d_eta%.2f-%.2f_pt%.2f-%.2f", pdg, layer, etaMin, etaMax, ptMin, ptMax);
+    for (int layer = 0; layer < mMaxLayers; ++layer) {
+      for (int etaBin = 0; etaBin < mEtaBins; ++etaBin) {
+        float etaMin_bin = mEtaMin + etaBin * (mEtaMax - mEtaMin) / mEtaBins;
+        float etaMax_bin = etaMin_bin + (mEtaMax - mEtaMin) / mEtaBins;
+        for (int ptBin = 0; ptBin < mPtBins; ++ptBin) {
+          float ptMin_bin = mPtMin + ptBin * (mPtMax - mPtMin) / mPtBins;
+          float ptMax_bin = ptMin_bin + (mPtMax - mPtMin) / mPtBins;
+          TString histName = Form("tot_%d_barrel%d_eta%.2f-%.2f_pt%.2f-%.2f", pdg, layer, etaMin_bin, etaMax_bin, ptMin_bin, ptMax_bin);
 
           TH1F* hist_from_file = dynamic_cast<TH1F*>(f->Get(histName));
           if (hist_from_file) {
@@ -154,24 +167,24 @@ public:
   }
 
   TH1F* getHistogramForSampling(int pdg_idx, int layer, int etaBin, int ptBin) const {
-    if (static_cast<size_t>(pdg_idx) >= mLUTHistograms.size() || layer < 0 || layer >= TrackerConstants::kMaxBarrelLayers ||
-        etaBin < 0 || etaBin >= TrackerConstants::kEtaBins || ptBin < 0 || ptBin >= TrackerConstants::kPtBins) {
+    if (static_cast<size_t>(pdg_idx) >= mLUTHistograms.size() || layer < 0 || layer >= mMaxLayers ||
+        etaBin < 0 || etaBin >= mEtaBins || ptBin < 0 || ptBin >= mPtBins) {
         return nullptr;
     }
     return mLUTHistograms[pdg_idx][layer][etaBin][ptBin];
   }
 
   float getMPV(int pdg_idx, int layer, int etaBin, int ptBin) const {
-    if (static_cast<size_t>(pdg_idx) >= mLUTData.size() || layer < 0 || layer >= TrackerConstants::kMaxBarrelLayers ||
-        etaBin < 0 || etaBin >= TrackerConstants::kEtaBins || ptBin < 0 || ptBin >= TrackerConstants::kPtBins) {
+    if (static_cast<size_t>(pdg_idx) >= mLUTData.size() || layer < 0 || layer >= mMaxLayers ||
+        etaBin < 0 || etaBin >= mEtaBins || ptBin < 0 || ptBin >= mPtBins) {
         return -1.f;
     }
     return mLUTData[pdg_idx][layer][etaBin][ptBin][0];
   }
 
   float getResolution(int pdg_idx, int layer, int etaBin, int ptBin) const {
-    if (static_cast<size_t>(pdg_idx) >= mLUTData.size() || layer < 0 || layer >= TrackerConstants::kMaxBarrelLayers ||
-        etaBin < 0 || etaBin >= TrackerConstants::kEtaBins || ptBin < 0 || ptBin >= TrackerConstants::kPtBins) {
+    if (static_cast<size_t>(pdg_idx) >= mLUTData.size() || layer < 0 || layer >= mMaxLayers ||
+        etaBin < 0 || etaBin >= mEtaBins || ptBin < 0 || ptBin >= mPtBins) {
         return -1.f;
     }
     return mLUTData[pdg_idx][layer][etaBin][ptBin][1];
@@ -193,18 +206,21 @@ public:
   }
 
 private:
-  std::vector<std::array<std::array<std::array<std::array<float, 2>, TrackerConstants::kPtBins>,
-                                               TrackerConstants::kEtaBins>,
-                                         TrackerConstants::kMaxBarrelLayers>> mLUTData;
-
-  std::vector<std::array<std::array<std::array<TH1F*, TrackerConstants::kPtBins>,
-                                               TrackerConstants::kEtaBins>,
-                                         TrackerConstants::kMaxBarrelLayers>> mLUTHistograms;
+  std::vector<std::vector<std::vector<std::vector<std::array<float, 2>>>>> mLUTData;
+  std::vector<std::vector<std::vector<std::vector<TH1F*>>>> mLUTHistograms;
 
   std::map<int, int> mPdgToIndexMap;
   std::vector<int> mIndexToPdgMap;
 
   float mTruncationFraction;
+  int mMaxLayers;
+  int mEtaBins;
+  float mEtaMin;
+  float mEtaMax;
+  int mPtBins;
+  float mPtMin;
+  float mPtMax;
+
 
   float calculateTruncatedStdDev(TH1F* hist) {
       if (!hist || hist->GetEntries() < 50) return -1.f;
@@ -260,7 +276,7 @@ private:
     return (measuredToT - expectedToT) / resolution;
   }
 
-  /// function to calculate track length of this track up to a certain radius, adapted from OnTheFlyTofPid
+  /// function to calculate track length of this track up to a certain radius, adapted from OnTheFlyTofPid task
   float computeTrackLength(o2::track::TrackParCov track, float radius, float magneticField)
   {
     float length = -100;
@@ -328,8 +344,17 @@ public:
   Configurable<std::string> lutTotTr{"lutTotTr", "lut_tot_1000010030.root", "ToT LUT for triton"};
   Configurable<std::string> lutTotHe{"lutTotHe", "lut_tot_1000020030.root", "ToT LUT for helium-3"};
   Configurable<std::string> lutTotAl{"lutTotAl", "lut_tot_1000020040.root", "ToT LUT for alphas"};
+
   Configurable<float> truncationFraction{"truncationFraction", 0.80f, "Fraction of lower entries to consider for truncated standard deviation"};
   Configurable<float> dBz{"dBz", 20, "magnetic field (kilogauss) for track propagation"};
+  Configurable<int> mMaxBarrelLayers{"maxBarrelLayers", 11, "Maximum number of barrel layers"};
+  Configurable<int> mEtaBins{"etaBins", 50, "Number of eta bins for LUTs and histograms"};
+  Configurable<float> mEtaMin{"etaMin", -2.5f, "Minimum eta value"};
+  Configurable<float> mEtaMax{"etaMax", 2.5f, "Maximum eta value"};
+  Configurable<int> mPtBins{"ptBins", 500, "Number of pT bins for LUTs and histograms"};
+  Configurable<float> mPtMin{"ptMin", 0.0f, "Minimum pT value"};
+  Configurable<float> mPtMax{"ptMax", 10.0f, "Maximum pT value"};
+  Configurable<int> mNumLogBins{"numLogBins", 200, "Number of logarithmic momentum bins"};
 
   std::vector<double> mLogBins;
 
@@ -345,9 +370,16 @@ public:
       1000020040  // Alpha
   };
 
-
   void init(o2::framework::InitContext&) {
-    mToTLUT = std::make_unique<ToTLUT>(truncationFraction.value);
+    if (mMaxBarrelLayers.value > kTrackerRadii.size()) {
+        LOG(fatal) << "Configured maxBarrelLayers (" << mMaxBarrelLayers.value
+                   << ") exceeds the size of kTrackerRadii (" << kTrackerRadii.size()
+                   << "). Please adjust maxBarrelLayers.";
+    }
+
+    mToTLUT = std::make_unique<ToTLUT>(truncationFraction.value, mMaxBarrelLayers.value,
+                                       mEtaBins.value, mEtaMin.value, mEtaMax.value,
+                                       mPtBins.value, mPtMin.value, mPtMax.value);
 
     bool loaded = true;
     loaded &= mToTLUT->load(11, lutTotEl.value);
@@ -370,16 +402,16 @@ public:
     double pMax = 10;
     double logMin = std::log10(pMin);
     double logMax = std::log10(pMax);
-    double dLog = (logMax - logMin) / TrackerConstants::kNumLogBins;
-    for (int i = 0; i <= TrackerConstants::kNumLogBins; ++i) {
+    double dLog = (logMax - logMin) / mNumLogBins.value;
+    for (int i = 0; i <= mNumLogBins.value; ++i) {
       mLogBins.push_back(std::pow(10, logMin + i * dLog));
     }
 
     const AxisSpec axisMomentum{mLogBins, "#it{p} (GeV/#it{c})"};
     const AxisSpec axisToT{600, 0., 300., "ToT (#mus/10#mum)"};
     const AxisSpec axisNsigma{200, -10., 10., "N#sigma"};
-    const AxisSpec axisLayer{TrackerConstants::kMaxBarrelLayers, -0.5, TrackerConstants::kMaxBarrelLayers - 0.5, "Layer"};
-    const AxisSpec axisHitsPerTrack{TrackerConstants::kMaxBarrelLayers + 1, -0.5, TrackerConstants::kMaxBarrelLayers + 0.5, "# Hits per track"};
+    const AxisSpec axisLayer{static_cast<double>(mMaxBarrelLayers.value), -0.5, static_cast<double>(mMaxBarrelLayers.value) - 0.5, "Layer"};
+    const AxisSpec axisHitsPerTrack{static_cast<double>(mMaxBarrelLayers.value) + 1, -0.5, static_cast<double>(mMaxBarrelLayers.value) + 0.5, "# Hits per track"};
 
     histos.add("hToTvsP", "ToT vs #it{p}; #it{p} (GeV/#it{c}); ToT (#mus/10#mum)", kTH2F, {axisMomentum, axisToT});
     histos.add("hToTvsPt", "ToT vs #it{p}_{T}; #it{p}_{T} (GeV/#it{c}); ToT (#mus/10#mum)", kTH2F, {mLogBins, axisToT});
@@ -469,15 +501,15 @@ public:
 
       auto it_p = std::upper_bound(mLogBins.begin(), mLogBins.end(), p);
       int pLogBin = std::distance(mLogBins.begin(), it_p) - 1;
-      pLogBin = std::max(0, std::min(pLogBin, TrackerConstants::kNumLogBins - 1));
+      pLogBin = std::max(0, std::min(pLogBin, mNumLogBins.value - 1));
 
-      const float clampedPt = std::max(TrackerConstants::kPtMin, std::min(pt, TrackerConstants::kPtMax - 1e-6f));
-      const float ptFraction = (clampedPt - TrackerConstants::kPtMin)/(TrackerConstants::kPtMax - TrackerConstants::kPtMin);
-      const int binnedPt = std::min(static_cast<int>(ptFraction * TrackerConstants::kPtBins), TrackerConstants::kPtBins-1);
+      const float clampedPt = std::max(mPtMin.value, std::min(pt, mPtMax.value - 1e-6f));
+      const float ptFraction = (clampedPt - mPtMin.value)/(mPtMax.value - mPtMin.value);
+      const int binnedPt = std::min(static_cast<int>(ptFraction * mPtBins.value), mPtBins.value - 1);
 
-      const float clampedEta = std::max(TrackerConstants::kEtaMin, std::min(eta, TrackerConstants::kEtaMax - 1e-6f));
-      const float etaFraction = (clampedEta - TrackerConstants::kEtaMin)/(TrackerConstants::kEtaMax - TrackerConstants::kEtaMin);
-      const int binnedEta = std::min(static_cast<int>(etaFraction * TrackerConstants::kEtaBins), TrackerConstants::kEtaBins-1);
+      const float clampedEta = std::max(mEtaMin.value, std::min(eta, mEtaMax.value - 1e-6f));
+      const float etaFraction = (clampedEta - mEtaMin.value)/(mEtaMax.value - mEtaMin.value);
+      const int binnedEta = std::min(static_cast<int>(etaFraction * mEtaBins.value), mEtaBins.value - 1);
 
       // Hit determination
       uint16_t hitMap = 0;
@@ -492,8 +524,8 @@ public:
       }
 
       if (xPv > kTrkXThreshold) {
-        for (int layer = 0; layer < TrackerConstants::kMaxBarrelLayers; ++layer) {
-          float layerRadius = TrackerConstants::kTrackerRadii[layer];
+        for (int layer = 0; layer < mMaxBarrelLayers.value; ++layer) {
+          float layerRadius = kTrackerRadii[layer];
           float trackLength = computeTrackLength(o2track, layerRadius, dBz);
           
           if (trackLength > 0) {
@@ -510,7 +542,7 @@ public:
       std::vector<float> validToTs;
 
       // Simulate measured ToT for the track by sampling directly from the loaded histograms
-      for (int layer = 3; layer < TrackerConstants::kMaxBarrelLayers; ++layer) {
+      for (int layer = 3; layer < mMaxBarrelLayers.value; ++layer) {
         if ((hitMap >> layer) & 0x1) {
           TH1F* totHist = mToTLUT->getHistogramForSampling(true_pdg_idx, layer, binnedEta, binnedPt);
           
@@ -559,7 +591,7 @@ public:
           float sumExpectedToTResolution = 0.f;
           int numValidHistograms = 0;
 
-          for (int layer = 0; layer < TrackerConstants::kMaxBarrelLayers; ++layer) {
+          for (int layer = 0; layer < mMaxBarrelLayers.value; ++layer) {
               if ((hitMap >> layer) & 0x1) {
                   float mpv = mToTLUT->getMPV(hyp_pdg_idx, layer, binnedEta, binnedPt);
                   float resolution = mToTLUT->getResolution(hyp_pdg_idx, layer, binnedEta, binnedPt);
