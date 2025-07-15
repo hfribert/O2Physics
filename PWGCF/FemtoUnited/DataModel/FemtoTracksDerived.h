@@ -30,8 +30,7 @@ namespace femtotracks
 {
 
 // columns for base tracks
-DECLARE_SOA_COLUMN(SignedPt, signedPt, float); //! signed Pt of the track
-DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt,             //! pt of the track
+DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, //! pt of the track
                            [](float signedPt) -> float {
                              return std::fabs(signedPt);
                            });
@@ -110,16 +109,16 @@ DECLARE_SOA_DYNAMIC_COLUMN(TpctofNSigmaHe, tpctofNSigmaHe, [](float tpc, float t
 DECLARE_SOA_TABLE_STAGED_VERSIONED(FUTracks_001, "FUTRACKS", 1,
                                    o2::soa::Index<>,
                                    femtobase::CollisionId,
-                                   femtotracks::SignedPt,
+                                   femtobase::SignedPt,
                                    femtobase::Eta,
                                    femtobase::Phi,
                                    femtobase::Theta<femtobase::Eta>,
-                                   femtobase::Px<femtotracks::SignedPt, femtobase::Eta>,
-                                   femtobase::Py<femtotracks::SignedPt, femtobase::Eta>,
-                                   femtobase::Pz<femtotracks::SignedPt, femtobase::Eta>,
-                                   femtobase::P<femtotracks::SignedPt, femtobase::Eta>,
-                                   femtotracks::Pt<femtotracks::SignedPt>,
-                                   femtotracks::Sign<femtotracks::SignedPt>);
+                                   femtobase::Px<femtobase::SignedPt, femtobase::Eta>,
+                                   femtobase::Py<femtobase::SignedPt, femtobase::Eta>,
+                                   femtobase::Pz<femtobase::SignedPt, femtobase::Eta>,
+                                   femtobase::P<femtobase::SignedPt, femtobase::Eta>,
+                                   femtotracks::Pt<femtobase::SignedPt>,
+                                   femtotracks::Sign<femtobase::SignedPt>);
 using FUTracks = FUTracks_001;
 
 // table for track selections and PID selections

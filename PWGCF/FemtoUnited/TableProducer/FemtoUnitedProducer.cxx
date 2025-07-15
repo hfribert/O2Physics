@@ -216,7 +216,6 @@ struct FemtoUnitedProducer {
     trackSel.configure(confTrackBits, confTrackFilters);
 
     // init v0 selection ojects
-    lambdaSel.configure<modes::V0::kLambda>(confLambdaBits, confV0Filters);
     k0shortSel.configure<modes::V0::kK0short>(confLambdaBits, confV0Filters);
 
     // cascade selections

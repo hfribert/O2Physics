@@ -203,10 +203,10 @@ class V0Selection : public BaseSelection<float, o2::aod::femtodatatypes::V0MaskT
     this->evaluateObservable(kDauAbsEtaMax, *std::max_element(etaDaughters.begin(), etaDaughters.end()));
 
     std::array<float, 2> dcaDaughters = {std::hypot(posDaughter.dcaXY(), posDaughter.dcaZ()), std::hypot(negDaughter.dcaXY(), negDaughter.dcaZ())};
-    this->evaluateObservable(kDauAbsEtaMax, *std::min_element(dcaDaughters.begin(), dcaDaughters.end()));
+    this->evaluateObservable(kDauDcaMin, *std::min_element(dcaDaughters.begin(), dcaDaughters.end()));
 
     std::array<float, 2> clustersDaughters = {1.f * posDaughter.tpcNClsFound(), 1.f * negDaughter.tpcNClsFound()};
-    this->evaluateObservable(kDauAbsEtaMax, *std::min_element(clustersDaughters.begin(), clustersDaughters.end()));
+    this->evaluateObservable(kDauTpcClsMin, *std::min_element(clustersDaughters.begin(), clustersDaughters.end()));
 
     // daughter pid selections
     this->evaluateObservable(kPosDaughTpcPion, posDaughter.tpcNSigmaPi());

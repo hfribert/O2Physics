@@ -27,9 +27,7 @@ namespace o2::aod
 {
 namespace femtocascades
 {
-
-DECLARE_SOA_COLUMN(SignedPt, signedPt, float); //! signed Pt of the track
-// columns for lambdas
+// columns for xis and omegas
 DECLARE_SOA_COLUMN(XiMass, xiMass, float);       //! Mass of Lambda
 DECLARE_SOA_COLUMN(OmegaMass, omegaMass, float); //! Mass of anti Lambda
 
@@ -60,7 +58,7 @@ DECLARE_SOA_INDEX_COLUMN_FULL(NegDauLambda, negDauLambda, int32_t, FUTracks, "_N
 DECLARE_SOA_TABLE_STAGED_VERSIONED(FUCascades_001, "FUCASCADES", 1,
                                    o2::soa::Index<>,
                                    femtobase::CollisionId,
-                                   femtocascades::SignedPt,
+                                   femtobase::SignedPt,
                                    femtobase::Eta,
                                    femtobase::Phi,
                                    femtocascades::XiMass,
@@ -68,11 +66,13 @@ DECLARE_SOA_TABLE_STAGED_VERSIONED(FUCascades_001, "FUCASCADES", 1,
                                    femtocascades::CascadeBachelorId,
                                    femtocascades::PosDauLambdaId,
                                    femtocascades::NegDauLambdaId,
-                                   femtobase::Theta<femtobase::Eta>,
-                                   femtobase::Px<femtobase::Pt, femtobase::Eta>,
-                                   femtobase::Py<femtobase::Pt, femtobase::Eta>,
-                                   femtobase::Pz<femtobase::Pt, femtobase::Eta>,
-                                   femtobase::P<femtobase::Pt, femtobase::Eta>);
+                                   femtotracks::Pt<femtobase::SignedPt>,
+                                   femtotracks::Sign<femtobase::SignedPt>,
+                                   femtobase::P<femtobase::SignedPt, femtobase::Eta>,
+                                   femtobase::Px<femtobase::SignedPt, femtobase::Eta>,
+                                   femtobase::Py<femtobase::SignedPt, femtobase::Eta>,
+                                   femtobase::Pz<femtobase::SignedPt, femtobase::Eta>,
+                                   femtobase::Theta<femtobase::Eta>, );
 using FUCascades = FUCascades_001;
 
 DECLARE_SOA_TABLE_STAGED_VERSIONED(FUCascadeMasks_001, "FUCASCADEMASKS", 1,
