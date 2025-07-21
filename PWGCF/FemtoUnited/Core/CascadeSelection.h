@@ -18,6 +18,7 @@
 
 #include "PWGCF/FemtoUnited/Core/BaseSelection.h"
 #include "PWGCF/FemtoUnited/Core/DataTypes.h"
+#include "PWGCF/FemtoUnited/Core/Modes.h"
 
 #include "Framework/Configurable.h"
 
@@ -50,31 +51,39 @@ struct ConfCascadeFilters : o2::framework::ConfigurableGroup {
   o2::framework::Configurable<float> massLambdaMax{"massLambdaMax", 1.73f, "Maximum Lambda mass"};
 };
 
-struct ConfCascadeBits : o2::framework::ConfigurableGroup {
-  std::string prefix = std::string("CascadeBits");
-  // cascade selections
-  o2::framework::Configurable<std::vector<float>> cascadeCpaMin{"cascadeCpaMin", {0.99f}, "Minimum cosine of pointing angle"};
-  o2::framework::Configurable<std::vector<float>> cascadeTransRadMin{"cascadeTransRadMin", {0.9f}, "Minimum transverse radius (cm)"};
-  o2::framework::Configurable<std::vector<float>> cascadeDcaDauMax{"cascadeDcaDauMax", {0.25f}, "Maximum DCA between the daughters at decay vertex (cm)"};
-  // lambda selections
-  o2::framework::Configurable<std::vector<float>> lambdaCpaMin{"lambdaCpaMin", {0.99f}, "Minimum cosine of pointing angle"};
-  o2::framework::Configurable<std::vector<float>> lambdaTransRadMin{"lambdaTransRadMin", {0.9f}, "Minimum transverse radius (cm)"};
-  o2::framework::Configurable<std::vector<float>> lambdaDcaDauMax{"lambdaDcaDauMax", {0.25f}, "Maximum DCA between the daughters at decay vertex (cm)"};
-  o2::framework::Configurable<std::vector<float>> lambdaDcaToPvMax{"lambdaDcaToPvMin", {0.3f}, "Maximum DCA between the daughters at decay vertex (cm)"};
-  // bachelor/daughter selections
-  o2::framework::Configurable<std::vector<float>> dauAbsEtaMax{"DauAbsEtaMax", {0.8f}, "Minimum DCA of the daughters from primary vertex (cm)"};
-  o2::framework::Configurable<std::vector<float>> dauDcaMin{"DauDcaMin", {0.05f}, "Minimum DCA of the daughters from primary vertex (cm)"};
-  o2::framework::Configurable<std::vector<float>> dauTpcClustersMin{"DauTpcClustersMin", {80.f}, "Minimum number of TPC clusters for daughter tracks"};
-  // bachelor/daughter pid selections
-  o2::framework::Configurable<std::vector<float>> bachelorTpcPion{"bachelorTpcPion", {5.f}, "Maximum |nsimga_Pion| TPC for bachelor tracks"};
-  o2::framework::Configurable<std::vector<float>> bachelorTpcKaon{"bachelorTpcKaon", {5.f}, "Maximum |nsimga_Kaon| TPC for bachelor tracks"};
-  o2::framework::Configurable<std::vector<float>> posDauTpc{"posDauTpc", {5.f}, "Maximum |nsimga_Pion/Proton| TPC for positive daughter tracks"};
+#define CASCADE_DEFAULT_BITS                                                                                                                               \
+  o2::framework::Configurable<std::vector<float>> cascadeCpaMin{"cascadeCpaMin", {0.99f}, "Minimum cosine of pointing angle"};                             \
+  o2::framework::Configurable<std::vector<float>> cascadeTransRadMin{"cascadeTransRadMin", {0.9f}, "Minimum transverse radius (cm)"};                      \
+  o2::framework::Configurable<std::vector<float>> cascadeDcaDauMax{"cascadeDcaDauMax", {0.25f}, "Maximum DCA between the daughters at decay vertex (cm)"}; \
+  o2::framework::Configurable<std::vector<float>> lambdaCpaMin{"lambdaCpaMin", {0.99f}, "Minimum cosine of pointing angle"};                               \
+  o2::framework::Configurable<std::vector<float>> lambdaTransRadMin{"lambdaTransRadMin", {0.9f}, "Minimum transverse radius (cm)"};                        \
+  o2::framework::Configurable<std::vector<float>> lambdaDcaDauMax{"lambdaDcaDauMax", {0.25f}, "Maximum DCA between the daughters at decay vertex (cm)"};   \
+  o2::framework::Configurable<std::vector<float>> lambdaDcaToPvMin{"lambdaDcaToPvMin", {0.3f}, "Maximum DCA between the daughters at decay vertex (cm)"};  \
+  o2::framework::Configurable<std::vector<float>> dauAbsEtaMax{"DauAbsEtaMax", {0.8f}, "Minimum DCA of the daughters from primary vertex (cm)"};           \
+  o2::framework::Configurable<std::vector<float>> dauDcaMin{"DauDcaMin", {0.05f}, "Minimum DCA of the daughters from primary vertex (cm)"};                \
+  o2::framework::Configurable<std::vector<float>> dauTpcClustersMin{"DauTpcClustersMin", {80.f}, "Minimum number of TPC clusters for daughter tracks"};    \
+  o2::framework::Configurable<std::vector<float>> posDauTpc{"posDauTpc", {5.f}, "Maximum |nsimga_Pion/Proton| TPC for positive daughter tracks"};          \
   o2::framework::Configurable<std::vector<float>> negDauTpc{"negDauTpc", {5.f}, "Maximum |nsimga_Pion/Proton| TPC for negative daughter tracks"};
+
+struct ConfXiBits : o2::framework::ConfigurableGroup {
+  std::string prefix = std::string("XiBits");
+  CASCADE_DEFAULT_BITS
+  o2::framework::Configurable<std::vector<float>> bachelorTpcPion{"bachelorTpcPion", {5.f}, "Maximum |nsimga_Pion| TPC for bachelor tracks"};
 };
+
+struct ConfOmegaBits : o2::framework::ConfigurableGroup {
+  std::string prefix = std::string("OmegaBits");
+  CASCADE_DEFAULT_BITS
+  o2::framework::Configurable<std::vector<float>> bachelorTpcKaon{"bachelorTpcKaon", {5.f}, "Maximum |nsimga_Kaon| TPC for bachelor tracks"};
+};
+
+#undef CASCADE_DEFAULT_BITS
 
 template <const char* Prefix>
 struct ConfCascadeSelection : o2::framework::ConfigurableGroup {
   std::string prefix = Prefix;
+  o2::framework::Configurable<int> pdgCode{"pdgCode", 3312, "Track PDG code"};
+  o2::framework::Configurable<int> sign{"sign", 1, "Sign of the Lambda (+1 for Lambda and -1 for Antilambda"};
   o2::framework::Configurable<float> ptMin{"ptMin", 0.f, "Minimum pT"};
   o2::framework::Configurable<float> ptMax{"ptMax", 999.f, "Maximum pT"};
   o2::framework::Configurable<float> etaMin{"etaMin", -10.f, "Minimum eta"};
@@ -83,8 +92,6 @@ struct ConfCascadeSelection : o2::framework::ConfigurableGroup {
   o2::framework::Configurable<float> phiMax{"phiMax", 1.f * o2::constants::math::TwoPI, "Maximum phi"};
   o2::framework::Configurable<float> massMin{"massMin", 1.f, "Minimum invariant mass for Cascade"};
   o2::framework::Configurable<float> massMax{"massMax", 1.2f, "Maximum invariant mass for Cascade"};
-  o2::framework::Configurable<float> antiMassMin{"antiMassMin", 0.f, "Minimum invariant mass for AntiCascade"};
-  o2::framework::Configurable<float> antiMassMax{"antiMassMax", 999.f, "Maximum invariant mass for AntiCascade"};
   o2::framework::Configurable<o2::aod::femtodatatypes::CascadeMaskType> mask{"mask", 6, "Bitmask for cascade selection"};
 };
 
@@ -134,6 +141,38 @@ class CascadeSelection : public BaseSelection<float, o2::aod::femtodatatypes::Ca
  public:
   CascadeSelection() {}
   virtual ~CascadeSelection() = default;
+
+  template <o2::analysis::femtounited::modes::Cascade cascade, typename T1, typename T2>
+  void configure(T1 const& config, T2 const& filter)
+  {
+    if constexpr (o2::analysis::femtounited::modes::isFlagSet(cascade, o2::analysis::femtounited::modes::Cascade::kXi)) {
+      mXiMassLowerLimit = filter.massXiMin.value;
+      mXiMassLowerLimit = filter.massXiMax.value;
+      mOmegaMassLowerLimit = filter.rejectMassOmegaMin.value;
+      mOmegaMassUpperLimit = filter.rejectMassOmegaMax.value;
+      this->addSelection(config.bachelorTpcPion.value, kBachelorTpcPion, limits::kAbsUpperLimit, false, false);
+    }
+    if constexpr (o2::analysis::femtounited::modes::isFlagSet(cascade, o2::analysis::femtounited::modes::Cascade::kOmega)) {
+      mOmegaMassLowerLimit = filter.massOmegaMin.value;
+      mOmegaMassUpperLimit = filter.massOmegaMax.value;
+      mXiMassLowerLimit = filter.rejectMassXiMin.value;
+      mXiMassLowerLimit = filter.rejectMassXiMax.value;
+      this->addSelection(config.bachelorTpcKaon.value, kBachelorTpcKaon, limits::kAbsUpperLimit, false, false);
+    }
+
+    this->addSelection(config.cascadeCpaMin.value, kCascadeCpaMin, limits::kLowerLimit, true, true);
+    this->addSelection(config.cascadeTransRadMin.value, kCascadeTransRadMin, limits::kUpperLimit, true, true);
+    this->addSelection(config.cascadeDcaDauMax.value, kCascadeDcaDaughMax, limits::kAbsUpperLimit, true, true);
+    this->addSelection(config.lambdaCpaMin.value, kLambdaCpaMin, limits::kLowerLimit, true, true);
+    this->addSelection(config.lambdaTransRadMin.value, kLambdaTransRadMin, limits::kLowerLimit, true, true);
+    this->addSelection(config.lambdaDcaDauMax.value, kLambdaDcaDauMax, limits::kAbsUpperLimit, true, true);
+    this->addSelection(config.lambdaDcaToPvMin.value, kLambdaDcaToPvMin, limits::kLowerLimit, true, true);
+    this->addSelection(config.dauAbsEtaMax.value, kDauAbsEtaMax, limits::kAbsUpperLimit, true, true);
+    this->addSelection(config.dauDcaMin.value, kDauDcaMin, limits::kAbsLowerLimit, true, true);
+    this->addSelection(config.dauTpcClustersMin.value, kDauTpcClsMin, limits::kLowerLimit, true, true);
+    this->addSelection(config.posDauTpc.value, kPosDauTpc, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.negDauTpc.value, kNegDauTpc, limits::kAbsUpperLimit, false, false);
+  };
 
   template <typename T1, typename T2, typename T3>
   void applySelections(T1 const& cascade, T2 const& /*tracks*/, T3 const& col)
@@ -185,30 +224,20 @@ class CascadeSelection : public BaseSelection<float, o2::aod::femtodatatypes::Ca
     this->assembleBitmask();
   };
 
-  void setXiMassLimits(float lower, float upper)
-  {
-    mXiMassLowerLimit = lower;
-    mXiMassUpperLimit = upper;
-  };
-
-  void setOmegaMassLimits(float lower, float upper)
-  {
-    mOmegaMassLowerLimit = lower;
-    mOmegaMassUpperLimit = upper;
-  };
-
   template <typename T>
   bool checkXiHypothesis(T const& cascade)
   {
     return (this->passesOptionalCut(kBachelorTpcPion) && this->passesOptionalCut(kPosDauTpc) && this->passesOptionalCut(kNegDauTpc)) &&
-           (mXiMassLowerLimit < cascade.mXi() && mXiMassUpperLimit > cascade.mXi());
+           (mXiMassLowerLimit < cascade.mXi() && mXiMassUpperLimit > cascade.mXi()) &&
+           (cascade.mOmega() < mOmegaMassLowerLimit || cascade.mOmega() > mOmegaMassUpperLimit);
   };
 
   template <typename T>
   bool checkOmegaHypothesis(T const& cascade)
   {
     return (this->passesOptionalCut(kBachelorTpcKaon) && this->passesOptionalCut(kPosDauTpc) && this->passesOptionalCut(kNegDauTpc)) &&
-           (mXiMassLowerLimit < cascade.mOmega() && mXiMassUpperLimit > cascade.mOmega());
+           (mXiMassLowerLimit < cascade.mOmega() && mXiMassUpperLimit > cascade.mOmega()) &&
+           (cascade.mXi() < mXiMassLowerLimit || cascade.mXi() > mXiMassUpperLimit);
   };
 
  protected:

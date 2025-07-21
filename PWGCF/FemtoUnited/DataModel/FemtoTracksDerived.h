@@ -28,17 +28,6 @@ namespace o2::aod
 {
 namespace femtotracks
 {
-
-// columns for base tracks
-DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, //! pt of the track
-                           [](float signedPt) -> float {
-                             return std::fabs(signedPt);
-                           });
-DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign, //! sign of the track
-                           [](float signedPt) -> int {
-                             return signedPt > 0.f ? 1 : -1;
-                           });
-
 // columns for track selections
 DECLARE_SOA_COLUMN(TrackMask, trackMask, femtodatatypes::TrackMaskType); //! Bitmask for track selections
 
@@ -108,17 +97,17 @@ DECLARE_SOA_DYNAMIC_COLUMN(TpctofNSigmaHe, tpctofNSigmaHe, [](float tpc, float t
 // table for basic track information
 DECLARE_SOA_TABLE_STAGED_VERSIONED(FUTracks_001, "FUTRACKS", 1,
                                    o2::soa::Index<>,
-                                   femtobase::CollisionId,
-                                   femtobase::SignedPt,
-                                   femtobase::Eta,
-                                   femtobase::Phi,
-                                   femtobase::Theta<femtobase::Eta>,
-                                   femtobase::Px<femtobase::SignedPt, femtobase::Eta>,
-                                   femtobase::Py<femtobase::SignedPt, femtobase::Eta>,
-                                   femtobase::Pz<femtobase::SignedPt, femtobase::Eta>,
-                                   femtobase::P<femtobase::SignedPt, femtobase::Eta>,
-                                   femtotracks::Pt<femtobase::SignedPt>,
-                                   femtotracks::Sign<femtobase::SignedPt>);
+                                   femtobase::stored::CollisionId,
+                                   femtobase::stored::SignedPt,
+                                   femtobase::stored::Eta,
+                                   femtobase::stored::Phi,
+                                   femtobase::dynamic::Sign<femtobase::stored::SignedPt>,
+                                   femtobase::dynamic::Pt<femtobase::stored::SignedPt>,
+                                   femtobase::dynamic::P<femtobase::stored::SignedPt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Px<femtobase::stored::SignedPt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Py<femtobase::stored::SignedPt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Pz<femtobase::stored::SignedPt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Theta<femtobase::stored::Eta>);
 using FUTracks = FUTracks_001;
 
 // table for track selections and PID selections

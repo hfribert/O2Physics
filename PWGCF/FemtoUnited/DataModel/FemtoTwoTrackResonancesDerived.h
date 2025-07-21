@@ -27,40 +27,83 @@ namespace o2::aod
 {
 namespace femtotwotrackresonances
 {
-
-// columns for resonances
-DECLARE_SOA_COLUMN(ResonanceMass, resonanceMass, float);                                //! Mass of resonance
-DECLARE_SOA_COLUMN(ResonanceType, resonanceType, femtodatatypes::TwoTrackResonaceType); //! resonance type
-
 // columns for resonance bit masks
-DECLARE_SOA_COLUMN(ResonanceMask, resonanceMask, femtodatatypes::TwoTrackResonaceMaskType); //! Bitmask for resonance selections
+DECLARE_SOA_COLUMN(MaskResonance, maskResonance, femtodatatypes::TwoTrackResonaceMaskType); //! Bitmask for resonance selections
+
+DECLARE_SOA_COLUMN(MomentumPosDaughter, momentumPosDaughter, float); //! Bitmask for resonance selections
+DECLARE_SOA_COLUMN(MomentumNegDaughter, momentumNegDaughter, float); //! Bitmask for resonance selections
 
 DECLARE_SOA_INDEX_COLUMN_FULL(PosDauResonance, posDauResonance, int32_t, FUTracks, "_PosDauResonance"); //!
 DECLARE_SOA_INDEX_COLUMN_FULL(NegDauResonance, negDauResonance, int32_t, FUTracks, "_NegDauResonance"); //!
 
 } // namespace femtotwotrackresonances
 
-// table for resonances
-DECLARE_SOA_TABLE_STAGED_VERSIONED(FUResos_001, "FURESOS", 1,
+// table for phis
+DECLARE_SOA_TABLE_STAGED_VERSIONED(FUPhis_001, "FUPHIS", 1,
                                    o2::soa::Index<>,
-                                   femtobase::CollisionId,
-                                   femtobase::Pt,
-                                   femtobase::Eta,
-                                   femtobase::Phi,
-                                   femtotwotrackresonances::ResonanceMass,
-                                   femtotwotrackresonances::ResonanceType,
+                                   femtobase::stored::CollisionId,
+                                   femtobase::stored::Pt,
+                                   femtobase::stored::Eta,
+                                   femtobase::stored::Phi,
+                                   femtobase::stored::Mass,
                                    femtotwotrackresonances::PosDauResonanceId,
                                    femtotwotrackresonances::NegDauResonanceId,
-                                   femtobase::Theta<femtobase::Eta>,
-                                   femtobase::Px<femtobase::Pt, femtobase::Eta>,
-                                   femtobase::Py<femtobase::Pt, femtobase::Eta>,
-                                   femtobase::Pz<femtobase::Pt, femtobase::Eta>,
-                                   femtobase::P<femtobase::Pt, femtobase::Eta>);
-using FUResos = FUResos_001;
+                                   femtotwotrackresonances::MomentumPosDaughter,
+                                   femtotwotrackresonances::MomentumNegDaughter,
+                                   femtobase::dynamic::P<femtobase::stored::Pt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Px<femtobase::stored::Pt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Py<femtobase::stored::Pt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Pz<femtobase::stored::Pt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Theta<femtobase::stored::Eta>);
+using FUPhis = FUPhis_001;
+DECLARE_SOA_TABLE_STAGED_VERSIONED(FUPhiMasks_001, "FUPHIMASKS", 1,
+                                   femtotwotrackresonances::MaskResonance);
+using FUPhiMasks = FUPhiMasks_001;
 
-DECLARE_SOA_TABLE_STAGED_VERSIONED(FUResoMasks_001, "FURESOMASKS", 1,
-                                   femtotwotrackresonances::ResonanceMask);
-using FUResoMasks = FUResoMasks_001;
+// table for kstars
+DECLARE_SOA_TABLE_STAGED_VERSIONED(FUKstars_001, "FUKSTARS", 1,
+                                   o2::soa::Index<>,
+                                   femtobase::stored::CollisionId,
+                                   femtobase::stored::SignedPt, // +1 for kstar and -1 for kstarbar
+                                   femtobase::stored::Eta,
+                                   femtobase::stored::Phi,
+                                   femtobase::stored::Mass,
+                                   femtotwotrackresonances::PosDauResonanceId,
+                                   femtotwotrackresonances::NegDauResonanceId,
+                                   femtotwotrackresonances::MomentumPosDaughter,
+                                   femtotwotrackresonances::MomentumNegDaughter,
+                                   femtobase::dynamic::Sign<femtobase::stored::SignedPt>,
+                                   femtobase::dynamic::Pt<femtobase::stored::SignedPt>,
+                                   femtobase::dynamic::P<femtobase::stored::SignedPt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Px<femtobase::stored::SignedPt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Py<femtobase::stored::SignedPt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Pz<femtobase::stored::SignedPt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Theta<femtobase::stored::Eta>);
+using FUKstars = FUKstars_001;
+DECLARE_SOA_TABLE_STAGED_VERSIONED(FUKstarMasks_001, "FUKSTARMASKS", 1,
+                                   femtotwotrackresonances::MaskResonance);
+using FUKstarMasks = FUKstarMasks_001;
+
+DECLARE_SOA_TABLE_STAGED_VERSIONED(FURhos_001, "FURHOS", 1,
+                                   o2::soa::Index<>,
+                                   femtobase::stored::CollisionId,
+                                   femtobase::stored::Pt,
+                                   femtobase::stored::Eta,
+                                   femtobase::stored::Phi,
+                                   femtobase::stored::Mass,
+                                   femtotwotrackresonances::PosDauResonanceId,
+                                   femtotwotrackresonances::NegDauResonanceId,
+                                   femtotwotrackresonances::MomentumPosDaughter,
+                                   femtotwotrackresonances::MomentumNegDaughter,
+                                   femtobase::dynamic::P<femtobase::stored::Pt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Px<femtobase::stored::Pt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Py<femtobase::stored::Pt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Pz<femtobase::stored::Pt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Theta<femtobase::stored::Eta>);
+using FURhos = FURhos_001;
+DECLARE_SOA_TABLE_STAGED_VERSIONED(FURhoMasks_001, "FURHOMASKS", 1,
+                                   femtotwotrackresonances::MaskResonance);
+using FURhoMasks = FURhoMasks_001;
 
 } // namespace o2::aod
 

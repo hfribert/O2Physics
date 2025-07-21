@@ -71,7 +71,15 @@ struct FemtoDreamConverter {
         // vzero
         const auto& posChild = parts.iteratorAt(part.index() - 2);
         const auto& negChild = parts.iteratorAt(part.index() - 1);
-        outputLambdas(outputCollisions.lastIndex(), part.pt(), part.eta(), part.phi(), part.mLambda(), part.mAntiLambda(), posChild.childrenIds()[0], negChild.childrenIds()[1]);
+        int sign = 1;
+        if (part.cut() & 1) {
+          sign = -1;
+        }
+        if (sign > 0) {
+          outputLambdas(outputCollisions.lastIndex(), part.pt(), part.eta(), part.phi(), part.mLambda(), posChild.childrenIds()[0], negChild.childrenIds()[1]);
+        } else {
+          outputLambdas(outputCollisions.lastIndex(), -part.pt(), part.eta(), part.phi(), part.mAntiLambda(), posChild.childrenIds()[0], negChild.childrenIds()[1]);
+        }
         // vzero daughters
       }
     }

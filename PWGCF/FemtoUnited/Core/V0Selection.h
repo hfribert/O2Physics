@@ -46,8 +46,6 @@ struct ConfV0Filters : o2::framework::ConfigurableGroup {
   o2::framework::Configurable<float> rejectMassMaxK0short{"rejectMassMaxK0short", 0.515f, "Maximum mass to rejection K0short hypothesis for Lambda candidates"};
   o2::framework::Configurable<float> massMinK0short{"massMinK0short", 0.48f, "Minimum mass for K0Short hypothesis"};
   o2::framework::Configurable<float> massMaxK0short{"massMaxK0short", 0.515f, "Maximum mass for K0Short hypothesis"};
-  o2::framework::Configurable<bool> fillLambdas{"fillLambdas", true, "Fill Lambda candidates"};
-  o2::framework::Configurable<bool> fillK0shorts{"fillK0shorts", true, "Fill K0Short candidates"};
 };
 
 // selections bits for all v0s
@@ -83,12 +81,15 @@ struct ConfK0shortBits : o2::framework::ConfigurableGroup {
 
 // base selection for analysis task for v0s
 #define V0_DEFAULT_SELECTIONS                                                                           \
+  o2::framework::Configurable<int> pdgCode{"pdgCode", 3122, "V0 PDG code"};                             \
   o2::framework::Configurable<float> ptMin{"ptMin", 0.f, "Minimum pT"};                                 \
   o2::framework::Configurable<float> ptMax{"ptMax", 999.f, "Maximum pT"};                               \
   o2::framework::Configurable<float> etaMin{"etaMin", -10.f, "Minimum eta"};                            \
   o2::framework::Configurable<float> etaMax{"etaMax", 10.f, "Maximum eta"};                             \
   o2::framework::Configurable<float> phiMin{"phiMin", 0.f, "Minimum eta"};                              \
   o2::framework::Configurable<float> phiMax{"phiMax", 1.f * o2::constants::math::TwoPI, "Maximum phi"}; \
+  o2::framework::Configurable<float> massMin{"massMin", 1.f, "Minimum invariant mass for Lambda"};      \
+  o2::framework::Configurable<float> massMax{"massMax", 1.2f, "Maximum invariant mass for Lambda"};     \
   o2::framework::Configurable<o2::aod::femtodatatypes::V0MaskType> mask{"mask", 6, "Bitmask for v0 selection"};
 
 // base selection for analysis task for lambdas
@@ -96,27 +97,21 @@ template <const char* Prefix>
 struct ConfLambdaSelection : o2::framework::ConfigurableGroup {
   std::string prefix = Prefix;
   V0_DEFAULT_SELECTIONS
-  o2::framework::Configurable<float> massMin{"massMin", 1.f, "Minimum invariant mass for Lambda"};
-  o2::framework::Configurable<float> massMax{"massMax", 1.2f, "Maximum invariant mass for Lambda"};
-  o2::framework::Configurable<float> antiMassMin{"antiMassMin", 0.f, "Minimum invariant mass for AntiLambda"};
-  o2::framework::Configurable<float> antiMassMax{"antiMassMax", 999.f, "Maximum invariant mass for AntiLambda"};
+  o2::framework::Configurable<int> sign{"sign", 1, "Sign of the Lambda (+1 for Lambda and -1 for Antilambda"};
 };
-
-// Define unique prefixes as constexpr string literals
-constexpr const char PrefixLambdaSelection1[] = "LambdaSelection1";
-using ConfLambdaSelection1 = ConfLambdaSelection<PrefixLambdaSelection1>;
 
 // base selection for analysis task for k0Short
 template <const char* Prefix>
 struct ConfK0shortSelection : o2::framework::ConfigurableGroup {
   std::string prefix = Prefix;
   V0_DEFAULT_SELECTIONS
-  o2::framework::Configurable<float> massMin{"massMin", 1.f, "Minimum invariant mass for K0Short"};
-  o2::framework::Configurable<float> massMax{"massMax", 1.2f, "Maximum invariant mass for K0Short"};
 };
 
 #undef V0_DEFAULT_SELECTIONS
 
+// Define unique prefixes as constexpr string literals
+constexpr const char PrefixLambdaSelection1[] = "LambdaSelection1";
+using ConfLambdaSelection1 = ConfLambdaSelection<PrefixLambdaSelection1>;
 // Define unique prefixes as constexpr string literals
 constexpr const char PrefixK0ShortSelection1[] = "K0ShortSelection1";
 using ConfK0shortSelection1 = ConfK0shortSelection<PrefixK0ShortSelection1>;
@@ -160,23 +155,25 @@ class V0Selection : public BaseSelection<float, o2::aod::femtodatatypes::V0MaskT
       mMassLambdaUpperLimit = filter.massMaxLambda.value;
       mMassK0shortLowerLimit = filter.rejectMassMinK0short.value;
       mMassK0shortUpperLimit = filter.rejectMassMaxK0short.value;
+      this->addSelection(config.posDauTpcPion.value, kPosDaughTpcPion, limits::kAbsUpperLimit, false, false);
+      this->addSelection(config.posDauTpcProton.value, kPosDaughTpcProton, limits::kAbsUpperLimit, false, false);
+      this->addSelection(config.negDauTpcPion.value, kNegDaughTpcPion, limits::kAbsUpperLimit, false, false);
+      this->addSelection(config.negDauTpcProton.value, kNegDaughTpcProton, limits::kAbsUpperLimit, false, false);
     }
     if constexpr (o2::analysis::femtounited::modes::isFlagSet(v0, o2::analysis::femtounited::modes::V0::kK0short)) {
       mMassK0shortLowerLimit = filter.massMinK0short.value;
       mMassK0shortUpperLimit = filter.massMaxK0short.value;
+      this->addSelection(config.posDauTpcPion.value, kPosDaughTpcPion, limits::kAbsUpperLimit, false, false);
+      this->addSelection(config.negDauTpcPion.value, kNegDaughTpcPion, limits::kAbsUpperLimit, false, false);
     }
 
-    this->addSelection(config.dcaDauMax.value, v0selection::kDcaDaughMax, limits::kAbsUpperLimit, true, true);
-    this->addSelection(config.cpaMin.value, v0selection::kCpaMin, limits::kLowerLimit, true, true);
-    this->addSelection(config.transRadMin.value, v0selection::kTransRadMin, limits::kLowerLimit, true, true);
-    this->addSelection(config.transRadMax.value, v0selection::kTransRadMax, limits::kUpperLimit, true, true);
-    this->addSelection(config.dauAbsEtaMax.value, v0selection::kDauAbsEtaMax, limits::kAbsUpperLimit, true, true);
-    this->addSelection(config.dauDcaMin.value, v0selection::kDauDcaMin, limits::kLowerLimit, true, true);
-    this->addSelection(config.dauTpcClustersMin.value, v0selection::kDauTpcClsMin, limits::kLowerLimit, true, true);
-    this->addSelection(config.posDauTpcPion.value, v0selection::kPosDaughTpcPion, limits::kAbsUpperLimit, false, false);
-    this->addSelection(config.posDauTpcProton.value, v0selection::kPosDaughTpcProton, limits::kAbsUpperLimit, false, false);
-    this->addSelection(config.negDauTpcPion.value, v0selection::kNegDaughTpcPion, limits::kAbsUpperLimit, false, false);
-    this->addSelection(config.negDauTpcProton.value, v0selection::kNegDaughTpcProton, limits::kAbsUpperLimit, false, false);
+    this->addSelection(config.dcaDauMax.value, kDcaDaughMax, limits::kAbsUpperLimit, true, true);
+    this->addSelection(config.cpaMin.value, kCpaMin, limits::kLowerLimit, true, true);
+    this->addSelection(config.transRadMin.value, kTransRadMin, limits::kLowerLimit, true, true);
+    this->addSelection(config.transRadMax.value, kTransRadMax, limits::kUpperLimit, true, true);
+    this->addSelection(config.dauAbsEtaMax.value, kDauAbsEtaMax, limits::kAbsUpperLimit, true, true);
+    this->addSelection(config.dauDcaMin.value, kDauDcaMin, limits::kLowerLimit, true, true);
+    this->addSelection(config.dauTpcClustersMin.value, kDauTpcClsMin, limits::kLowerLimit, true, true);
   };
 
   template <typename V0, typename Tracks>

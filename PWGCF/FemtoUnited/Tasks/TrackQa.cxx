@@ -71,17 +71,17 @@ struct TrackQa {
   trackselection::ConfTrackSelection1 trackSelections;
 
   Partition<Tracks> TrackPartition =
-    ifnode(trackSelections.sign.node() > 0, femtotracks::signedPt > 0.f, femtotracks::signedPt < 0.f) &&
-    (nabs(femtotracks::signedPt) > trackSelections.ptMin) &&
-    (nabs(femtotracks::signedPt) < trackSelections.ptMax) &&
-    (femtobase::eta > trackSelections.etaMin) &&
-    (femtobase::eta < trackSelections.etaMax) &&
-    (femtobase::phi > trackSelections.phiMin) &&
-    (femtobase::phi < trackSelections.phiMax) &&
-    ifnode(nabs(femtotracks::signedPt) * (nexp(femtobase::eta) + nexp(-1.f * femtobase::eta)) / 2.f <= trackSelections.pidThres,
+    ifnode(trackSelections.sign.node() > 0, femtobase::stored::signedPt > 0.f, femtobase::stored::signedPt < 0.f) &&
+    (nabs(femtobase::stored::signedPt) > trackSelections.ptMin) &&
+    (nabs(femtobase::stored::signedPt) < trackSelections.ptMax) &&
+    (femtobase::stored::eta > trackSelections.etaMin) &&
+    (femtobase::stored::eta < trackSelections.etaMax) &&
+    (femtobase::stored::phi > trackSelections.phiMin) &&
+    (femtobase::stored::phi < trackSelections.phiMax) &&
+    ifnode(nabs(femtobase::stored::signedPt) * (nexp(femtobase::stored::eta) + nexp(-1.f * femtobase::stored::eta)) / 2.f <= trackSelections.pidThres,
            ncheckbit(femtotracks::trackMask, trackSelections.maskLowMomentum), ncheckbit(femtotracks::trackMask, trackSelections.maskHighMomentum));
 
-  Preslice<Tracks> perColReco = aod::femtobase::collisionId;
+  Preslice<Tracks> perColReco = aod::femtobase::stored::collisionId;
 
   HistogramRegistry hRegistry{"TrackQA", {}, OutputObjHandlingPolicy::AnalysisObject};
   colhistmanager::CollisionHistManager colHistManager;
@@ -100,7 +100,7 @@ struct TrackQa {
   void process(FilteredCollision const& col, Tracks const& /*tracks*/)
   {
     colHistManager.fill<modes::Mode::kANALYSIS_QA>(col);
-    auto trackSlice = TrackPartition->sliceByCached(femtobase::collisionId, col.globalIndex(), cache);
+    auto trackSlice = TrackPartition->sliceByCached(femtobase::stored::collisionId, col.globalIndex(), cache);
     for (auto const& track : trackSlice) {
       trackHistManager.fill<modes::Mode::kANALYSIS_QA>(track);
     }

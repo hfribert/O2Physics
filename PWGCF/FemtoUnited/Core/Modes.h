@@ -86,8 +86,12 @@ enum class Track : o2::aod::femtodatatypes::TrackType {
 
 enum class V0 : o2::aod::femtodatatypes::V0Type {
   kLambda = BIT(0),
-  kAntiLambda = BIT(1),
-  kK0short = BIT(2)
+  kK0short = BIT(1),
+};
+
+enum class Cascade : o2::aod::femtodatatypes::CascadeType {
+  kXi = BIT(0),
+  kOmega = BIT(1),
 };
 
 // enum of supported resonances
@@ -95,7 +99,7 @@ enum class TwoTrackResonace : o2::aod::femtodatatypes::TwoTrackResonaceType {
   kRho = BIT(0),
   kPhi = BIT(1),
   kKstar = BIT(2),
-  kAntiKstar = BIT(3),
+  kKstarBar = BIT(3)
 };
 
 }; // namespace modes

@@ -27,16 +27,12 @@ namespace o2::aod
 {
 namespace femtov0s
 {
-// columns for lambdas and K0s
-DECLARE_SOA_COLUMN(LambdaMass, lambdaMass, float);         //! Mass of Lambda
-DECLARE_SOA_COLUMN(AntiLambdaMass, antiLambdaMass, float); //! Mass of anti Lambda
-DECLARE_SOA_COLUMN(KaonMass, kaonMass, float);             //! Lambda mass using Kaon hypothesis
-
 // columns for bit masks
-DECLARE_SOA_COLUMN(LambdaMask, lambdaMask, femtodatatypes::V0MaskType); //! Bitmask for Lambda selections
-DECLARE_SOA_COLUMN(KaonMask, kaonMask, femtodatatypes::V0MaskType);     //! Bitmask for Lambda selections
+DECLARE_SOA_COLUMN(MaskV0, maskV0, femtodatatypes::V0MaskType); //! Bitmask for v0 selections
 
 // columns for debug information
+DECLARE_SOA_COLUMN(MassK0short, massK0short, float); //! Mass of Lambda
+DECLARE_SOA_COLUMN(MassAnti, massAnti, float);       //! Mass of Lambda
 DECLARE_SOA_COLUMN(CosPa, cosPa, float);             //! Lambda daughter DCA at decay vertex
 DECLARE_SOA_COLUMN(DauDCA, dauDca, float);           //! Lambda daughter DCA at decay vertex
 DECLARE_SOA_COLUMN(TransRadius, transRadius, float); //! Lambda transvers radius
@@ -53,23 +49,24 @@ DECLARE_SOA_INDEX_COLUMN_FULL(NegDau, negDau, int32_t, FUTracks, "_NegDau"); //!
 // table for basic lambda information
 DECLARE_SOA_TABLE_STAGED_VERSIONED(FULambdas_001, "FULAMBDAS", 1,
                                    o2::soa::Index<>,
-                                   femtobase::CollisionId,
-                                   femtobase::Pt,
-                                   femtobase::Eta,
-                                   femtobase::Phi,
-                                   femtov0s::LambdaMass,
-                                   femtov0s::AntiLambdaMass,
+                                   femtobase::stored::CollisionId, // use sign to differentiate between lambda (+1) and antilambda (-1)
+                                   femtobase::stored::SignedPt,
+                                   femtobase::stored::Eta,
+                                   femtobase::stored::Phi,
+                                   femtobase::stored::Mass,
                                    femtov0s::PosDauId,
                                    femtov0s::NegDauId,
-                                   femtobase::Theta<femtobase::Eta>,
-                                   femtobase::Px<femtobase::Pt, femtobase::Eta>,
-                                   femtobase::Py<femtobase::Pt, femtobase::Eta>,
-                                   femtobase::Pz<femtobase::Pt, femtobase::Eta>,
-                                   femtobase::P<femtobase::Pt, femtobase::Eta>);
+                                   femtobase::dynamic::Sign<femtobase::stored::SignedPt>,
+                                   femtobase::dynamic::Pt<femtobase::stored::SignedPt>,
+                                   femtobase::dynamic::P<femtobase::stored::SignedPt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Px<femtobase::stored::SignedPt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Py<femtobase::stored::SignedPt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Pz<femtobase::stored::SignedPt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Theta<femtobase::stored::Eta>);
 using FULambdas = FULambdas_001;
 
 DECLARE_SOA_TABLE_STAGED_VERSIONED(FULambdaMasks_001, "FULAMBDAMASKS", 1,
-                                   femtov0s::LambdaMask);
+                                   femtov0s::MaskV0);
 using FULambdaMasks = FULambdaMasks_001;
 
 DECLARE_SOA_TABLE_STAGED_VERSIONED(FULambdaExtras_001, "FULAMBDAEXTRAS", 1,
@@ -79,29 +76,30 @@ DECLARE_SOA_TABLE_STAGED_VERSIONED(FULambdaExtras_001, "FULAMBDAEXTRAS", 1,
                                    femtov0s::DecayVtxY,
                                    femtov0s::DecayVtxZ,
                                    femtov0s::TransRadius,
-                                   femtov0s::KaonMass);
+                                   femtov0s::MassAnti,
+                                   femtov0s::MassK0short);
 
 using FULambdaExtras = FULambdaExtras_001;
 
 // table for basic lambda information
 DECLARE_SOA_TABLE_STAGED_VERSIONED(FUKshorts_001, "FUKSHORTS", 1,
                                    o2::soa::Index<>,
-                                   femtobase::CollisionId,
-                                   femtobase::Pt,
-                                   femtobase::Eta,
-                                   femtobase::Phi,
-                                   femtov0s::KaonMass,
+                                   femtobase::stored::CollisionId,
+                                   femtobase::stored::Pt,
+                                   femtobase::stored::Eta,
+                                   femtobase::stored::Phi,
+                                   femtobase::stored::Mass,
                                    femtov0s::PosDauId,
                                    femtov0s::NegDauId,
-                                   femtobase::Theta<femtobase::Eta>,
-                                   femtobase::Px<femtobase::Pt, femtobase::Eta>,
-                                   femtobase::Py<femtobase::Pt, femtobase::Eta>,
-                                   femtobase::Pz<femtobase::Pt, femtobase::Eta>,
-                                   femtobase::P<femtobase::Pt, femtobase::Eta>);
+                                   femtobase::dynamic::P<femtobase::stored::Pt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Px<femtobase::stored::Pt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Py<femtobase::stored::Pt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Pz<femtobase::stored::Pt, femtobase::stored::Eta>,
+                                   femtobase::dynamic::Theta<femtobase::stored::Eta>);
 using FUKshorts = FUKshorts_001;
 
 DECLARE_SOA_TABLE_STAGED_VERSIONED(FUKshortMasks_001, "FUKSHORTMASKS", 1,
-                                   femtov0s::KaonMask);
+                                   femtov0s::MaskV0);
 using FUKshortMasks = FUKshortMasks_001;
 
 DECLARE_SOA_TABLE_STAGED_VERSIONED(FUKshortExtras_001, "FUSHORTEXTRAS", 1,

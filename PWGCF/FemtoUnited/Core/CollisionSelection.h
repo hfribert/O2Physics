@@ -53,16 +53,19 @@ class CollisionSelection
   CollisionSelection() {}
   virtual ~CollisionSelection() = default;
 
-  void useOfflineSelection(bool OfflineSelection)
+  template <typename T>
+  void configure(T const& config)
   {
-    mOfflineSelection = OfflineSelection;
+    mOfflineSelection = config.useOfflineSelection.value;
+    mMagFieldMin = config.magFieldMin.value;
+    mMagFieldMax = config.magFieldMax.value;
+    mMultMin = config.multMin.value;
+    mMultMax = config.multMax.value;
+    mCentMin = config.centMin.value;
+    mCentMax = config.centMax.value;
+    mSphericityMin = config.spherMin.value;
+    mSphericityMax = config.spherMax.value;
   };
-
-  void setMagneticFieldLimits(float MagFieldMin, float MagFieldMax)
-  {
-    mMagFieldMin = MagFieldMin;
-    mMagFieldMax = MagFieldMax;
-  }
 
   void setMagneticField(float MagField)
   {
@@ -72,24 +75,6 @@ class CollisionSelection
   float getMagneticField()
   {
     return mMagField;
-  }
-
-  void setMultiplicityLimits(float MultMin, float MultMax)
-  {
-    mMultMin = MultMin;
-    mMultMax = MultMax;
-  }
-
-  void setCentralityLimits(float CentMin, float CentMax)
-  {
-    mCentMin = CentMin;
-    mCentMax = CentMax;
-  }
-
-  void setSphericityLimits(float SphericityMin, float SphericityMax)
-  {
-    mSphericityMin = SphericityMin;
-    mSphericityMax = SphericityMax;
   }
 
   template <typename T>
