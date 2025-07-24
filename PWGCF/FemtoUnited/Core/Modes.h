@@ -79,7 +79,7 @@ enum class System : uint32_t {
 
 enum class Track : o2::aod::femtodatatypes::TrackType {
   kPrimaryTrack = BIT(0),
-  kLambdaDaugher = BIT(1),
+  kV0Daughter = BIT(1),
   kCascadeBachelor = BIT(2),
   kResonanceDaughter = BIT(3),
 };
@@ -95,11 +95,10 @@ enum class Cascade : o2::aod::femtodatatypes::CascadeType {
 };
 
 // enum of supported resonances
-enum class TwoTrackResonace : o2::aod::femtodatatypes::TwoTrackResonaceType {
-  kRho = BIT(0),
+enum class TwoTrackResonance : o2::aod::femtodatatypes::TwoTrackResonanceType {
+  kRho0 = BIT(0),
   kPhi = BIT(1),
-  kKstar = BIT(2),
-  kKstarBar = BIT(3)
+  kKstar0 = BIT(2)
 };
 
 }; // namespace modes

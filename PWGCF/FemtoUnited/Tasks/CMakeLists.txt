@@ -14,16 +14,16 @@ o2physics_add_dpl_workflow(femtounited-trackqa
           PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
           COMPONENT_NAME Analysis)
 
-# o2physics_add_dpl_workflow(femtounited-lambdaqa
-# 	  SOURCES LambdaQa.cxx
-#           PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
-#           COMPONENT_NAME Analysis)
+o2physics_add_dpl_workflow(femtounited-v0qa
+	  SOURCES V0Qa.cxx
+          PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
+          COMPONENT_NAME Analysis)
 
-# o2physics_add_dpl_workflow(femtounited-twotrackresonanceqa
-# 	SOURCES TwoTrackResonanceQa.cxx
-#           PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
-#           COMPONENT_NAME Analysis)
-#
+o2physics_add_dpl_workflow(femtounited-twotrackresonanceqa
+	SOURCES TwoTrackResonanceQa.cxx
+          PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
+          COMPONENT_NAME Analysis)
+
 # o2physics_add_dpl_workflow(femtounited-pair-track-track
 # 	  SOURCES PairTrackTrack.cxx
 #           PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore

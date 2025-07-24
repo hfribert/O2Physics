@@ -1,4 +1,4 @@
-// Copyright 2019-2022 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2025 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -16,8 +16,9 @@
 #ifndef PWGCF_FEMTOUNITED_CORE_HISTMANAGER_H_
 #define PWGCF_FEMTOUNITED_CORE_HISTMANAGER_H_
 
-#include <string>
 #include "Framework/HistogramRegistry.h"
+
+#include <string>
 
 namespace o2::analysis::femtounited
 {

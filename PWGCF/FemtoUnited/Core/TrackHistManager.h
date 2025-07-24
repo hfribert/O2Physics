@@ -43,8 +43,10 @@ enum TrackHist {
   // qa variables
   kItsCluster,
   kItsClusterIb,
+  kTpcCrossedRows,
   kTpcCluster,
   kTpcClusterShared,
+  kTpcClusterFractionShared,
   // kDcaxy,
   // kDcaz,
   // kDca,
@@ -108,6 +110,8 @@ struct ConfTrackBinning : o2::framework::ConfigurableGroup {
 
 constexpr const char PrefixTrackBinning1[] = "TrackBinning1";
 constexpr const char PrefixTrackBinning2[] = "TrackBinning2";
+constexpr const char PrefixK0shortPosDauBinning[] = "K0shortPosDauBinning";
+constexpr const char PrefixK0shortNegDauBinning[] = "K0shortNegDauBinning";
 constexpr const char PrefixLambdaPosDauBinning[] = "LambdaPosDauBinning";
 constexpr const char PrefixLambdaNegDauBinning[] = "LambdaNegDauBinning";
 constexpr const char PrefixResonancePosDauBinning[] = "ResonancePosDauBinning";
@@ -115,6 +119,8 @@ constexpr const char PrefixResonanceNegDauBinning[] = "ResonanceNegDauBinning";
 
 using ConfTrackBinning1 = ConfTrackBinning<PrefixTrackBinning1>;
 using ConfTrackBinning2 = ConfTrackBinning<PrefixTrackBinning2>;
+using ConfK0shortPosDauBinning = ConfTrackBinning<PrefixK0shortPosDauBinning>;
+using ConfK0shortNegDauBinning = ConfTrackBinning<PrefixK0shortNegDauBinning>;
 using ConfLambdaPosDauBinning = ConfTrackBinning<PrefixLambdaPosDauBinning>;
 using ConfLambdaNegDauBinning = ConfTrackBinning<PrefixLambdaNegDauBinning>;
 using ConfResonancePosDauBinning = ConfTrackBinning<PrefixResonancePosDauBinning>;
@@ -125,8 +131,10 @@ struct ConfTrackQaBinning : o2::framework::ConfigurableGroup {
   std::string prefix = Prefix;
   o2::framework::ConfigurableAxis itsCluster{"itsCluster", {{8, -0.5, 7.5}}, "ITS cluster"};
   o2::framework::ConfigurableAxis itsClusterIb{"itsClusterIb", {{4, -0.5, 3.5}}, "ITS cluster in inner barrel"};
-  o2::framework::ConfigurableAxis tpcCluster{"tpcCluster", {{153, -0.5, 152.5}}, "TPC cluster"};
-  o2::framework::ConfigurableAxis tpcClusterShared{"tpcClusterShared", {{153, -0.5, 152.5}}, "TPC cluster shared"};
+  o2::framework::ConfigurableAxis tpcCrossedRows{"tpcCrossedRows", {{161, -0.5, 160.5}}, "TPC cluster"};
+  o2::framework::ConfigurableAxis tpcCluster{"tpcCluster", {{161, -0.5, 160.5}}, "TPC cluster"};
+  o2::framework::ConfigurableAxis tpcClusterShared{"tpcClusterShared", {{161, -0.5, 160.5}}, "TPC cluster shared"};
+  o2::framework::ConfigurableAxis tpcClusterFractionShared{"tpcClusterFractionShared", {{60, 0, 1.2}}, "TPC cluster fraction shared"};
   o2::framework::ConfigurableAxis dcaXy{"dcaXy", {{300, -0.3, 0.3}}, "DCA_xy"};
   o2::framework::ConfigurableAxis dcaZ{"dcaZ", {{300, -0.3, 0.3}}, "DCA_Z"};
   o2::framework::ConfigurableAxis dca{"dca", {{300, 0, 0.3}}, "DCA"};
@@ -165,12 +173,16 @@ struct ConfTrackQaBinning : o2::framework::ConfigurableGroup {
 };
 
 constexpr const char PrefixTrackQaBinning1[] = "TrackQaBinning1";
+constexpr const char PrefixK0shortPosDauQaBinning[] = "K0shortPosDauQaBinning";
+constexpr const char PrefixK0shortNegDauQaBinning[] = "K0shortNegDauQaBinning";
 constexpr const char PrefixLambdaPosDauQaBinning[] = "LambdaPosDauQaBinning";
 constexpr const char PrefixLambdaNegDauQaBinning[] = "LambdaNegDauQaBinning";
 constexpr const char PrefixResonancePosDauQaBinning[] = "ResonancePosDauQaBinning";
 constexpr const char PrefixResonanceNegDauQaBinning[] = "ResonanceNegDauQaBinning";
 
 using ConfTrackQaBinning1 = ConfTrackQaBinning<PrefixTrackQaBinning1>;
+using ConfK0shortPosDauQaBinning = ConfTrackQaBinning<PrefixK0shortPosDauQaBinning>;
+using ConfK0shortNegDauQaBinning = ConfTrackQaBinning<PrefixK0shortNegDauQaBinning>;
 using ConfLambdaPosDauQaBinning = ConfTrackQaBinning<PrefixLambdaPosDauQaBinning>;
 using ConfLambdaNegDauQaBinning = ConfTrackQaBinning<PrefixLambdaNegDauQaBinning>;
 using ConfResonancePosDauQaBinning = ConfTrackQaBinning<PrefixResonancePosDauQaBinning>;
@@ -185,8 +197,10 @@ constexpr std::array<histmanager::HistInfo<TrackHist>, kTrackHistLast> HistTable
    {kSign, o2::framework::kTH1F, "hSign", "Sign of charge ; Sign; Entries"},
    {kItsCluster, o2::framework::kTH1F, "hItsCluster", "ITS cluster; ITS cluster; Entries"},
    {kItsClusterIb, o2::framework::kTH1F, "hItsClusterIb", "ITS cluster in inner barrel; ITS IB cluster; Entries"},
+   {kTpcCrossedRows, o2::framework::kTH1F, "hTpcCrossedRows", "TPC crossed rows; TPC crossed rows; Entries"},
    {kTpcCluster, o2::framework::kTH1F, "hTpcCluster", "TPC cluster found; TPC cluster found; Entries"},
    {kTpcClusterShared, o2::framework::kTH1F, "hTpcClusterShared", "TPC cluster shared; TPC cluster shared ; Entries"},
+   {kTpcClusterFractionShared, o2::framework::kTH1F, "hTpcClusterFractionShared", "TPC cluster fraction shared; TPC cluster found / TPC cluster shared ; Entries"},
    {kPtVsEta, o2::framework::kTH2F, "hPtVsEta", "p_{T} vs #eta; p_{T} (GeV/#it{c}) ; #eta"},
    {kPtVsPhi, o2::framework::kTH2F, "hPtVsPhi", "p_{T} vs #varphi; p_{T} (GeV/#it{c}) ; #varphi"},
    {kPhiVsEta, o2::framework::kTH2F, "hPhiVsEta", "#varphi vs #eta; #varphi ; #eta"},
@@ -256,8 +270,10 @@ auto makeTrackQaHistSpecMap(const T1& confBinningAnalysis, const T2 confiBinning
     {kPtVsTpcCluster, {confBinningAnalysis.pt, confiBinningQa.tpcCluster}},
     {kPtVsTpcClusterShared, {confBinningAnalysis.pt, confiBinningQa.tpcClusterShared}},
     {kTpcClusterVsTpcClusterShared, {confiBinningQa.tpcCluster, confiBinningQa.tpcClusterShared}},
+    {kTpcCrossedRows, {confiBinningQa.tpcCrossedRows}},
     {kTpcCluster, {confiBinningQa.tpcCluster}},
     {kTpcClusterShared, {confiBinningQa.tpcClusterShared}},
+    {kTpcClusterFractionShared, {confiBinningQa.tpcClusterFractionShared}},
     {kPtVsDcaxy, {confBinningAnalysis.pt, confiBinningQa.dcaXy}},
     {kPtVsDcaz, {confBinningAnalysis.pt, confiBinningQa.dcaZ}},
     {kPtVsDca, {confBinningAnalysis.pt, confiBinningQa.dca}},
@@ -304,6 +320,11 @@ constexpr char PrefixLambdaNegDaughter[] = "LambdaNegDaugh/";
 constexpr char PrefixLambdaPosDaughterQa[] = "LambdaPosDaughQa/";
 constexpr char PrefixLambdaNegDaughterQa[] = "LambdaNegDaughQa/";
 
+constexpr char PrefixK0shortPosDaughter[] = "K0shortPosDaugh/";
+constexpr char PrefixK0shortNegDaughter[] = "K0shortNegDaugh/";
+constexpr char PrefixK0shortPosDaughterQa[] = "K0shortPosDaughQa/";
+constexpr char PrefixK0shortNegDaughterQa[] = "K0shortNegDaughQa/";
+
 constexpr char PrefixResonancePosDaughter[] = "ResonancePosDaugh/";
 constexpr char PrefixResonanceNegDaughter[] = "ResonanceNegDaugh/";
 constexpr char PrefixResonancePosDaughterQa[] = "ResonancePosDaughQa/";
@@ -344,8 +365,10 @@ class TrackHistManager
 
       mHistogramRegistry->add(qaDir + GetHistNamev2(kItsCluster, HistTable), GetHistDesc(kItsCluster, HistTable), GetHistType(kItsCluster, HistTable), {Specs[kItsCluster]});
       mHistogramRegistry->add(qaDir + GetHistNamev2(kItsClusterIb, HistTable), GetHistDesc(kItsClusterIb, HistTable), GetHistType(kItsClusterIb, HistTable), {Specs[kItsClusterIb]});
+      mHistogramRegistry->add(qaDir + GetHistNamev2(kTpcCrossedRows, HistTable), GetHistDesc(kTpcCrossedRows, HistTable), GetHistType(kTpcCrossedRows, HistTable), {Specs[kTpcCrossedRows]});
       mHistogramRegistry->add(qaDir + GetHistNamev2(kTpcCluster, HistTable), GetHistDesc(kTpcCluster, HistTable), GetHistType(kTpcCluster, HistTable), {Specs[kTpcCluster]});
       mHistogramRegistry->add(qaDir + GetHistNamev2(kTpcClusterShared, HistTable), GetHistDesc(kTpcClusterShared, HistTable), GetHistType(kTpcClusterShared, HistTable), {Specs[kTpcClusterShared]});
+      mHistogramRegistry->add(qaDir + GetHistNamev2(kTpcClusterFractionShared, HistTable), GetHistDesc(kTpcClusterFractionShared, HistTable), GetHistType(kTpcClusterFractionShared, HistTable), {Specs[kTpcClusterFractionShared]});
 
       // qa 2d
       mHistogramRegistry->add(qaDir + GetHistNamev2(kPtVsEta, HistTable), GetHistDesc(kPtVsEta, HistTable), GetHistType(kPtVsEta, HistTable), {Specs[kPtVsEta]});
@@ -413,8 +436,10 @@ class TrackHistManager
     if constexpr (isFlagSet(mode, modes::Mode::kQA)) {
       mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kItsCluster, HistTable)), static_cast<float>(track.itsNCls()));
       mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kItsClusterIb, HistTable)), static_cast<float>(track.itsNClsInnerBarrel()));
+      mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kTpcCrossedRows, HistTable)), static_cast<float>(track.tpcNClsCrossedRows()));
       mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kTpcCluster, HistTable)), static_cast<float>(track.tpcNClsFound()));
       mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kTpcClusterShared, HistTable)), static_cast<float>(track.tpcNClsShared()));
+      mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kTpcClusterFractionShared, HistTable)), track.tpcSharedOverFound());
 
       mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kPtVsEta, HistTable)), track.pt(), track.eta());
       mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kPtVsPhi, HistTable)), track.pt(), track.phi());
@@ -426,7 +451,7 @@ class TrackHistManager
 
       mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kPtVsDcaxy, HistTable)), track.pt(), track.dcaXY());
       mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kPtVsDcaz, HistTable)), track.pt(), track.dcaZ());
-      mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kPtVsDca, HistTable)), track.pt(), std::hypot(track.dcaXY(), track.dcaZ()));
+      mHistogramRegistry->fill(HIST(prefix) + HIST(QaDir) + HIST(GetHistName(kPtVsDca, HistTable)), track.pt(), track.dca());
 
       mHistogramRegistry->fill(HIST(prefix) + HIST(PidDir) + HIST(GetHistName(kItsSignal, HistTable)), track.p(), o2::analysis::femtounited::utils::itsSignal(track));
       mHistogramRegistry->fill(HIST(prefix) + HIST(PidDir) + HIST(GetHistName(kItsElectron, HistTable)), track.p(), track.itsNSigmaEl());

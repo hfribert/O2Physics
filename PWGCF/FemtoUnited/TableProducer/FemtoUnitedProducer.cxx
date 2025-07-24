@@ -19,12 +19,12 @@
 #include "PWGCF/FemtoUnited/Core/DataTypes.h"
 #include "PWGCF/FemtoUnited/Core/FemtoUtils.h"
 #include "PWGCF/FemtoUnited/Core/TrackSelection.h"
-// #include "PWGCF/FemtoUnited/Core/TwoTrackResonanceSelection.h"
+#include "PWGCF/FemtoUnited/Core/TwoTrackResonanceSelection.h"
 #include "PWGCF/FemtoUnited/Core/V0Selection.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoCascadesDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoCollisionsDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoTracksDerived.h"
-// #include "PWGCF/FemtoUnited/DataModel/FemtoTwoTrackResonancesDerived.h"
+#include "PWGCF/FemtoUnited/DataModel/FemtoTwoTrackResonancesDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoV0sDerived.h"
 #include "PWGLF/DataModel/LFStrangenessTables.h"
 
@@ -62,10 +62,6 @@ namespace consumeddata
 using Run3PpCollisions = soa::Join<aod::Collisions, aod::EvSels, aod::Mults, aod::CentFT0Ms>;
 using Run3PpWithoutCentCollisions = soa::Join<aod::Collisions, aod::EvSels, aod::Mults>;
 
-// using Run3Tracks = soa::Join<Tracks, TracksExtra, TracksDCA,
-//                              pidTPCEl, pidTPCPi, pidTPCKa, pidTPCPr, pidTPCDe, pidTPCTr, pidTPCHe,
-//                              pidTOFEl, pidTOFPi, pidTOFKa, pidTOFPr, pidTOFDe, pidTOFTr, pidTOFHe>;
-
 using Run3FullPidTracks =
   soa::Join<Tracks, TracksExtra, TracksDCA,
             pidTPCFullEl, pidTPCFullPi, pidTPCFullKa, pidTPCFullPr, pidTPCFullDe, pidTPCFullTr, pidTPCFullHe,
@@ -98,9 +94,9 @@ struct FemtoUnitedProducer {
     Produces<FULambdaMasks> producedLambdaMasks;
     Produces<FULambdaExtras> producedLambdaExtras;
 
-    Produces<FUKshorts> producedK0shorts;
-    Produces<FUKshortMasks> producedK0shortMasks;
-    Produces<FUKshortExtras> producedK0shortExtras;
+    Produces<FUK0shorts> producedK0shorts;
+    Produces<FUK0shortMasks> producedK0shortMasks;
+    Produces<FUK0shortExtras> producedK0shortExtras;
 
     Produces<FUXis> producedXis;
     Produces<FUXiMasks> producedXiMasks;
@@ -110,14 +106,14 @@ struct FemtoUnitedProducer {
     Produces<FUOmegaMasks> producedOmegaMasks;
     Produces<FUOmegaExtras> producedOmegaExtras;
 
-    // Produces<FUPhis> producedPhis;
-    // Produces<FUPhiMasks> producedPhiMasks;
-    //
-    // Produces<FUKstars> producedKstars;
-    // Produces<FUKstarMasks> producedKstarMasks;
-    //
-    // Produces<FURhos> producedRhos;
-    // Produces<FURhoMasks> producedRhoMasks;
+    Produces<FUPhis> producedPhis;
+    Produces<FUPhiMasks> producedPhiMasks;
+
+    Produces<FUKstars> producedKstars;
+    Produces<FUKstarMasks> producedKstarMasks;
+
+    Produces<FURhos> producedRhos;
+    Produces<FURhoMasks> producedRhoMasks;
   } products;
 
   // configurables
@@ -131,8 +127,8 @@ struct FemtoUnitedProducer {
     Configurable<bool> produceXi{"produceXi", false, "Flag to produce Xi"};
     Configurable<bool> produceOmega{"produceOmega", false, "Flag to produce Omega"};
     Configurable<bool> producePhi{"producePhi", false, "Flag to produce Phi"};
-    Configurable<bool> produceKstar{"produceKstar", false, "Flag to produce Kstar"};
-    Configurable<bool> produceRho{"produceRho", false, "Flag to produce Rho"};
+    Configurable<bool> produceKstar0{"produceKstar0", false, "Flag to produce Kstar"};
+    Configurable<bool> produceRho0{"produceRho0", false, "Flag to produce Rho"};
   } ConfOptions;
 
   // Event selections
@@ -174,30 +170,36 @@ struct FemtoUnitedProducer {
   cascadeselection::CascadeSelection omegaSel;
 
   // resonance filters
-  // twotrackresonanceselection::ConfTwoTrackResonanceDaughterFilters confResonanceDaughterFilters;
-  // twotrackresonanceselection::ConfRhoFilters confRhoFilters;
-  // twotrackresonanceselection::ConfPhiFilters confPhiFilters;
-  // twotrackresonanceselection::ConfKstarFilters confKstarFilters;
-  // twotrackresonanceselection::ConfAntiKstarFilters confAntiKstarFilters;
+  twotrackresonanceselection::ConfTwoTrackResonanceDaughterFilters confResonanceDaughterFilters;
+  twotrackresonanceselection::ConfRhoFilters confRhoFilters;
+  twotrackresonanceselection::ConfPhiFilters confPhiFilters;
+  twotrackresonanceselection::ConfKstarFilters confKstarFilters;
 
   // phi bits
-  // twotrackresonanceselection::ConfPhiBits confPhiBits;
-  // twotrackresonanceselection::TwoTrackResonanceSelection phiSels;
+  twotrackresonanceselection::ConfPhiBits confPhiBits;
+  twotrackresonanceselection::TwoTrackResonanceSelection phiSels;
 
   // kstar bits
-  // twotrackresonanceselection::ConfKstarBits confKstarBits;
-  // twotrackresonanceselection::TwoTrackResonanceSelection kstarSels;
-  // twotrackresonanceselection::TwoTrackResonanceSelection kstarBarSels;
+  twotrackresonanceselection::ConfKstar0Bits confKstar0Bits;
+  twotrackresonanceselection::TwoTrackResonanceSelection kstar0Sels;
 
   // rho bits
-  // twotrackresonanceselection::ConfRhoBits confRhoBits;
-  // twotrackresonanceselection::TwoTrackResonanceSelection rhoSels;
+  twotrackresonanceselection::ConfRho0Bits confRho0Bits;
+  twotrackresonanceselection::TwoTrackResonanceSelection rho0Sels;
 
-  // Partition<Filtered<consumeddata::Run3FullPidTracks>> partitionPositiveTracks = track::signed1Pt > 0.f;
-  // Partition<Filtered<consumeddata::Run3FullPidTracks>> partitionNegativeTracks = track::signed1Pt < 0.f;
+  Partition<Filtered<consumeddata::Run3FullPidTracks>> partitionPositiveDaughters =
+    (track::signed1Pt > 0.f) &&
+    (track::pt > confResonanceDaughterFilters.posDauPtMin && track::pt < confResonanceDaughterFilters.posDauPtMax) &&
+    (track::eta > confResonanceDaughterFilters.posDauEtaMin && track::eta < confResonanceDaughterFilters.posDauEtaMax) &&
+    (track::phi > confResonanceDaughterFilters.posDauPhiMin && track::phi < confResonanceDaughterFilters.posDauPhiMax);
+  Partition<Filtered<consumeddata::Run3FullPidTracks>> partitionNegativeDaughters =
+    (track::signed1Pt < 0.f) &&
+    (track::pt > confResonanceDaughterFilters.negDauPtMin && track::pt < confResonanceDaughterFilters.negDauPtMax) &&
+    (track::eta > confResonanceDaughterFilters.negDauEtaMin && track::eta < confResonanceDaughterFilters.negDauEtaMax) &&
+    (track::phi > confResonanceDaughterFilters.negDauPhiMin && track::phi < confResonanceDaughterFilters.negDauPhiMax);
 
   // histogramming
-  HistogramRegistry hRegistry{"Producer", {}, OutputObjHandlingPolicy::AnalysisObject};
+  HistogramRegistry hRegistry{"FemtoProducer", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   // data members
   int runNumber = -1;
@@ -205,7 +207,10 @@ struct FemtoUnitedProducer {
   Service<o2::ccdb::BasicCCDBManager> ccdb;            /// Accessing the CCDB
   std::unordered_map<int64_t, int64_t> indexMapTracks; // for mapping tracks to lambdas, cascades and resonances
 
-  // functions
+  bool produceV0s = false;
+  bool produceResonances = false;
+  bool produceCascades = false;
+
   void initFromCcdb(o2::aod::BCsWithTimestamps::iterator const& bc)
   {
     if (runNumber == bc.runNumber())
@@ -220,6 +225,23 @@ struct FemtoUnitedProducer {
     }
     magField = 0.1 * grpo->getNominalL3Field(); // get magnetic field in tesla
     runNumber = bc.runNumber();
+
+    // tracks are produced by default
+    if (ConfOptions.produceK0short.value || ConfOptions.produceLambda.value) {
+      produceV0s = true;
+    }
+    if (ConfOptions.producePhi.value || ConfOptions.produceRho0.value || ConfOptions.produceKstar0.value) {
+      produceResonances = true;
+    }
+    if (ConfOptions.produceXi.value || ConfOptions.produceOmega.value) {
+      produceCascades = true;
+    }
+    if (doprocessTracksRun3pp && (produceV0s || produceCascades)) {
+      LOG(fatal) << "Only processing Tracks, cannot produce v0s or cascades. Change the process function";
+    }
+    if (doprocessTracksVzerosRun3pp && produceCascades) {
+      LOG(fatal) << "Only processing Tracks and V0s, cannot produce cascades. Change the process function";
+    }
   };
 
   void init(InitContext& /*contex*/)
@@ -238,18 +260,31 @@ struct FemtoUnitedProducer {
     trackSel.configure(confTrackBits, confTrackFilters);
 
     // init v0 selection ojects
+    lambdaSel.configure<modes::V0::kLambda>(confLambdaBits, confV0Filters);
     k0shortSel.configure<modes::V0::kK0short>(confK0shortBits, confV0Filters);
-    k0shortSel.configure<modes::V0::kLambda>(confLambdaBits, confV0Filters);
 
     // cascade selections
     xiSel.configure<modes::Cascade::kXi>(confXiBits, confCascadeFilters);
     omegaSel.configure<modes::Cascade::kOmega>(confOmegaBits, confCascadeFilters);
 
     // resonance selections
-    // rhoSels.configure<modes::TwoTrackResonace::kRho>(confRhoBits, confRhoFilters, confResonanceDaughterFilters);
-    // phiSels.configure<modes::TwoTrackResonace::kPhi>(confPhiBits, confPhiFilters, confResonanceDaughterFilters);
-    // kstarSels.configure<modes::TwoTrackResonace::kKstar>(confKstarBits, confKstarFilters, confResonanceDaughterFilters);
-    // kstarBarSels.configure<modes::TwoTrackResonace::kKstarBar>(confKstarBits, confKstarFilters, confResonanceDaughterFilters);
+    rho0Sels.configure<modes::TwoTrackResonance::kRho0>(confRho0Bits, confRhoFilters, confResonanceDaughterFilters);
+    phiSels.configure<modes::TwoTrackResonance::kPhi>(confPhiBits, confPhiFilters, confResonanceDaughterFilters);
+    kstar0Sels.configure<modes::TwoTrackResonance::kKstar0>(confKstar0Bits, confKstarFilters, confResonanceDaughterFilters);
+  }
+
+  template <modes::Mode mode, modes::Track type, typename T>
+  int64_t getDaughterIndex(const T& daughter)
+  {
+    auto result = utils::getTrackIndex(daughter.globalIndex(), indexMapTracks);
+    if (result) {
+      return result.value();
+    } else {
+      fillTrack<mode, type>(daughter);
+      int64_t idx = products.producedTracks.lastIndex();
+      indexMapTracks.emplace(daughter.globalIndex(), idx);
+      return idx;
+    }
   }
 
   template <modes::System sys, typename T>
@@ -358,7 +393,7 @@ struct FemtoUnitedProducer {
         continue;
       }
       trackSel.applySelections(track);
-      if (!trackSel.passesMinimalCuts()) {
+      if (!trackSel.passesAllRequiredSelections()) {
         continue;
       }
       fillTrack<mode, modes::Track::kPrimaryTrack>(track);
@@ -388,14 +423,14 @@ struct FemtoUnitedProducer {
     }
     if constexpr (modes::isFlagSet(mode, modes::Mode::kQA)) {
       products.producedLambdaExtras(
+        massAnti,
+        v0.mK0Short(),
         v0.v0cosPA(),
         v0.dcaV0daughters(),
+        v0.v0radius(),
         v0.x(),
         v0.y(),
-        v0.z(),
-        v0.v0radius(),
-        massAnti,
-        v0.mK0Short());
+        v0.z());
     }
   }
 
@@ -410,93 +445,56 @@ struct FemtoUnitedProducer {
                                 v0.mK0Short(),
                                 posDaughterIndex,
                                 negDaughterIndex);
-      products.producedLambdaMasks(k0shortSel.getBitmask());
+      products.producedK0shortMasks(k0shortSel.getBitmask());
     }
     if constexpr (modes::isFlagSet(mode, modes::Mode::kQA)) {
       products.producedK0shortExtras(
+        v0.mLambda(),
+        v0.mAntiLambda(),
         v0.v0cosPA(),
         v0.dcaV0daughters(),
+        v0.v0radius(),
         v0.x(),
         v0.y(),
-        v0.z(),
-        v0.v0radius());
+        v0.z());
     }
   }
 
   template <modes::Mode mode, typename T1, typename T2>
   void fillV0s(T1 const& v0s, T2 const& fullTracks)
   {
-
-    int64_t posDaughterIndex;
-    int64_t negDaughterIndex;
-
+    int64_t posDaughterIndex = 0;
+    int64_t negDaughterIndex = 0;
     for (const auto& v0 : v0s) {
       if (v0.pt() < confV0Filters.ptMin.value || v0.pt() > confV0Filters.ptMax.value ||
           v0.eta() < confV0Filters.etaMin.value || v0.eta() > confV0Filters.etaMax.value ||
           v0.phi() < confV0Filters.phiMin.value || v0.phi() > confV0Filters.phiMax.value) {
         continue;
       }
+      auto posDaughter = v0.template posTrack_as<T2>();
+      auto negDaughter = v0.template negTrack_as<T2>();
 
       if (ConfOptions.produceLambda.value) {
         lambdaSel.applySelections(v0, fullTracks);
-        // check if selections are passed
-        if (lambdaSel.passesMinimalCuts() && (lambdaSel.checkLambdaHypothesis(v0) || lambdaSel.checkAntiLambdaHypothesis(v0))) {
-          auto posDaughter = v0.template posTrack_as<T2>();
-          auto negDaughter = v0.template negTrack_as<T2>();
-
-          // get index of positive daughter
-          auto resultPosDaughter = utils::getDaughterIndex(posDaughter.globalIndex(), indexMapTracks);
-          if (resultPosDaughter) {
-            posDaughterIndex = resultPosDaughter.value();
-          } else {
-            fillTrack<mode, modes::Track::kLambdaDaugher>(posDaughter);
-            posDaughterIndex = products.producedTracks.lastIndex();
-            indexMapTracks.emplace(posDaughter.globalIndex(), products.producedTracks.lastIndex());
-          }
-
-          // get index of negative daughter
-          auto resultNegDaughter = utils::getDaughterIndex(negDaughter.globalIndex(), indexMapTracks);
-          if (resultNegDaughter) {
-            negDaughterIndex = resultNegDaughter.value();
-          } else {
-            fillTrack<mode, modes::Track::kLambdaDaugher>(negDaughter);
-            negDaughterIndex = products.producedTracks.lastIndex();
-            indexMapTracks.emplace(posDaughter.globalIndex(), products.producedTracks.lastIndex());
-          }
-          // fill lambda or antilambda
-          if (lambdaSel.checkLambdaHypothesis(v0)) {
+        bool isLambda = lambdaSel.checkHypothesis(v0);
+        bool isAntiLambda = lambdaSel.checkHypothesis(v0, false);
+        if (lambdaSel.passesAllRequiredSelections() && (isLambda || isAntiLambda)) {
+          posDaughterIndex = getDaughterIndex<mode, modes::Track::kV0Daughter>(posDaughter);
+          negDaughterIndex = getDaughterIndex<mode, modes::Track::kV0Daughter>(negDaughter);
+          if (isLambda) {
             fillLambda<mode>(v0, 1.f, posDaughterIndex, negDaughterIndex);
           }
-          if (lambdaSel.checkAntiLambdaHypothesis(v0)) {
+          if (isAntiLambda) {
             fillLambda<mode>(v0, -1.f, posDaughterIndex, negDaughterIndex);
           }
         }
       }
+
       if (ConfOptions.produceK0short.value) {
         k0shortSel.applySelections(v0, fullTracks);
-        if (k0shortSel.passesMinimalCuts() && lambdaSel.checkK0shortHypothesis(v0)) {
-          auto posDaughter = v0.template posTrack_as<T2>();
-          auto negDaughter = v0.template negTrack_as<T2>();
-
-          // get index of positive daughter
-          auto resultPosDaughter = utils::getDaughterIndex(posDaughter.globalIndex(), indexMapTracks);
-          if (resultPosDaughter) {
-            posDaughterIndex = resultPosDaughter.value();
-          } else {
-            fillTrack<mode, modes::Track::kLambdaDaugher>(posDaughter);
-            posDaughterIndex = products.producedTracks.lastIndex();
-            indexMapTracks.emplace(posDaughter.globalIndex(), products.producedTracks.lastIndex());
-          }
-
-          // get index of negative daughter
-          auto resultNegDaughter = utils::getDaughterIndex(negDaughter.globalIndex(), indexMapTracks);
-          if (resultNegDaughter) {
-            negDaughterIndex = resultNegDaughter.value();
-          } else {
-            fillTrack<mode, modes::Track::kLambdaDaugher>(negDaughter);
-            negDaughterIndex = products.producedTracks.lastIndex();
-            indexMapTracks.emplace(posDaughter.globalIndex(), products.producedTracks.lastIndex());
-          }
+        if (k0shortSel.passesAllRequiredSelections() && k0shortSel.checkHypothesis(v0)) {
+          posDaughterIndex = getDaughterIndex<mode, modes::Track::kV0Daughter>(posDaughter);
+          negDaughterIndex = getDaughterIndex<mode, modes::Track::kV0Daughter>(negDaughter);
           fillK0short<mode>(v0, posDaughterIndex, negDaughterIndex);
         }
       }
@@ -504,8 +502,11 @@ struct FemtoUnitedProducer {
   }
 
   template <modes::Mode mode, typename T1, typename T2, typename T3>
-  void fillCacades(T1 const& fullCascades, T2 const& fullTracks, T3 const& col)
+  void fillCascades(T1 const& fullCascades, T2 const& fullTracks, T3 const& col)
   {
+    int64_t bachelorIndex = 0;
+    int64_t posDaughterIndex = 0;
+    int64_t negDaughterIndex = 0;
     for (const auto& cascade : fullCascades) {
       if (cascade.pt() < confCascadeFilters.ptMin.value || cascade.pt() > confCascadeFilters.ptMax.value ||
           cascade.eta() < confCascadeFilters.etaMin.value || cascade.eta() > confCascadeFilters.etaMax.value ||
@@ -513,59 +514,31 @@ struct FemtoUnitedProducer {
           cascade.mLambda() < confCascadeFilters.massLambdaMin.value || cascade.mLambda() > confCascadeFilters.massLambdaMax.value) {
         continue;
       }
-      xiSel.applySelections(cascade, fullTracks, col);
-      omegaSel.applySelections(cascade, fullTracks, col);
-
-      bool xiFails = ConfOptions.produceXi.value &&
-                     (!xiSel.passesMinimalCuts() || !xiSel.checkXiHypothesis(cascade));
-
-      bool omegaFails = ConfOptions.produceOmega.value &&
-                        (!omegaSel.passesMinimalCuts() || !omegaSel.checkOmegaHypothesis(cascade));
-
-      if (xiFails && omegaFails) {
-        continue;
-      }
 
       auto bachelor = cascade.template bachelor_as<T2>();
       auto posDaughter = cascade.template posTrack_as<T2>();
       auto negDaughter = cascade.template negTrack_as<T2>();
 
-      // daughters
-      int64_t bachelorIndex;
-      int64_t posDaughterIndex;
-      int64_t negDaughterIndex;
-
-      // get index of bachelor
-      auto resultBachelor = utils::getDaughterIndex(bachelor.globalIndex(), indexMapTracks);
-      if (resultBachelor) {
-        bachelorIndex = resultBachelor.value();
-      } else {
-        fillTrack<mode, modes::Track::kLambdaDaugher>(bachelor);
-        bachelorIndex = products.producedTracks.lastIndex();
+      if (ConfOptions.produceXi.value) {
+        xiSel.applySelections(cascade, fullTracks, col);
+        if (xiSel.passesAllRequiredSelections() && xiSel.checkHypothesis(cascade)) {
+          bachelorIndex = getDaughterIndex<mode, modes::Track::kCascadeBachelor>(bachelor);
+          posDaughterIndex = getDaughterIndex<mode, modes::Track::kV0Daughter>(posDaughter);
+          negDaughterIndex = getDaughterIndex<mode, modes::Track::kV0Daughter>(negDaughter);
+          fillCascade<mode, o2::analysis::femtounited::modes::Cascade::kXi>(
+            cascade, bachelorIndex, posDaughterIndex, negDaughterIndex, col);
+        }
       }
 
-      // get index of positive daughter
-      auto resultPosDaughter = utils::getDaughterIndex(posDaughter.globalIndex(), indexMapTracks);
-      if (resultPosDaughter) {
-        posDaughterIndex = resultPosDaughter.value();
-      } else {
-        fillTrack<mode, modes::Track::kLambdaDaugher>(posDaughter);
-        posDaughterIndex = products.producedTracks.lastIndex();
-      }
-
-      // get index of negative daughter
-      auto resultNegDaughter = utils::getDaughterIndex(negDaughter.globalIndex(), indexMapTracks);
-      if (resultNegDaughter) {
-        negDaughterIndex = resultNegDaughter.value();
-      } else {
-        fillTrack<mode, modes::Track::kLambdaDaugher>(negDaughter);
-        negDaughterIndex = products.producedTracks.lastIndex();
-      }
-      if (!xiFails) {
-        fillCascade<mode, o2::analysis::femtounited::modes::Cascade::kXi>(cascade, bachelorIndex, posDaughterIndex, negDaughterIndex, col);
-      }
-      if (!omegaFails) {
-        fillCascade<mode, o2::analysis::femtounited::modes::Cascade::kOmega>(cascade, bachelorIndex, posDaughterIndex, negDaughterIndex, col);
+      if (ConfOptions.produceOmega.value) {
+        omegaSel.applySelections(cascade, fullTracks, col);
+        if (omegaSel.passesAllRequiredSelections() && omegaSel.checkHypothesis(cascade)) {
+          bachelorIndex = getDaughterIndex<mode, modes::Track::kCascadeBachelor>(bachelor);
+          posDaughterIndex = getDaughterIndex<mode, modes::Track::kV0Daughter>(posDaughter);
+          negDaughterIndex = getDaughterIndex<mode, modes::Track::kV0Daughter>(negDaughter);
+          fillCascade<mode, o2::analysis::femtounited::modes::Cascade::kXi>(
+            cascade, bachelorIndex, posDaughterIndex, negDaughterIndex, col);
+        }
       }
     }
   }
@@ -624,73 +597,126 @@ struct FemtoUnitedProducer {
     }
   }
 
-  // template <modes::Mode mode, typename T1, typename T2>
-  // void fillResonance(T1 const& posDaughter, T1 const& negDaughter, T2& selectionContainer)
-  // {
-  //   if (!selectionContainer.hasTofAboveThreshold(posDaughter, negDaughter)) {
-  //     return;
-  //   }
-  //
-  //   selectionContainer.applySelections(posDaughter, negDaughter);
-  //
-  //   if (!selectionContainer.passesMinimalCuts()) {
-  //     return;
-  //   }
-  //
-  //   selectionContainer.reconstructResonance(posDaughter, negDaughter);
-  //   if (!selectionContainer.checkFilters() || !selectionContainer.checkDaughterPids()) {
-  //     return;
-  //   }
-  //
-  //   int64_t posDaughterIndex;
-  //   int64_t negDaughterIndex;
-  //
-  //   // get index of positive daughter
-  //   auto resultPosDaughter = utils::getDaughterIndex(posDaughter.globalIndex(), indexMapTracks);
-  //   if (resultPosDaughter) {
-  //     posDaughterIndex = resultPosDaughter.value();
-  //   } else {
-  //     fillTrack<mode, modes::Track::kResonanceDaughter>(posDaughter);
-  //     posDaughterIndex = products.producedTracks.lastIndex();
-  //   }
-  //
-  //   // get index of negative daughter
-  //   auto resultNegDaughter = utils::getDaughterIndex(negDaughter.globalIndex(), indexMapTracks);
-  //   if (resultNegDaughter) {
-  //     negDaughterIndex = resultNegDaughter.value();
-  //   } else {
-  //     fillTrack<mode, modes::Track::kResonanceDaughter>(negDaughter);
-  //     negDaughterIndex = products.producedTracks.lastIndex();
-  //   }
-  //
-  //   if constexpr (modes::isFlagSet(mode, modes::Mode::kANALYSIS)) {
-  //     products.producedResonances(
-  //       products.producedCollision.lastIndex(),
-  //       selectionContainer.getPt(),
-  //       selectionContainer.getEta(),
-  //       selectionContainer.getPhi(),
-  //       selectionContainer.getMass(),
-  //       static_cast<femtodatatypes::TwoTrackResonaceType>(selectionContainer.getType()),
-  //       posDaughterIndex,
-  //       negDaughterIndex);
-  //     products.producedResonanceMasks(selectionContainer.getBitmask());
-  //   }
-  // }
-  //
-  // template <modes::Mode mode, typename T1, typename T2>
-  // void fillResonances(T1 const& col, T2 const& /*tracks*/)
-  // {
-  //   auto groupPositiveTracks = partitionPositiveTracks->sliceByCached(track::collisionId, col.globalIndex(), cache);
-  //   auto groupNegativeTracks = partitionNegativeTracks->sliceByCached(track::collisionId, col.globalIndex(), cache);
-  //   for (auto const& positiveTrack : groupPositiveTracks) {
-  //     for (auto const& negativeTrack : groupNegativeTracks) {
-  //       fillResonance<mode>(positiveTrack, negativeTrack, rhoSels);
-  //       fillResonance<mode>(positiveTrack, negativeTrack, phiSels);
-  //       fillResonance<mode>(positiveTrack, negativeTrack, kstarSels);
-  //       fillResonance<mode>(positiveTrack, negativeTrack, antiKstarSels);
-  //     }
-  //   }
-  // }
+  template <modes::Mode mode, modes::TwoTrackResonance reso, typename T>
+  void fillResonance(T const& posDaughter, T const& negDaughter)
+  {
+    int64_t posDaughterIndex = 0;
+    int64_t negDaughterIndex = 0;
+    if constexpr (modes::isFlagSet(reso, modes::TwoTrackResonance::kRho0)) {
+      if (!rho0Sels.hasTofAboveThreshold(posDaughter, negDaughter)) {
+        return;
+      }
+      rho0Sels.applySelections(posDaughter, negDaughter);
+      if (!rho0Sels.passesAllRequiredSelections()) {
+        return;
+      }
+      rho0Sels.reconstructResonance(posDaughter, negDaughter);
+      if (!rho0Sels.checkFilters() || !rho0Sels.checkHypothesis()) {
+        return;
+      }
+      posDaughterIndex = getDaughterIndex<mode, modes::Track::kResonanceDaughter>(posDaughter);
+      negDaughterIndex = getDaughterIndex<mode, modes::Track::kResonanceDaughter>(negDaughter);
+      products.producedRhos(
+        products.producedCollision.lastIndex(),
+        rho0Sels.getPt(),
+        rho0Sels.getEta(),
+        rho0Sels.getPhi(),
+        rho0Sels.getMass(),
+        posDaughterIndex,
+        negDaughterIndex,
+        posDaughter.p(),
+        negDaughter.p());
+      products.producedRhoMasks(rho0Sels.getBitmask());
+    }
+    if constexpr (modes::isFlagSet(reso, modes::TwoTrackResonance::kPhi)) {
+      if (!phiSels.hasTofAboveThreshold(posDaughter, negDaughter)) {
+        return;
+      }
+      phiSels.applySelections(posDaughter, negDaughter);
+      if (!phiSels.passesAllRequiredSelections()) {
+        return;
+      }
+      phiSels.reconstructResonance(posDaughter, negDaughter);
+      if (!phiSels.checkFilters() || !phiSels.checkHypothesis()) {
+        return;
+      }
+      posDaughterIndex = getDaughterIndex<mode, modes::Track::kResonanceDaughter>(posDaughter);
+      negDaughterIndex = getDaughterIndex<mode, modes::Track::kResonanceDaughter>(negDaughter);
+      products.producedPhis(
+        products.producedCollision.lastIndex(),
+        phiSels.getPt(),
+        phiSels.getEta(),
+        phiSels.getPhi(),
+        phiSels.getMass(),
+        posDaughterIndex,
+        negDaughterIndex,
+        posDaughter.p(),
+        negDaughter.p());
+      products.producedPhiMasks(phiSels.getBitmask());
+    }
+    if constexpr (modes::isFlagSet(reso, modes::TwoTrackResonance::kKstar0)) {
+      // try kstar0
+      if (!kstar0Sels.hasTofAboveThreshold(posDaughter, negDaughter) && !kstar0Sels.hasTofAboveThreshold(posDaughter, negDaughter, false)) {
+        return;
+      }
+      kstar0Sels.applySelections(posDaughter, negDaughter);
+      if (!kstar0Sels.passesAllRequiredSelections()) {
+        return;
+      }
+      kstar0Sels.reconstructResonance(posDaughter, negDaughter);
+      if (kstar0Sels.checkFilters() && kstar0Sels.checkHypothesis()) {
+        posDaughterIndex = getDaughterIndex<mode, modes::Track::kResonanceDaughter>(posDaughter);
+        negDaughterIndex = getDaughterIndex<mode, modes::Track::kResonanceDaughter>(negDaughter);
+        products.producedKstars(
+          products.producedCollision.lastIndex(),
+          kstar0Sels.getPt(),
+          kstar0Sels.getEta(),
+          kstar0Sels.getPhi(),
+          kstar0Sels.getMass(),
+          posDaughterIndex,
+          negDaughterIndex,
+          posDaughter.p(),
+          negDaughter.p());
+        products.producedKstarMasks(kstar0Sels.getBitmask());
+      }
+      // try kstar0bar
+      if (kstar0Sels.checkFilters(false) && kstar0Sels.checkHypothesis(false)) {
+        posDaughterIndex = getDaughterIndex<mode, modes::Track::kResonanceDaughter>(posDaughter);
+        negDaughterIndex = getDaughterIndex<mode, modes::Track::kResonanceDaughter>(negDaughter);
+        products.producedKstars(
+          products.producedCollision.lastIndex(),
+          -1.f * kstar0Sels.getPt(false), // -pT for anti particles
+          kstar0Sels.getEta(false),
+          kstar0Sels.getPhi(false),
+          kstar0Sels.getMass(false),
+          posDaughterIndex,
+          negDaughterIndex,
+          posDaughter.p(),
+          negDaughter.p());
+        products.producedKstarMasks(kstar0Sels.getBitmask());
+      }
+    }
+  }
+
+  template <modes::Mode mode, typename T1, typename T2>
+  void fillResonances(T1 const& col, T2 const& /*tracks*/)
+  {
+    auto groupPositiveTracks = partitionPositiveDaughters->sliceByCached(track::collisionId, col.globalIndex(), cache);
+    auto groupNegativeTracks = partitionNegativeDaughters->sliceByCached(track::collisionId, col.globalIndex(), cache);
+    for (auto const& positiveTrack : groupPositiveTracks) {
+      for (auto const& negativeTrack : groupNegativeTracks) {
+        if (ConfOptions.produceRho0.value) {
+          fillResonance<mode, modes::TwoTrackResonance::kRho0>(positiveTrack, negativeTrack);
+        }
+        if (ConfOptions.producePhi.value) {
+          fillResonance<mode, modes::TwoTrackResonance::kPhi>(positiveTrack, negativeTrack);
+        }
+        if (ConfOptions.produceKstar0.value) {
+          fillResonance<mode, modes::TwoTrackResonance::kKstar0>(positiveTrack, negativeTrack);
+        }
+      }
+    }
+  }
 
   template <modes::System system, modes::Mode mode, typename T1, typename T2, typename T3>
   void processTracks(T1 const& col, T2 const& /* fullBcs*/, T3 const& fullTracks)
@@ -704,6 +730,9 @@ struct FemtoUnitedProducer {
     fillCollision<system>(col);
     indexMapTracks.clear();
     fillTracks<mode>(fullTracks);
+    if (produceResonances) {
+      fillResonances<mode>(col, fullTracks);
+    }
   }
 
   template <modes::System system, modes::Mode mode, typename T1, typename T2, typename T3, typename T4, typename T5>
@@ -718,39 +747,13 @@ struct FemtoUnitedProducer {
     fillCollision<system>(col);
     indexMapTracks.clear();
     fillTracks<mode>(fullTracksWithItsPid);
-    fillV0s<mode>(fullV0s, fullTracks);
+    if (produceResonances) {
+      fillResonances<mode>(col, fullTracksWithItsPid);
+    }
+    if (produceV0s) {
+      fillV0s<mode>(fullV0s, fullTracks);
+    }
   }
-
-  // template <modes::System system, modes::Mode mode, typename T1, typename T2, typename T3>
-  // void processTracksResonances(T1 const& col, T2 const& /* fullBcs*/, T3 const& fullTracks)
-  // {
-  //   initFromCcdb(col.template bc_as<T2>());
-  //   collisionSel.setMagneticField(magField);
-  //   collisionSel.setSphericity(fullTracks);
-  //   if (!collisionSel.checkCuts<modes::System::kPP_Run3>(col)) {
-  //     return;
-  //   }
-  //   fillCollision<system>(col);
-  //   indexMapTracks.clear();
-  //   fillTracks<mode>(fullTracks);
-  //   fillResonances<mode>(col, fullTracks);
-  // }
-
-  // template <modes::System system, modes::Mode mode, typename T1, typename T2, typename T3, typename T4, typename T5>
-  // void processTracksResonancesVzeros(T1 const& col, T2 const& /* fullBcs*/, T3 const& fullTracks, T4 const& fullTracksWithItsPid, T5 const& fullV0s)
-  // {
-  //   initFromCcdb(col.template bc_as<T2>());
-  //   collisionSel.setMagneticField(magField);
-  //   collisionSel.setSphericity(fullTracksWithItsPid);
-  //   if (!collisionSel.checkCuts<modes::System::kPP_Run3>(col)) {
-  //     return;
-  //   }
-  //   fillCollision<system>(col);
-  //   indexMapTracks.clear();
-  //   fillTracks<mode>(fullTracksWithItsPid);
-  //   fillResonances<mode>(col, fullTracks);
-  //   fillV0s<mode>(fullV0s, fullTracks);
-  // }
 
   template <modes::System system, modes::Mode mode, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
   void processTracksV0sCascades(T1 const& col, T2 const& /* fullBcs*/, T3 const& fullTracks, T4 const& fullTracksWithItsPid, T5 const& fullV0s, T6 const& fullCascades)
@@ -764,8 +767,15 @@ struct FemtoUnitedProducer {
     fillCollision<system>(col);
     indexMapTracks.clear();
     fillTracks<mode>(fullTracksWithItsPid);
-    fillV0s<mode>(fullV0s, fullTracks);
-    fillCacades<mode>(fullCascades, fullTracks, col);
+    if (produceResonances) {
+      fillResonances<mode>(col, fullTracksWithItsPid);
+    }
+    if (produceV0s) {
+      fillV0s<mode>(fullV0s, fullTracks);
+    }
+    if (produceCascades) {
+      fillCascades<mode>(fullCascades, fullTracks, col);
+    }
   }
 
   // proccess tracks
@@ -818,18 +828,6 @@ struct FemtoUnitedProducer {
     }
   }
   PROCESS_SWITCH(FemtoUnitedProducer, processTracksV0sCascadesRun3pp, "Provide Tracks, V0s and Cascades for Run3", false);
-
-  // void processTracksResonancesVzerosRun3pp(Filtered<consumeddata::Run3PpCollisions>::iterator const& col,
-  //                                          BCsWithTimestamps const& bcs,
-  //                                          Filtered<consumeddata::Run3FullPidTracks> const& tracks,
-  //                                          consumeddata::Run3PpVzeros const& v0s)
-  // {
-  //   // its pid information is generated dynamically, so we need to add it here
-  //   auto tracksWithItsPid = o2::soa::Attach<consumeddata::Run3FullPidTracks, pidits::ITSNSigmaEl, pidits::ITSNSigmaPi,
-  //                                           pidits::ITSNSigmaKa, pidits::ITSNSigmaPr, pidits::ITSNSigmaDe, pidits::ITSNSigmaTr, pidits::ITSNSigmaHe>(tracks);
-  //   processTracksResonancesVzeros<modes::System::kPP_Run3, modes::Mode::kANALYSIS>(col, bcs, tracks, tracksWithItsPid, v0s);
-  // }
-  // PROCESS_SWITCH(FemtoUnitedProducer, processTracksResonancesVzerosRun3pp, "Provide tracks, resonances and V0s for Run3 analysis", false);
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)

@@ -16,11 +16,12 @@
 #ifndef PWGCF_FEMTOUNITED_DATAMODEL_FEMTOCOLLISIONSDERIVED_H_
 #define PWGCF_FEMTOUNITED_DATAMODEL_FEMTOCOLLISIONSDERIVED_H_
 
+#include "Common/DataModel/Centrality.h"
+#include "Common/DataModel/EventSelection.h"
+#include "Common/DataModel/Multiplicity.h"
+
 #include "Framework/ASoA.h"
 #include "Framework/Expressions.h"
-#include "Common/DataModel/Multiplicity.h"
-#include "Common/DataModel/EventSelection.h"
-#include "Common/DataModel/Centrality.h"
 
 namespace o2::aod
 {

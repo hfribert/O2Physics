@@ -132,8 +132,8 @@ enum TrackSels {
   kTPCsClsFracMax, ///< Max. fractions of shared TPC clusters
   kITSnClsMin,     ///< Min. number of ITS clusters
   kITSnClsIbMin,   ///< Min. number of ITS clusters in the inner barrel
-  kDCAxyMax,       ///< Max. DCA_xy (cm) as a function of pT
-  kDCAzMax,        ///< Max. DCA_z (cm) as a function of pT
+  kDCAxyMax,       ///< Max. |DCA_xy| (cm) as a function of pT
+  kDCAzMax,        ///< Max. |DCA_z| (cm) as a function of pT
 
   /// track pid cuts
   kItsElectron, ///< ITS Electon PID

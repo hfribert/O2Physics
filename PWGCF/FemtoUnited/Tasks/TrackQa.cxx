@@ -16,6 +16,7 @@
 #include "PWGCF/FemtoUnited/Core/CollisionHistManager.h"
 #include "PWGCF/FemtoUnited/Core/CollisionSelection.h"
 #include "PWGCF/FemtoUnited/Core/Modes.h"
+#include "PWGCF/FemtoUnited/Core/Partitions.h"
 #include "PWGCF/FemtoUnited/Core/TrackHistManager.h"
 #include "PWGCF/FemtoUnited/Core/TrackSelection.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoCollisionsDerived.h"
@@ -47,11 +48,7 @@ struct TrackQa {
   } Options;
 
   collisionselection::ConfCollisionSelection collisionSelection;
-  Filter filterVtxz = femtocollisions::posZ >= collisionSelection.vtxZMin && femtocollisions::posZ <= collisionSelection.vtxZMax;
-  Filter filterMult = femtocollisions::mult >= collisionSelection.multMin && femtocollisions::mult <= collisionSelection.multMax;
-  Filter filterCent = femtocollisions::cent >= collisionSelection.centMin && femtocollisions::cent <= collisionSelection.centMax;
-  Filter filterSpher = femtocollisions::sphericity >= collisionSelection.spherMin && femtocollisions::sphericity <= collisionSelection.spherMax;
-  Filter filterMagField = femtocollisions::magField >= collisionSelection.magFieldMin && femtocollisions::magField <= collisionSelection.magFieldMax;
+  Filter collisionFilter = MAKE_COLLISION_FILTER(collisionSelection);
 
   // using Collisions = o2::soa::Join<FUCols, FUColPos, FUColMults, FUColCents>;
   using Collisions = FUCols;
@@ -70,20 +67,11 @@ struct TrackQa {
   trackhistmanager::ConfTrackQaBinning1 confTrackQaBinning;
   trackselection::ConfTrackSelection1 trackSelections;
 
-  Partition<Tracks> TrackPartition =
-    ifnode(trackSelections.sign.node() > 0, femtobase::stored::signedPt > 0.f, femtobase::stored::signedPt < 0.f) &&
-    (nabs(femtobase::stored::signedPt) > trackSelections.ptMin) &&
-    (nabs(femtobase::stored::signedPt) < trackSelections.ptMax) &&
-    (femtobase::stored::eta > trackSelections.etaMin) &&
-    (femtobase::stored::eta < trackSelections.etaMax) &&
-    (femtobase::stored::phi > trackSelections.phiMin) &&
-    (femtobase::stored::phi < trackSelections.phiMax) &&
-    ifnode(nabs(femtobase::stored::signedPt) * (nexp(femtobase::stored::eta) + nexp(-1.f * femtobase::stored::eta)) / 2.f <= trackSelections.pidThres,
-           ncheckbit(femtotracks::trackMask, trackSelections.maskLowMomentum), ncheckbit(femtotracks::trackMask, trackSelections.maskHighMomentum));
+  Partition<Tracks> TrackPartition = MAKE_TRACK_PARTITION(trackSelections);
 
   Preslice<Tracks> perColReco = aod::femtobase::stored::collisionId;
 
-  HistogramRegistry hRegistry{"TrackQA", {}, OutputObjHandlingPolicy::AnalysisObject};
+  HistogramRegistry hRegistry{"FemtoTrackQA", {}, OutputObjHandlingPolicy::AnalysisObject};
   colhistmanager::CollisionHistManager colHistManager;
   trackhistmanager::TrackHistManager<trackhistmanager::PrefixTrackQa> trackHistManager;
 

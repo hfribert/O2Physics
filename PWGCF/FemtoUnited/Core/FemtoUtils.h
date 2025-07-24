@@ -32,9 +32,9 @@ namespace utils
 {
 
 template <typename T1, typename T2>
-inline std::optional<T2> getDaughterIndex(const T1& daughterIndex, const std::unordered_map<T1, T2>& map)
+inline std::optional<T2> getTrackIndex(const T1& trackIndex, const std::unordered_map<T1, T2>& map)
 {
-  auto it = map.find(daughterIndex);
+  auto it = map.find(trackIndex);
   if (it != map.end()) {
     return it->second;
   }
@@ -126,8 +126,8 @@ inline float getMass(int pdgCode)
     case kRho770Plus:
       mass = 775.11; // not defined in O2?
       break;
-    case 313:        // as a comment from TPDGCode.h "K*(892)0","M018",  313
-      mass = 895.55; // not defined in O2?
+    case o2::constants::physics::Pdg::kK0Star892:
+      mass = o2::constants::physics::MassK0Star892;
       break;
     case o2::constants::physics::Pdg::kLambdaCPlus:
       mass = o2::constants::physics::MassLambdaCPlus;

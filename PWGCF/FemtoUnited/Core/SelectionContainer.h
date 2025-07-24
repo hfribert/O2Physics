@@ -115,12 +115,12 @@ class SelectionContainer
     switch (mLimitType) {
       case (limits::kUpperLimit):
       case (limits::kAbsUpperLimit):
-        std::sort(mSelectionValues.begin(), mSelectionValues.end(), [](T a, T b) { return a >= b; });
+        std::sort(mSelectionValues.begin(), mSelectionValues.end(), [](T a, T b) { return a > b; });
         break;
       case (limits::kLowerLimit):
       case (limits::kAbsLowerLimit):
       case (limits::kEqual):
-        std::sort(mSelectionValues.begin(), mSelectionValues.end(), [](T a, T b) { return a <= b; });
+        std::sort(mSelectionValues.begin(), mSelectionValues.end(), [](T a, T b) { return a < b; });
         break;
       default:
         break;
@@ -133,11 +133,11 @@ class SelectionContainer
     switch (mLimitType) {
       case (limits::kUpperFunctionLimit):
       case (limits::kAbsUpperFunctionLimit):
-        std::sort(mSelectionFunctions.begin(), mSelectionFunctions.end(), [value](TF1 a, TF1 b) { return a.Eval(value) >= b.Eval(value); });
+        std::sort(mSelectionFunctions.begin(), mSelectionFunctions.end(), [value](TF1 a, TF1 b) { return a.Eval(value) > b.Eval(value); });
         break;
       case (limits::kLowerFunctionLimit):
       case (limits::kAbsLowerFunctionLimit):
-        std::sort(mSelectionFunctions.begin(), mSelectionFunctions.end(), [value](TF1 a, TF1 b) { return a.Eval(value) <= b.Eval(value); });
+        std::sort(mSelectionFunctions.begin(), mSelectionFunctions.end(), [value](TF1 a, TF1 b) { return a.Eval(value) < b.Eval(value); });
         break;
       default:
         break;
@@ -236,11 +236,11 @@ class SelectionContainer
   /// \return Whether the selection is fulfilled or not
   bool passesAsMinimalCut() const
   {
-    // if selection is not marked as a minimal cut, we return true by default
     if (mIsMinimalCut) {
-      // check if any bit is set
-      return mBitmask.any();
+      // check if loosest bit is set
+      return mBitmask.test(0);
     } else {
+      // if selection is not marked as a minimal cut, we return true by default
       return true;
     }
   }

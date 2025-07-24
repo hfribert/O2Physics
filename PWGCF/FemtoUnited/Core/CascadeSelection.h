@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file LambdaSelection.h
-/// \brief Lambda selection
+/// \file CascadeSelection.h
+/// \brief cascade selection
 /// \author anton.riedel@tum.de, TU München, anton.riedel@tum.de
 
 #ifndef PWGCF_FEMTOUNITED_CORE_CASCADESELECTION_H_
@@ -41,7 +41,7 @@ struct ConfCascadeFilters : o2::framework::ConfigurableGroup {
   o2::framework::Configurable<float> phiMax{"phiMax", 1.f * o2::constants::math::TwoPI, "Maximum phi"};
   o2::framework::Configurable<float> massXiMin{"massXiMin", 1.25f, "Minimum Xi mass"};
   o2::framework::Configurable<float> massXiMax{"massXiMax", 1.39f, "Maximum Xi mass"};
-  o2::framework::Configurable<float> rejectMassXiMin{"rejectmassXiMin", 1.25f, "Reject Minimum Xi mass for Omega hypothesis"};
+  o2::framework::Configurable<float> rejectMassXiMin{"rejectMassXiMin", 1.25f, "Reject Minimum Xi mass for Omega hypothesis"};
   o2::framework::Configurable<float> rejectMassXiMax{"rejectMassXiMax", 1.39f, "Rejection Maximum Xi mass for Omega hypothesis"};
   o2::framework::Configurable<float> massOmegaMin{"massOmegaMin", 1.6f, "Minimum Omega mass"};
   o2::framework::Configurable<float> massOmegaMax{"massOmegaMax", 1.73f, "Maximum Omega mass"};
@@ -59,9 +59,9 @@ struct ConfCascadeFilters : o2::framework::ConfigurableGroup {
   o2::framework::Configurable<std::vector<float>> lambdaTransRadMin{"lambdaTransRadMin", {0.9f}, "Minimum transverse radius (cm)"};                        \
   o2::framework::Configurable<std::vector<float>> lambdaDcaDauMax{"lambdaDcaDauMax", {0.25f}, "Maximum DCA between the daughters at decay vertex (cm)"};   \
   o2::framework::Configurable<std::vector<float>> lambdaDcaToPvMin{"lambdaDcaToPvMin", {0.3f}, "Maximum DCA between the daughters at decay vertex (cm)"};  \
-  o2::framework::Configurable<std::vector<float>> dauAbsEtaMax{"DauAbsEtaMax", {0.8f}, "Minimum DCA of the daughters from primary vertex (cm)"};           \
-  o2::framework::Configurable<std::vector<float>> dauDcaMin{"DauDcaMin", {0.05f}, "Minimum DCA of the daughters from primary vertex (cm)"};                \
-  o2::framework::Configurable<std::vector<float>> dauTpcClustersMin{"DauTpcClustersMin", {80.f}, "Minimum number of TPC clusters for daughter tracks"};    \
+  o2::framework::Configurable<std::vector<float>> dauAbsEtaMax{"dauAbsEtaMax", {0.8f}, "Minimum DCA of the daughters from primary vertex (cm)"};           \
+  o2::framework::Configurable<std::vector<float>> dauDcaMin{"dauDcaMin", {0.05f}, "Minimum DCA of the daughters from primary vertex (cm)"};                \
+  o2::framework::Configurable<std::vector<float>> dauTpcClustersMin{"dauTpcClustersMin", {80.f}, "Minimum number of TPC clusters for daughter tracks"};    \
   o2::framework::Configurable<std::vector<float>> posDauTpc{"posDauTpc", {5.f}, "Maximum |nsimga_Pion/Proton| TPC for positive daughter tracks"};          \
   o2::framework::Configurable<std::vector<float>> negDauTpc{"negDauTpc", {5.f}, "Maximum |nsimga_Pion/Proton| TPC for negative daughter tracks"};
 
@@ -113,23 +113,23 @@ enum CascadeSels {
   kCascadeTransRadMin, ///< max. transverse radius
 
   // selection for lambda daughter
-  kLambdaCpaMin,      ///< Min. DCA of the positive daughers at primary vertex
-  kLambdaDcaDauMax,   ///< TPC Pion PID for positive daughter
-  kLambdaTransRadMin, ///< Min. number of TPC clusters of positive daughter
-  kLambdaDcaToPvMin,  ///< TPC Pion PID for positive daughter
+  kLambdaCpaMin,      ///< Min. DCA of the lambda daughers at primary vertex
+  kLambdaDcaDauMax,   ///< TPC PID for daughters (Pion/Proton)
+  kLambdaTransRadMin, ///< Min. number of TPC clusters of daughter
+  kLambdaDcaToPvMin,  ///< Min. DCA to primary vertex of daughter lambda
 
   // selection for bachelor/daugthers
-  kDauAbsEtaMax, ///< Min. DCA of the positive daughers at primary vertex
-  kDauTpcClsMin, ///< Min. number of TPC clusters of positive daughter
+  kDauAbsEtaMax, ///< Min. DCA of the daughers/bachelor at primary vertex
+  kDauTpcClsMin, ///< Min. number of TPC clusters of daughters/bachelor
   kDauDcaMin,    ///< TPC Pion PID for negative daughter
 
   // PID selection for cascade bachelor
-  kBachelorTpcPion, ///< TPC Proton PID for negative daughter
-  kBachelorTpcKaon, ///< TPC Proton PID for negative daughter
+  kBachelorTpcPion, ///< TPC Pion PID for bachelor
+  kBachelorTpcKaon, ///< TPC Kaon PID for bachelor
                     ///
   // PID selection for lambda daughers
-  kPosDauTpc, ///< TPC Proton PID for negative daughter
-  kNegDauTpc, ///< TPC Proton PID for negative daughter
+  kPosDauTpc, ///< TPC PID for positive daughter
+  kNegDauTpc, ///< TPC PID for negative daughter
 
   kCascadeSelsMax
 };
@@ -150,6 +150,7 @@ class CascadeSelection : public BaseSelection<float, o2::aod::femtodatatypes::Ca
       mXiMassLowerLimit = filter.massXiMax.value;
       mOmegaMassLowerLimit = filter.rejectMassOmegaMin.value;
       mOmegaMassUpperLimit = filter.rejectMassOmegaMax.value;
+      mType = o2::analysis::femtounited::modes::Cascade::kXi;
       this->addSelection(config.bachelorTpcPion.value, kBachelorTpcPion, limits::kAbsUpperLimit, false, false);
     }
     if constexpr (o2::analysis::femtounited::modes::isFlagSet(cascade, o2::analysis::femtounited::modes::Cascade::kOmega)) {
@@ -157,6 +158,7 @@ class CascadeSelection : public BaseSelection<float, o2::aod::femtodatatypes::Ca
       mOmegaMassUpperLimit = filter.massOmegaMax.value;
       mXiMassLowerLimit = filter.rejectMassXiMin.value;
       mXiMassLowerLimit = filter.rejectMassXiMax.value;
+      mType = o2::analysis::femtounited::modes::Cascade::kOmega;
       this->addSelection(config.bachelorTpcKaon.value, kBachelorTpcKaon, limits::kAbsUpperLimit, false, false);
     }
 
@@ -225,20 +227,22 @@ class CascadeSelection : public BaseSelection<float, o2::aod::femtodatatypes::Ca
   };
 
   template <typename T>
-  bool checkXiHypothesis(T const& cascade)
+  bool checkHypothesis(T const& cascade)
   {
-    return (this->passesOptionalCut(kBachelorTpcPion) && this->passesOptionalCut(kPosDauTpc) && this->passesOptionalCut(kNegDauTpc)) &&
-           (mXiMassLowerLimit < cascade.mXi() && mXiMassUpperLimit > cascade.mXi()) &&
-           (cascade.mOmega() < mOmegaMassLowerLimit || cascade.mOmega() > mOmegaMassUpperLimit);
-  };
 
-  template <typename T>
-  bool checkOmegaHypothesis(T const& cascade)
-  {
-    return (this->passesOptionalCut(kBachelorTpcKaon) && this->passesOptionalCut(kPosDauTpc) && this->passesOptionalCut(kNegDauTpc)) &&
-           (mXiMassLowerLimit < cascade.mOmega() && mXiMassUpperLimit > cascade.mOmega()) &&
-           (cascade.mXi() < mXiMassLowerLimit || cascade.mXi() > mXiMassUpperLimit);
-  };
+    if (mType == o2::analysis::femtounited::modes::Cascade::kXi) {
+      return (this->passesOptionalCut(kBachelorTpcPion) && this->passesOptionalCut(kPosDauTpc) && this->passesOptionalCut(kNegDauTpc)) && // check PID of bachelor and lambda daughters
+             (mXiMassLowerLimit < cascade.mXi() && mXiMassUpperLimit > cascade.mXi()) &&                                                  // inside xi mass window
+             (cascade.mOmega() < mOmegaMassLowerLimit || cascade.mOmega() > mOmegaMassUpperLimit);                                        // outside omega mass window
+    }
+
+    if (mType == o2::analysis::femtounited::modes::Cascade::kOmega) {
+      return (this->passesOptionalCut(kBachelorTpcKaon) && this->passesOptionalCut(kPosDauTpc) && this->passesOptionalCut(kNegDauTpc)) && // check PID of bachelor and lambda daughters
+             (mXiMassLowerLimit < cascade.mOmega() && mXiMassUpperLimit > cascade.mOmega()) &&                                            // inside omega mass window
+             (cascade.mXi() < mXiMassLowerLimit || cascade.mXi() > mXiMassUpperLimit);                                                    // outside xi mass window
+    }
+    return false;
+  }
 
  protected:
   float mXiMassLowerLimit = 0.f;
@@ -246,6 +250,8 @@ class CascadeSelection : public BaseSelection<float, o2::aod::femtodatatypes::Ca
 
   float mOmegaMassLowerLimit = 0.f;
   float mOmegaMassUpperLimit = 999.f;
+
+  o2::analysis::femtounited::modes::Cascade mType;
 };
 } // namespace cascadeselection
 } // namespace o2::analysis::femtounited

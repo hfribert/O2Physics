@@ -35,7 +35,8 @@ DECLARE_SOA_COLUMN(SignedPt, signedPt, float);  //! signed pt
 DECLARE_SOA_COLUMN(Pt, pt, float);              //! pt
 DECLARE_SOA_COLUMN(Eta, eta, float);            //! eta
 DECLARE_SOA_COLUMN(Phi, phi, float);            //! phi
-DECLARE_SOA_COLUMN(Mass, mass, float);          //! phi
+DECLARE_SOA_COLUMN(Mass, mass, float);          //! mass of particle
+DECLARE_SOA_COLUMN(MassAnti, massAnti, float);  //! mass of antiparticle
 } // namespace stored
 
 namespace dynamic

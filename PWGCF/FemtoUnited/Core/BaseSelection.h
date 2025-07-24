@@ -93,7 +93,6 @@ class BaseSelection
     }
     // if any previous observable did not pass minimal selections, there is no point in setting bitmask for other observables
     // minimal selection for each observable is computed after adding it
-    // can be deactivate by setting mCheckMinimalSelection to false
     if (mPassesMinimalCuts == false) {
       return;
     }
@@ -110,7 +109,7 @@ class BaseSelection
   }
 
   /// check if minimal Selections are passed
-  bool passesMinimalCuts() const
+  bool passesAllRequiredSelections() const
   {
     return mPassesMinimalCuts && mPassesOptionalCuts;
   }
@@ -141,14 +140,14 @@ class BaseSelection
     }
   }
 
-  BitmaskType getBitmask() const { return static_cast<BitmaskType>(mFinalBitmask.to_ullong()); }
+  BitmaskType getBitmask() const { return static_cast<BitmaskType>(mFinalBitmask.to_ulong()); }
 
  protected:
   std::array<SelectionContainer<T, BitmaskType>, NumObservables> mSelectionContainers; ///< Array containing all selections
   std::bitset<sizeof(BitmaskType) * CHAR_BIT> mFinalBitmask;                           ///< final bitmaks
   size_t mNSelections = 0;                                                             ///< Number of selections
-  bool mPassesMinimalCuts = true;                                                      ///< True if all minimal (mandatory) cuts are passed
-  bool mPassesOptionalCuts = false;                                                    ///< True if at least one optional (non-mandatory) cut passed
+  bool mPassesMinimalCuts = true;                                                      ///< Set to true if all minimal (mandatory) cuts are passed
+  bool mPassesOptionalCuts = false;                                                    ///< Set to true if at least one optional (non-mandatory) cut is passed
 };
 
 } // namespace o2::analysis::femtounited

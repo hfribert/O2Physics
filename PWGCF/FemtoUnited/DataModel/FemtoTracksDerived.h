@@ -49,9 +49,11 @@ DECLARE_SOA_COLUMN(TpcInnerParam, tpcInnerParam, bool);                      //!
 DECLARE_SOA_COLUMN(TpcNClsFound, tpcNClsFound, uint8_t);                     //! Number of Tpc clusters
 DECLARE_SOA_COLUMN(TpcNClsCrossedRows, tpcNClsCrossedRows, uint8_t);         //! Number of Tpc crossed rows
 DECLARE_SOA_DYNAMIC_COLUMN(TpcCrossedRowsOverFound, tpcCrossedRowsOverFound, //! Number of crossed rows over found Tpc clusters
-                           [](uint8_t tpcNClsFindable, uint8_t tpcNClsCrossedRows) -> float { return static_cast<float>(tpcNClsCrossedRows) / static_cast<float>(tpcNClsFindable); });
-DECLARE_SOA_COLUMN(TpcNClsShared, tpcNClsShared, uint8_t); //! Number of shared Tpc clusters
-DECLARE_SOA_COLUMN(TpcChi2NCl, tpcChi2NCl, float);         //! Tpc chi2 / findable clusters
+                           [](uint8_t tpcNClsFound, uint8_t tpcNClsCrossedRows) -> float { return static_cast<float>(tpcNClsCrossedRows) / static_cast<float>(tpcNClsFound); });
+DECLARE_SOA_COLUMN(TpcNClsShared, tpcNClsShared, uint8_t);         //! Number of shared Tpc clusters
+DECLARE_SOA_DYNAMIC_COLUMN(TpcSharedOverFound, tpcSharedOverFound, //! Number of crossed rows over found Tpc clusters
+                           [](uint8_t tpcNclsFound, uint8_t tpcNClsShared) -> float { return static_cast<float>(tpcNClsShared) / static_cast<float>(tpcNclsFound); });
+DECLARE_SOA_COLUMN(TpcChi2NCl, tpcChi2NCl, float); //! Tpc chi2
 
 // tof related information
 DECLARE_SOA_COLUMN(TofBeta, tofBeta, float); //! Tof beta
@@ -135,7 +137,8 @@ DECLARE_SOA_TABLE_STAGED_VERSIONED(FUTrackExtras_001, "FUTRACKEXTRAS", 1,
                                    femtotracks::TpcNClsCrossedRows,
                                    femtotracks::TpcNClsShared,
                                    femtotracks::TofBeta,
-                                   femtotracks::TpcCrossedRowsOverFound<femtotracks::TpcNClsFound, femtotracks::TpcNClsCrossedRows>);
+                                   femtotracks::TpcCrossedRowsOverFound<femtotracks::TpcNClsFound, femtotracks::TpcNClsCrossedRows>,
+                                   femtotracks::TpcSharedOverFound<femtotracks::TpcNClsFound, femtotracks::TpcNClsShared>);
 using FUTrackExtras = FUTrackExtras_001;
 
 // table for extra PID information
