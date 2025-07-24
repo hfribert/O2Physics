@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file FemtoV0sDerived.h
-/// \brief v0 tables tables
+/// \brief v0 tables
 /// \author Anton Riedel, TU München, anton.riedel@cern.ch
 
 #ifndef PWGCF_FEMTOUNITED_DATAMODEL_FEMTOV0SDERIVED_H_

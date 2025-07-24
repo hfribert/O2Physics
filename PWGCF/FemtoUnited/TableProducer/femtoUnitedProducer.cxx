@@ -26,6 +26,8 @@
 #include "PWGCF/FemtoUnited/DataModel/FemtoTracksDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoTwoTrackResonancesDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoV0sDerived.h"
+#include "PWGLF/FemtoUnited/Core/KinkSelection.h"
+#include "PWGCF/FemtoUnited/DataModel/FemtoKinksDerived.h"
 #include "PWGLF/DataModel/LFStrangenessTables.h"
 
 #include "Common/DataModel/Centrality.h"
@@ -94,6 +96,10 @@ struct FemtoUnitedProducer {
     Produces<FULambdaMasks> producedLambdaMasks;
     Produces<FULambdaExtras> producedLambdaExtras;
 
+    Produces<FUSigmas> producedSigmas;
+    Produces<FUSigmaMasks> producedSigmaMasks;
+    Produces<FUSigmaExtras> producedSigmaExtras;
+
     Produces<FUK0shorts> producedK0shorts;
     Produces<FUK0shortMasks> producedK0shortMasks;
     Produces<FUK0shortExtras> producedK0shortExtras;
@@ -124,6 +130,7 @@ struct FemtoUnitedProducer {
     Configurable<bool> produceExtraTables{"produceExtraTables", false, "Flag to produce extra tables (for all actived tables)"};
     Configurable<bool> produceK0short{"produceK0short", false, "Flag to produce K0shorts"};
     Configurable<bool> produceLambda{"produceLambda", false, "Flag to produce Lambda"};
+    Configurable<bool> produceSigma{"produceSigma", false, "Flag to produce Sigma"};
     Configurable<bool> produceXi{"produceXi", false, "Flag to produce Xi"};
     Configurable<bool> produceOmega{"produceOmega", false, "Flag to produce Omega"};
     Configurable<bool> producePhi{"producePhi", false, "Flag to produce Phi"};
@@ -157,6 +164,9 @@ struct FemtoUnitedProducer {
   // lambda bits
   v0selection::ConfLambdaBits confLambdaBits;
   v0selection::V0Selection lambdaSel;
+
+  // kink filters
+  // kinkselection::ConfKinkFilters confKinkFilters;
 
   // cascade filters
   cascadeselection::ConfCascadeFilters confCascadeFilters;
@@ -503,6 +513,9 @@ struct FemtoUnitedProducer {
       }
     }
   }
+
+  // template <modes::Mode mode, typename T1, typename T2>
+  // void fillKinks(T1 const& kinkCands, T2 const& fullTracks) {}
 
   template <modes::Mode mode, typename T1, typename T2, typename T3>
   void fillCascades(T1 const& fullCascades, T2 const& fullTracks, T3 const& col)
