@@ -236,7 +236,7 @@ class CascadeSelection : public BaseSelection<float, o2::aod::femtodatatypes::Ca
 
     if (mType == o2::analysis::femtounited::modes::Cascade::kOmega) {
       return (this->passesOptionalCut(kBachelorTpcKaon) && this->passesOptionalCut(kPosDauTpc) && this->passesOptionalCut(kNegDauTpc)) && // check PID of bachelor and lambda daughters
-             (mXiMassLowerLimit < cascade.mOmega() && mXiMassUpperLimit > cascade.mOmega()) &&                                            // inside omega mass window
+             (mOmegaMassLowerLimit < cascade.mOmega() && mOmegaMassUpperLimit > cascade.mOmega()) &&                                      // inside omega mass window
              (cascade.mXi() < mXiMassLowerLimit || cascade.mXi() > mXiMassUpperLimit);                                                    // outside xi mass window
     }
     return false;

@@ -538,7 +538,7 @@ struct FemtoUnitedProducer {
           bachelorIndex = getDaughterIndex<mode, modes::Track::kCascadeBachelor>(bachelor);
           posDaughterIndex = getDaughterIndex<mode, modes::Track::kV0Daughter>(posDaughter);
           negDaughterIndex = getDaughterIndex<mode, modes::Track::kV0Daughter>(negDaughter);
-          fillCascade<mode, o2::analysis::femtounited::modes::Cascade::kXi>(
+          fillCascade<mode, o2::analysis::femtounited::modes::Cascade::kOmega>(
             cascade, bachelorIndex, posDaughterIndex, negDaughterIndex, col);
         }
       }
