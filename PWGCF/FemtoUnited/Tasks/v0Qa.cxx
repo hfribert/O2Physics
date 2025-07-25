@@ -9,17 +9,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file LambdaQa.cxx
-/// \brief Tasks that reads the particle tables and fills QA histograms for vzeros
+/// \file v0Qa.cxx
+/// \brief QA task for v0s
 /// \author Anton Riedel, TU München, anton.riedel@cern.ch
 
-#include "PWGCF/FemtoUnited/Core/CollisionHistManager.h"
-#include "PWGCF/FemtoUnited/Core/CollisionSelection.h"
-#include "PWGCF/FemtoUnited/Core/Modes.h"
-#include "PWGCF/FemtoUnited/Core/Partitions.h"
-#include "PWGCF/FemtoUnited/Core/TrackHistManager.h"
-#include "PWGCF/FemtoUnited/Core/V0HistManager.h"
-#include "PWGCF/FemtoUnited/Core/V0Selection.h"
+#include "PWGCF/FemtoUnited/Core/collisionHistManager.h"
+#include "PWGCF/FemtoUnited/Core/collisionSelection.h"
+#include "PWGCF/FemtoUnited/Core/modes.h"
+#include "PWGCF/FemtoUnited/Core/partitions.h"
+#include "PWGCF/FemtoUnited/Core/trackHistManager.h"
+#include "PWGCF/FemtoUnited/Core/v0HistManager.h"
+#include "PWGCF/FemtoUnited/Core/v0Selection.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoCollisionsDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoTracksDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoV0sDerived.h"
@@ -70,7 +70,7 @@ struct V0Qa {
   // setup for lambdas
   v0selection::ConfLambdaSelection1 confLambdaSelection;
 
-  Partition<Lambdas> LambdaPartition = MAKE_LAMBDA_PARTITION(confLambdaSelection);
+  Partition<Lambdas> lambdaPartition = MAKE_LAMBDA_PARTITION(confLambdaSelection);
   Preslice<Lambdas> perColLambdas = aod::femtobase::stored::collisionId;
 
   v0histmanager::ConfLambdaBinning1 confLambdaBinning;
@@ -88,7 +88,7 @@ struct V0Qa {
   // setup for k0shorts
   v0selection::ConfK0shortSelection1 confK0shortSelection;
 
-  Partition<K0shorts> K0shortPartition = MAKE_K0SHORT_PARTITION(confK0shortSelection);
+  Partition<K0shorts> k0shortPartition = MAKE_K0SHORT_PARTITION(confK0shortSelection);
   Preslice<K0shorts> perColK0shorts = aod::femtobase::stored::collisionId;
 
   v0histmanager::ConfK0shortBinning1 confK0shortBinning;
@@ -130,8 +130,8 @@ struct V0Qa {
     }
 
     if (doprocessK0short) {
-      auto K0shortHistSpec = v0histmanager::makeV0QaHistSpecMap(confK0shortBinning, confK0shortQaBinning);
-      k0shortHistManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, K0shortHistSpec);
+      auto k0shortHistSpec = v0histmanager::makeV0QaHistSpecMap(confK0shortBinning, confK0shortQaBinning);
+      k0shortHistManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, k0shortHistSpec);
 
       auto posDaughterHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confK0shortPosDaughterBinning, confK0shortPosDaughterQaBinning);
       k0shortPosDaughterManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, posDaughterHistSpec);
@@ -144,7 +144,7 @@ struct V0Qa {
   void processK0short(FilteredCollision const& col, K0shorts const& /*lambdas*/, Tracks const& /*tracks*/)
   {
     colHistManager.fill<modes::Mode::kANALYSIS_QA>(col);
-    auto k0shortSlice = K0shortPartition->sliceByCached(femtobase::stored::collisionId, col.globalIndex(), cache);
+    auto k0shortSlice = k0shortPartition->sliceByCached(femtobase::stored::collisionId, col.globalIndex(), cache);
     for (auto const& k0short : k0shortSlice) {
       k0shortHistManager.fill<modes::Mode::kANALYSIS_QA, modes::V0::kK0short>(k0short);
       auto posDaugther = k0short.posDau_as<Tracks>();
@@ -158,7 +158,7 @@ struct V0Qa {
   void processLambda(FilteredCollision const& col, Lambdas const& /*lambdas*/, Tracks const& /*tracks*/)
   {
     colHistManager.fill<modes::Mode::kANALYSIS_QA>(col);
-    auto lambdaSlice = LambdaPartition->sliceByCached(femtobase::stored::collisionId, col.globalIndex(), cache);
+    auto lambdaSlice = lambdaPartition->sliceByCached(femtobase::stored::collisionId, col.globalIndex(), cache);
     for (auto const& lambda : lambdaSlice) {
       lambdaHistManager.fill<modes::Mode::kANALYSIS_QA, modes::V0::kLambda>(lambda);
       auto posDaugther = lambda.posDau_as<Tracks>();

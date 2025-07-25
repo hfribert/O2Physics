@@ -9,14 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Modes.h
+/// \file modes.h
 /// \brief common modes
 /// \author anton.riedel@tum.de, TU München, anton.riedel@tum.de
 
 #ifndef PWGCF_FEMTOUNITED_CORE_MODES_H_
 #define PWGCF_FEMTOUNITED_CORE_MODES_H_
 
-#include "PWGCF/FemtoUnited/Core/DataTypes.h"
+#include "PWGCF/FemtoUnited/Core/dataTypes.h"
 
 #include <Rtypes.h>
 

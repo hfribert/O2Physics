@@ -9,14 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file BaseSelection.h
+/// \file baseSelection.h
 /// \brief Definition of the BaseSelection class
 /// \author Anton Riedel, TU München, anton.riedel@tum.de
 
 #ifndef PWGCF_FEMTOUNITED_CORE_BASESELECTION_H_
 #define PWGCF_FEMTOUNITED_CORE_BASESELECTION_H_
 
-#include "PWGCF/FemtoUnited/Core/SelectionContainer.h"
+#include "PWGCF/FemtoUnited/Core/selectionContainer.h"
 
 #include "fairlogger/Logger.h"
 

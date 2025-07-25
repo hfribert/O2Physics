@@ -16,7 +16,7 @@
 #ifndef PWGCF_FEMTOUNITED_DATAMODEL_FEMTOTRACKSDERIVED_H_
 #define PWGCF_FEMTOUNITED_DATAMODEL_FEMTOTRACKSDERIVED_H_
 
-#include "PWGCF/FemtoUnited/Core/DataTypes.h"
+#include "PWGCF/FemtoUnited/Core/dataTypes.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoBaseDerived.h"
 
 #include "Framework/ASoA.h"

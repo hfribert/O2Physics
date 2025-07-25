@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file SelectionContainer.h
+/// \file selectionContainer.h
 /// \brief SelectionContainer - small container holding selections of an observable
 /// \author Anton Riedel, TU München, anton.riedel@tum.de
 

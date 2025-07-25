@@ -9,16 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file V0Selection.h
+/// \file v0Selection.h
 /// \brief Definition of v0 selections
 /// \author Anton Riedel, TU München, anton.riedel@cern.ch
 
 #ifndef PWGCF_FEMTOUNITED_CORE_V0SELECTION_H_
 #define PWGCF_FEMTOUNITED_CORE_V0SELECTION_H_
 
-#include "PWGCF/FemtoUnited/Core/BaseSelection.h"
-#include "PWGCF/FemtoUnited/Core/DataTypes.h"
-#include "PWGCF/FemtoUnited/Core/Modes.h"
+#include "PWGCF/FemtoUnited/Core/baseSelection.h"
+#include "PWGCF/FemtoUnited/Core/dataTypes.h"
+#include "PWGCF/FemtoUnited/Core/modes.h"
 
 #include "Framework/Configurable.h"
 

@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file DataTypes.h
+/// \file dataTypes.h
 /// \brief datatypes for bitmasks
 /// \author anton.riedel@tum.de, TU München, anton.riedel@tum.de
 

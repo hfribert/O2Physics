@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TwoTrackResonanceSelection.h
-/// \brief Vzero selection
+/// \file twoTrackResonanceSelection.h
+/// \brief two track resonance selection
 /// \author anton.riedel@tum.de, TU München, anton.riedel@tum.de
 
 #ifndef PWGCF_FEMTOUNITED_CORE_TWOTRACKRESONANCESELECTION_H_
@@ -18,9 +18,9 @@
 
 #include "RecoDecay.h"
 
-#include "PWGCF/FemtoUnited/Core/BaseSelection.h"
-#include "PWGCF/FemtoUnited/Core/DataTypes.h"
-#include "PWGCF/FemtoUnited/Core/Modes.h"
+#include "PWGCF/FemtoUnited/Core/baseSelection.h"
+#include "PWGCF/FemtoUnited/Core/dataTypes.h"
+#include "PWGCF/FemtoUnited/Core/modes.h"
 
 #include "CommonConstants/MathConstants.h"
 #include "Framework/Configurable.h"
@@ -28,6 +28,7 @@
 
 #include "Math/Vector4D.h"
 
+#include <algorithm>
 #include <cmath>
 #include <string>
 
@@ -120,7 +121,8 @@ struct ConfRho0Bits : o2::framework::ConfigurableGroup {
 struct ConfKstar0Bits : o2::framework::ConfigurableGroup {
   std::string prefix = std::string("Kstar0Bits");
   TWOTRACKRESONANCE_DEFAULT_BITS
-  TWOTRACKRESONANCE_PIONPID_BITS TWOTRACKRESONANCE_KAONPID_BITS
+  TWOTRACKRESONANCE_PIONPID_BITS
+  TWOTRACKRESONANCE_KAONPID_BITS
 };
 
 #undef TWOTRACKRESONANCE_DEFAULT_BITS

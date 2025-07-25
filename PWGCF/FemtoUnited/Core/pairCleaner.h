@@ -9,16 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file PairCleaner.h
+/// \file pairCleaner.h
 /// \brief pair cleaner class
 /// \author anton.riedel@tum.de, TU München, anton.riedel@tum.de
 
 #ifndef PWGCF_FEMTOUNITED_CORE_PAIRCLEANER_H_
 #define PWGCF_FEMTOUNITED_CORE_PAIRCLEANER_H_
 
-#include "PWGCF/FemtoUnited/Core/DataTypes.h"
-#include "PWGCF/FemtoUnited/Core/HistManager.h"
-#include "PWGCF/FemtoUnited/Core/Modes.h"
+#include "PWGCF/FemtoUnited/Core/dataTypes.h"
+#include "PWGCF/FemtoUnited/Core/histManager.h"
+#include "PWGCF/FemtoUnited/Core/modes.h"
 
 #include "Framework/HistogramRegistry.h"
 

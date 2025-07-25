@@ -10,16 +10,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackHistManager.h
+/// \file trackHistManager.h
 /// \brief histogram manager for track histograms
 /// \author Anton Riedel, TU München, anton.riedel@cern.ch
 
 #ifndef PWGCF_FEMTOUNITED_CORE_TRACKHISTMANAGER_H_
 #define PWGCF_FEMTOUNITED_CORE_TRACKHISTMANAGER_H_
 
-#include "PWGCF/FemtoUnited/Core/FemtoUtils.h"
-#include "PWGCF/FemtoUnited/Core/HistManager.h"
-#include "PWGCF/FemtoUnited/Core/Modes.h"
+#include "PWGCF/FemtoUnited/Core/femtoUtils.h"
+#include "PWGCF/FemtoUnited/Core/histManager.h"
+#include "PWGCF/FemtoUnited/Core/modes.h"
 
 #include "Framework/HistogramRegistry.h"
 

@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CascadeQa.cxx
+/// \file cascadeQa.cxx
 /// \brief Tasks that reads the particle tables and fills QA histograms for vzeros
 /// \author Anton Riedel, TU München, anton.riedel@cern.ch
 

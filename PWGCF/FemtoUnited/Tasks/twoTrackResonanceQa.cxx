@@ -9,18 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TwoTrackResonanceQa.cxx
+/// \file twoTrackResonanceQa.cxx
 /// \brief Tasks that reads the particle tables and fills QA histograms for vzeros
 /// \author Anton Riedel, TU München, anton.riedel@cern.ch
 
-#include "PWGCF/FemtoUnited/Core/CollisionHistManager.h"
-#include "PWGCF/FemtoUnited/Core/CollisionSelection.h"
-#include "PWGCF/FemtoUnited/Core/DataTypes.h"
-#include "PWGCF/FemtoUnited/Core/Modes.h"
-#include "PWGCF/FemtoUnited/Core/Partitions.h"
-#include "PWGCF/FemtoUnited/Core/TrackHistManager.h"
-#include "PWGCF/FemtoUnited/Core/TwoTrackResonanceHistManager.h"
-#include "PWGCF/FemtoUnited/Core/TwoTrackResonanceSelection.h"
+#include "PWGCF/FemtoUnited/Core/collisionHistManager.h"
+#include "PWGCF/FemtoUnited/Core/collisionSelection.h"
+#include "PWGCF/FemtoUnited/Core/dataTypes.h"
+#include "PWGCF/FemtoUnited/Core/modes.h"
+#include "PWGCF/FemtoUnited/Core/partitions.h"
+#include "PWGCF/FemtoUnited/Core/trackHistManager.h"
+#include "PWGCF/FemtoUnited/Core/twoTrackResonanceHistManager.h"
+#include "PWGCF/FemtoUnited/Core/twoTrackResonanceSelection.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoCollisionsDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoTracksDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoTwoTrackResonancesDerived.h"

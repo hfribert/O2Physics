@@ -10,17 +10,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file FemtoUnitedProducer.cxx
+/// \file femtoUnitedProducer.cxx
 /// \brief Tasks that produces the all femto tables
 /// \author Anton Riedel, TU München, anton.riedel@tum.de
 
-#include "PWGCF/FemtoUnited/Core/CascadeSelection.h"
-#include "PWGCF/FemtoUnited/Core/CollisionSelection.h"
-#include "PWGCF/FemtoUnited/Core/DataTypes.h"
-#include "PWGCF/FemtoUnited/Core/FemtoUtils.h"
-#include "PWGCF/FemtoUnited/Core/TrackSelection.h"
-#include "PWGCF/FemtoUnited/Core/TwoTrackResonanceSelection.h"
-#include "PWGCF/FemtoUnited/Core/V0Selection.h"
+#include "PWGCF/FemtoUnited/Core/cascadeSelection.h"
+#include "PWGCF/FemtoUnited/Core/collisionSelection.h"
+#include "PWGCF/FemtoUnited/Core/dataTypes.h"
+#include "PWGCF/FemtoUnited/Core/femtoUtils.h"
+#include "PWGCF/FemtoUnited/Core/trackSelection.h"
+#include "PWGCF/FemtoUnited/Core/twoTrackResonanceSelection.h"
+#include "PWGCF/FemtoUnited/Core/v0Selection.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoCascadesDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoCollisionsDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoTracksDerived.h"

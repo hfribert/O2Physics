@@ -9,16 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CascadeSelection.h
+/// \file cascadeSelection.h
 /// \brief cascade selection
 /// \author anton.riedel@tum.de, TU München, anton.riedel@tum.de
 
 #ifndef PWGCF_FEMTOUNITED_CORE_CASCADESELECTION_H_
 #define PWGCF_FEMTOUNITED_CORE_CASCADESELECTION_H_
 
-#include "PWGCF/FemtoUnited/Core/BaseSelection.h"
-#include "PWGCF/FemtoUnited/Core/DataTypes.h"
-#include "PWGCF/FemtoUnited/Core/Modes.h"
+#include "PWGCF/FemtoUnited/Core/baseSelection.h"
+#include "PWGCF/FemtoUnited/Core/dataTypes.h"
+#include "PWGCF/FemtoUnited/Core/modes.h"
 
 #include "Framework/Configurable.h"
 

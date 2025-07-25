@@ -9,16 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackQa.cxx
-/// \brief Tasks that reads the particle tables and fills QA histograms for tracks
+/// \file trackQa.cxx
+/// \brief QA task for tracks
 /// \author Anton Riedel, TU München, anton.riedel@cern.ch
 
-#include "PWGCF/FemtoUnited/Core/CollisionHistManager.h"
-#include "PWGCF/FemtoUnited/Core/CollisionSelection.h"
-#include "PWGCF/FemtoUnited/Core/Modes.h"
-#include "PWGCF/FemtoUnited/Core/Partitions.h"
-#include "PWGCF/FemtoUnited/Core/TrackHistManager.h"
-#include "PWGCF/FemtoUnited/Core/TrackSelection.h"
+#include "PWGCF/FemtoUnited/Core/collisionHistManager.h"
+#include "PWGCF/FemtoUnited/Core/collisionSelection.h"
+#include "PWGCF/FemtoUnited/Core/modes.h"
+#include "PWGCF/FemtoUnited/Core/partitions.h"
+#include "PWGCF/FemtoUnited/Core/trackHistManager.h"
+#include "PWGCF/FemtoUnited/Core/trackSelection.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoCollisionsDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoTracksDerived.h"
 
@@ -67,7 +67,7 @@ struct TrackQa {
   trackhistmanager::ConfTrackQaBinning1 confTrackQaBinning;
   trackselection::ConfTrackSelection1 trackSelections;
 
-  Partition<Tracks> TrackPartition = MAKE_TRACK_PARTITION(trackSelections);
+  Partition<Tracks> trackPartition = MAKE_TRACK_PARTITION(trackSelections);
 
   Preslice<Tracks> perColReco = aod::femtobase::stored::collisionId;
 
@@ -88,7 +88,7 @@ struct TrackQa {
   void process(FilteredCollision const& col, Tracks const& /*tracks*/)
   {
     colHistManager.fill<modes::Mode::kANALYSIS_QA>(col);
-    auto trackSlice = TrackPartition->sliceByCached(femtobase::stored::collisionId, col.globalIndex(), cache);
+    auto trackSlice = trackPartition->sliceByCached(femtobase::stored::collisionId, col.globalIndex(), cache);
     for (auto const& track : trackSlice) {
       trackHistManager.fill<modes::Mode::kANALYSIS_QA>(track);
     }

@@ -9,15 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TwoTrackResonanceHistManager.h
+/// \file twoTrackResonanceHistManager.h
 /// \brief histogram manager for two track resonances
 /// \author Anton Riedel, TU München, anton.riedel@cern.ch
 
 #ifndef PWGCF_FEMTOUNITED_CORE_TWOTRACKRESONANCEHISTMANAGER_H_
 #define PWGCF_FEMTOUNITED_CORE_TWOTRACKRESONANCEHISTMANAGER_H_
 
-#include "PWGCF/FemtoUnited/Core/HistManager.h"
-#include "PWGCF/FemtoUnited/Core/Modes.h"
+#include "PWGCF/FemtoUnited/Core/histManager.h"
+#include "PWGCF/FemtoUnited/Core/modes.h"
 
 #include "Framework/HistogramRegistry.h"
 

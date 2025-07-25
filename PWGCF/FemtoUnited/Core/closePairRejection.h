@@ -9,17 +9,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file ClosePairRejection.h
+/// \file closePairRejection.h
 /// \brief Definition of ClosePairRejection class
 /// \author Anton Riedel, TU München, anton.riedel@tum.de
 
 #ifndef PWGCF_FEMTOUNITED_CORE_CLOSEPAIRREJECTION_H_
 #define PWGCF_FEMTOUNITED_CORE_CLOSEPAIRREJECTION_H_
 
-#include "PWGCF/FemtoUnited/Core/DataTypes.h"
-#include "PWGCF/FemtoUnited/Core/FemtoUtils.h"
-#include "PWGCF/FemtoUnited/Core/HistManager.h"
-#include "PWGCF/FemtoUnited/Core/Modes.h"
+#include "PWGCF/FemtoUnited/Core/dataTypes.h"
+#include "PWGCF/FemtoUnited/Core/femtoUtils.h"
+#include "PWGCF/FemtoUnited/Core/histManager.h"
+#include "PWGCF/FemtoUnited/Core/modes.h"
 
 #include "Framework/HistogramRegistry.h"
 

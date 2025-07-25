@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file FemtoUtils.h
+/// \file femtoUtils.h
 /// \brief Collision selection
 /// \author Anton Riedel, TU München, anton.riedel@cern.ch
 

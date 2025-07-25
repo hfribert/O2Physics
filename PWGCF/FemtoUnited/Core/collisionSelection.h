@@ -9,15 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CollisionSelection.h
+/// \file collisionSelection.h
 /// \brief collision selection
 /// \author Anton Riedel, TU München, anton.riedel@cern.ch
 
 #ifndef PWGCF_FEMTOUNITED_CORE_COLLISIONSELECTION_H_
 #define PWGCF_FEMTOUNITED_CORE_COLLISIONSELECTION_H_
 
-#include "PWGCF/FemtoUnited/Core/FemtoUtils.h"
-#include "PWGCF/FemtoUnited/Core/Modes.h"
+#include "PWGCF/FemtoUnited/Core/femtoUtils.h"
+#include "PWGCF/FemtoUnited/Core/modes.h"
 
 #include "Framework/Configurable.h"
 

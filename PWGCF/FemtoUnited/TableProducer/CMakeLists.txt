@@ -10,11 +10,11 @@
 # or submit itself to any jurisdiction.
 
 o2physics_add_dpl_workflow(femtodream-converter
-	  SOURCES FemtoDreamConverter.cxx
+	  SOURCES femtoDreamConverter.cxx
           PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
           COMPONENT_NAME Analysis)
 
 o2physics_add_dpl_workflow(femtounited-producer
-	  SOURCES FemtoUnitedProducer.cxx
+	  SOURCES femtoUnitedProducer.cxx
           PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
           COMPONENT_NAME Analysis)

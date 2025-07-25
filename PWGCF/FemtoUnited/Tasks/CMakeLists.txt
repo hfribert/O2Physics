@@ -10,17 +10,17 @@
 # or submit itself to any jurisdiction.
 
 o2physics_add_dpl_workflow(femtounited-trackqa
-	  SOURCES TrackQa.cxx
+	  SOURCES trackQa.cxx
           PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
           COMPONENT_NAME Analysis)
 
 o2physics_add_dpl_workflow(femtounited-v0qa
-	  SOURCES V0Qa.cxx
+	  SOURCES v0Qa.cxx
           PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
           COMPONENT_NAME Analysis)
 
 o2physics_add_dpl_workflow(femtounited-twotrackresonanceqa
-	SOURCES TwoTrackResonanceQa.cxx
+	SOURCES twoTrackResonanceQa.cxx
           PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
           COMPONENT_NAME Analysis)
 

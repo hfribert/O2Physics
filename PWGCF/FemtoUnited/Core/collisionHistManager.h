@@ -9,15 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CollisionHistManager.h
-/// \brief collision histograms
+/// \file collisionHistManager.h
+/// \brief collision histogram manager
 /// \author anton.riedel@tum.de, TU München, anton.riedel@tum.de
 
 #ifndef PWGCF_FEMTOUNITED_CORE_COLLISIONHISTMANAGER_H_
 #define PWGCF_FEMTOUNITED_CORE_COLLISIONHISTMANAGER_H_
 
-#include "PWGCF/FemtoUnited/Core/HistManager.h"
-#include "PWGCF/FemtoUnited/Core/Modes.h"
+#include "PWGCF/FemtoUnited/Core/histManager.h"
+#include "PWGCF/FemtoUnited/Core/modes.h"
 
 #include "Framework/Configurable.h"
 #include "Framework/HistogramRegistry.h"

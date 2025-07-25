@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file FemtoDreamConverter.cxx
+/// \file femtoDreamConverter.cxx
 /// \brief converter task for femtoDream to femtoUnited
 /// \author Anton Riedel, TU München, anton.riedel@tum.de
 

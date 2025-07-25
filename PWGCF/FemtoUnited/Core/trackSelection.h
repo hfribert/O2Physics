@@ -9,15 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackSelection.h
+/// \file trackSelection.h
 /// \brief Definition of track selections
 /// \author Anton Riedel, TU München, anton.riedel@cern.ch
 
 #ifndef PWGCF_FEMTOUNITED_CORE_TRACKSELECTION_H_
 #define PWGCF_FEMTOUNITED_CORE_TRACKSELECTION_H_
 
-#include "PWGCF/FemtoUnited/Core/BaseSelection.h"
-#include "PWGCF/FemtoUnited/Core/DataTypes.h"
+#include "PWGCF/FemtoUnited/Core/baseSelection.h"
+#include "PWGCF/FemtoUnited/Core/dataTypes.h"
 
 #include "Framework/Configurable.h"
 

@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file HistManager.h
+/// \file histManager.h
 /// \brief common structs for histogram managers
 /// \author anton.riedel@tum.de, TU München, anton.riedel@tum.de
 
