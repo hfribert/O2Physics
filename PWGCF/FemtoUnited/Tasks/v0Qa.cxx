@@ -75,15 +75,7 @@ struct V0Qa {
 
   v0histmanager::ConfLambdaBinning1 confLambdaBinning;
   v0histmanager::ConfLambdaQaBinning1 confLambdaQaBinning;
-
-  trackhistmanager::ConfLambdaPosDauBinning confLambdaPosDaughterBinning;
-  trackhistmanager::ConfLambdaPosDauQaBinning confLambdaPosDaughterQaBinning;
-  trackhistmanager::ConfLambdaNegDauBinning confLambdaNegDaughterBinning;
-  trackhistmanager::ConfLambdaNegDauQaBinning confLambdaNegDaughterQaBinning;
-
   v0histmanager::V0HistManager<v0histmanager::PrefixLambdaQa> lambdaHistManager;
-  trackhistmanager::TrackHistManager<trackhistmanager::PrefixLambdaPosDaughterQa> lambdaPosDaughterManager;
-  trackhistmanager::TrackHistManager<trackhistmanager::PrefixLambdaNegDaughterQa> lambdaNegDaughterManager;
 
   // setup for k0shorts
   v0selection::ConfK0shortSelection1 confK0shortSelection;
@@ -93,15 +85,16 @@ struct V0Qa {
 
   v0histmanager::ConfK0shortBinning1 confK0shortBinning;
   v0histmanager::ConfK0shortQaBinning1 confK0shortQaBinning;
-
-  trackhistmanager::ConfK0shortPosDauBinning confK0shortPosDaughterBinning;
-  trackhistmanager::ConfK0shortPosDauQaBinning confK0shortPosDaughterQaBinning;
-  trackhistmanager::ConfK0shortNegDauBinning confK0shortNegDaughterBinning;
-  trackhistmanager::ConfK0shortNegDauQaBinning confK0shortNegDaughterQaBinning;
-
   v0histmanager::V0HistManager<v0histmanager::PrefixK0shortQa> k0shortHistManager;
-  trackhistmanager::TrackHistManager<trackhistmanager::PrefixK0shortPosDaughterQa> k0shortPosDaughterManager;
-  trackhistmanager::TrackHistManager<trackhistmanager::PrefixK0shortNegDaughterQa> k0shortNegDaughterManager;
+
+  // setup for daughters
+  trackhistmanager::ConfV0PosDauBinning confV0PosDaughterBinning;
+  trackhistmanager::ConfV0PosDauQaBinning confV0PosDaughterQaBinning;
+  trackhistmanager::TrackHistManager<trackhistmanager::PrefixV0PosDaughterQa> posDaughterManager;
+
+  trackhistmanager::ConfV0NegDauBinning confV0NegDaughterBinning;
+  trackhistmanager::ConfV0NegDauQaBinning confV0NegDaughterQaBinning;
+  trackhistmanager::TrackHistManager<trackhistmanager::PrefixV0NegDaughterQa> negDaughterManager;
 
   // setup for collisions
   colhistmanager::CollisionHistManager colHistManager;
@@ -114,30 +107,24 @@ struct V0Qa {
     auto colHistSpec = colhistmanager::makeColHistSpecMap(confCollisionBinning);
     colHistManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, colHistSpec);
 
-    if (doprocessLambda && doprocessK0short) {
-      LOG(fatal) << "Both process functions are activated. Breaking...";
+    auto posDaughterHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confV0PosDaughterBinning, confV0PosDaughterQaBinning);
+    posDaughterManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, posDaughterHistSpec);
+
+    auto negDaughterHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confV0NegDaughterBinning, confV0NegDaughterQaBinning);
+    negDaughterManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, negDaughterHistSpec);
+
+    if ((doprocessK0short + doprocessLambda) > 1) {
+      LOG(fatal) << "Only one process can be activated";
     }
 
     if (doprocessLambda) {
       auto lambdaHistSpec = v0histmanager::makeV0QaHistSpecMap(confLambdaBinning, confLambdaQaBinning);
       lambdaHistManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, lambdaHistSpec);
-
-      auto posDaughterHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confLambdaPosDaughterBinning, confLambdaPosDaughterQaBinning);
-      lambdaPosDaughterManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, posDaughterHistSpec);
-
-      auto negDaughterHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confLambdaNegDaughterBinning, confLambdaNegDaughterQaBinning);
-      lambdaNegDaughterManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, negDaughterHistSpec);
     }
 
     if (doprocessK0short) {
       auto k0shortHistSpec = v0histmanager::makeV0QaHistSpecMap(confK0shortBinning, confK0shortQaBinning);
       k0shortHistManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, k0shortHistSpec);
-
-      auto posDaughterHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confK0shortPosDaughterBinning, confK0shortPosDaughterQaBinning);
-      k0shortPosDaughterManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, posDaughterHistSpec);
-
-      auto negDaughterHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confK0shortNegDaughterBinning, confK0shortNegDaughterQaBinning);
-      k0shortNegDaughterManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, negDaughterHistSpec);
     }
   };
 
@@ -148,9 +135,9 @@ struct V0Qa {
     for (auto const& k0short : k0shortSlice) {
       k0shortHistManager.fill<modes::Mode::kANALYSIS_QA, modes::V0::kK0short>(k0short);
       auto posDaugther = k0short.posDau_as<Tracks>();
-      k0shortPosDaughterManager.fill<modes::Mode::kANALYSIS_QA>(posDaugther);
+      posDaughterManager.fill<modes::Mode::kANALYSIS_QA>(posDaugther);
       auto negDaugther = k0short.negDau_as<Tracks>();
-      k0shortNegDaughterManager.fill<modes::Mode::kANALYSIS_QA>(negDaugther);
+      negDaughterManager.fill<modes::Mode::kANALYSIS_QA>(negDaugther);
     }
   }
   PROCESS_SWITCH(V0Qa, processK0short, "Process k0shorts", false);
@@ -162,9 +149,9 @@ struct V0Qa {
     for (auto const& lambda : lambdaSlice) {
       lambdaHistManager.fill<modes::Mode::kANALYSIS_QA, modes::V0::kLambda>(lambda);
       auto posDaugther = lambda.posDau_as<Tracks>();
-      lambdaPosDaughterManager.fill<modes::Mode::kANALYSIS_QA>(posDaugther);
+      posDaughterManager.fill<modes::Mode::kANALYSIS_QA>(posDaugther);
       auto negDaugther = lambda.negDau_as<Tracks>();
-      lambdaNegDaughterManager.fill<modes::Mode::kANALYSIS_QA>(negDaugther);
+      negDaughterManager.fill<modes::Mode::kANALYSIS_QA>(negDaugther);
     }
   }
   PROCESS_SWITCH(V0Qa, processLambda, "Process lambdas", true);

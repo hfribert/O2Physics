@@ -82,8 +82,8 @@ struct ConfK0shortBits : o2::framework::ConfigurableGroup {
 #undef V0_DEFAULT_BITS
 
 // base selection for analysis task for v0s
-#define V0_DEFAULT_SELECTIONS(defaultMassMin, defaultMassMax)                                                 \
-  o2::framework::Configurable<int> pdgCode{"pdgCode", 3122, "V0 PDG code"};                                   \
+#define V0_DEFAULT_SELECTIONS(defaultMassMin, defaultMassMax, defaultPdgCode)                                 \
+  o2::framework::Configurable<int> pdgCode{"pdgCode", defaultPdgCode, "V0 PDG code"};                         \
   o2::framework::Configurable<float> ptMin{"ptMin", 0.f, "Minimum pT"};                                       \
   o2::framework::Configurable<float> ptMax{"ptMax", 999.f, "Maximum pT"};                                     \
   o2::framework::Configurable<float> etaMin{"etaMin", -10.f, "Minimum eta"};                                  \
@@ -98,7 +98,7 @@ struct ConfK0shortBits : o2::framework::ConfigurableGroup {
 template <const char* Prefix>
 struct ConfLambdaSelection : o2::framework::ConfigurableGroup {
   std::string prefix = Prefix;
-  V0_DEFAULT_SELECTIONS(1.0, 1.2)
+  V0_DEFAULT_SELECTIONS(1.0, 1.2, 3122)
   o2::framework::Configurable<int> sign{"sign", 1, "Sign of the Lambda (+1 for Lambda and -1 for Antilambda"};
 };
 
@@ -106,17 +106,15 @@ struct ConfLambdaSelection : o2::framework::ConfigurableGroup {
 template <const char* Prefix>
 struct ConfK0shortSelection : o2::framework::ConfigurableGroup {
   std::string prefix = Prefix;
-  V0_DEFAULT_SELECTIONS(0.47, 0.51)
+  V0_DEFAULT_SELECTIONS(0.47, 0.51, 310)
 };
 
 #undef V0_DEFAULT_SELECTIONS
 
-// Define unique prefixes as constexpr string literals
 constexpr const char PrefixLambdaSelection1[] = "LambdaSelection1";
 using ConfLambdaSelection1 = ConfLambdaSelection<PrefixLambdaSelection1>;
-// Define unique prefixes as constexpr string literals
-constexpr const char PrefixK0ShortSelection1[] = "K0ShortSelection1";
-using ConfK0shortSelection1 = ConfK0shortSelection<PrefixK0ShortSelection1>;
+constexpr const char PrefixK0shortSelection1[] = "K0shortSelection1";
+using ConfK0shortSelection1 = ConfK0shortSelection<PrefixK0shortSelection1>;
 
 /// The different selections for v0s
 enum V0Seles {

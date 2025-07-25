@@ -107,7 +107,6 @@ auto makeTwoTrackResonanceQaHistSpecMap(const T& confBinningAnalysis)
     {kPtVsMass, {confBinningAnalysis.pt, confBinningAnalysis.mass}}};
 };
 
-constexpr char PrefixTwoTrackResonanceQa[] = "TwoTrackResonanceQA/";
 constexpr char PrefixRho1[] = "Rho01/";
 constexpr char PrefixPhi1[] = "Phi1/";
 constexpr char PrefixKstar1[] = "Kstar01/";

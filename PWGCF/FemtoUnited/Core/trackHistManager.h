@@ -110,21 +110,23 @@ struct ConfTrackBinning : o2::framework::ConfigurableGroup {
 
 constexpr const char PrefixTrackBinning1[] = "TrackBinning1";
 constexpr const char PrefixTrackBinning2[] = "TrackBinning2";
-constexpr const char PrefixK0shortPosDauBinning[] = "K0shortPosDauBinning";
-constexpr const char PrefixK0shortNegDauBinning[] = "K0shortNegDauBinning";
-constexpr const char PrefixLambdaPosDauBinning[] = "LambdaPosDauBinning";
-constexpr const char PrefixLambdaNegDauBinning[] = "LambdaNegDauBinning";
 constexpr const char PrefixResonancePosDauBinning[] = "ResonancePosDauBinning";
 constexpr const char PrefixResonanceNegDauBinning[] = "ResonanceNegDauBinning";
+constexpr const char PrefixV0PosDauBinning[] = "V0PosDauBinning";
+constexpr const char PrefixV0NegDauBinning[] = "V0NegDauBinning";
+constexpr const char PrefixCascadePosDauBinning[] = "CascadePosDauBinning";
+constexpr const char PrefixCascadeNegDauBinning[] = "CascadeNegDauBinning";
+constexpr const char PrefixCascadeBachelorBinning[] = "CascadeBachelorBinning";
 
 using ConfTrackBinning1 = ConfTrackBinning<PrefixTrackBinning1>;
 using ConfTrackBinning2 = ConfTrackBinning<PrefixTrackBinning2>;
-using ConfK0shortPosDauBinning = ConfTrackBinning<PrefixK0shortPosDauBinning>;
-using ConfK0shortNegDauBinning = ConfTrackBinning<PrefixK0shortNegDauBinning>;
-using ConfLambdaPosDauBinning = ConfTrackBinning<PrefixLambdaPosDauBinning>;
-using ConfLambdaNegDauBinning = ConfTrackBinning<PrefixLambdaNegDauBinning>;
 using ConfResonancePosDauBinning = ConfTrackBinning<PrefixResonancePosDauBinning>;
 using ConfResonanceNegDauBinning = ConfTrackBinning<PrefixResonanceNegDauBinning>;
+using ConfV0PosDauBinning = ConfTrackBinning<PrefixV0PosDauBinning>;
+using ConfV0NegDauBinning = ConfTrackBinning<PrefixV0NegDauBinning>;
+using ConfCascadePosDauBinning = ConfTrackBinning<PrefixCascadePosDauBinning>;
+using ConfCascadeNegDauBinning = ConfTrackBinning<PrefixCascadeNegDauBinning>;
+using ConfCascadeBachelorBinning = ConfTrackBinning<PrefixCascadeBachelorBinning>;
 
 template <const char* Prefix>
 struct ConfTrackQaBinning : o2::framework::ConfigurableGroup {
@@ -173,20 +175,22 @@ struct ConfTrackQaBinning : o2::framework::ConfigurableGroup {
 };
 
 constexpr const char PrefixTrackQaBinning1[] = "TrackQaBinning1";
-constexpr const char PrefixK0shortPosDauQaBinning[] = "K0shortPosDauQaBinning";
-constexpr const char PrefixK0shortNegDauQaBinning[] = "K0shortNegDauQaBinning";
-constexpr const char PrefixLambdaPosDauQaBinning[] = "LambdaPosDauQaBinning";
-constexpr const char PrefixLambdaNegDauQaBinning[] = "LambdaNegDauQaBinning";
 constexpr const char PrefixResonancePosDauQaBinning[] = "ResonancePosDauQaBinning";
 constexpr const char PrefixResonanceNegDauQaBinning[] = "ResonanceNegDauQaBinning";
+constexpr const char PrefixV0PosDauQaBinning[] = "V0PosDauQaBinning";
+constexpr const char PrefixV0NegDauQaBinning[] = "V0NegDauQaBinning";
+constexpr const char PrefixCascadePosDauQaBinning[] = "CascadePosDauQaBinning";
+constexpr const char PrefixCascadeNegDauQaBinning[] = "CascadeNegDauQaBinning";
+constexpr const char PrefixCascadeBachelorQaBinning[] = "CascadeBachelorQaBinning";
 
 using ConfTrackQaBinning1 = ConfTrackQaBinning<PrefixTrackQaBinning1>;
-using ConfK0shortPosDauQaBinning = ConfTrackQaBinning<PrefixK0shortPosDauQaBinning>;
-using ConfK0shortNegDauQaBinning = ConfTrackQaBinning<PrefixK0shortNegDauQaBinning>;
-using ConfLambdaPosDauQaBinning = ConfTrackQaBinning<PrefixLambdaPosDauQaBinning>;
-using ConfLambdaNegDauQaBinning = ConfTrackQaBinning<PrefixLambdaNegDauQaBinning>;
 using ConfResonancePosDauQaBinning = ConfTrackQaBinning<PrefixResonancePosDauQaBinning>;
 using ConfResonanceNegDauQaBinning = ConfTrackQaBinning<PrefixResonanceNegDauQaBinning>;
+using ConfV0PosDauQaBinning = ConfTrackQaBinning<PrefixV0PosDauQaBinning>;
+using ConfV0NegDauQaBinning = ConfTrackQaBinning<PrefixV0NegDauQaBinning>;
+using ConfCascadePosDauQaBinning = ConfTrackQaBinning<PrefixCascadePosDauQaBinning>;
+using ConfCascadeNegDauQaBinning = ConfTrackQaBinning<PrefixCascadeNegDauQaBinning>;
+using ConfCascadeBachelorQaBinning = ConfTrackQaBinning<PrefixCascadeBachelorQaBinning>;
 
 // must be in sync with enum TrackVariables
 // the enum gives the correct index in the array
@@ -315,20 +319,22 @@ constexpr char PrefixTrack1[] = "Track1/";
 constexpr char PrefixTrack2[] = "Track2/";
 constexpr char PrefixTrack3[] = "Track3/";
 
-constexpr char PrefixLambdaPosDaughter[] = "LambdaPosDaugh/";
-constexpr char PrefixLambdaNegDaughter[] = "LambdaNegDaugh/";
-constexpr char PrefixLambdaPosDaughterQa[] = "LambdaPosDaughQa/";
-constexpr char PrefixLambdaNegDaughterQa[] = "LambdaNegDaughQa/";
+constexpr char PrefixResonancePosDaughter[] = "ResonancePosDau/";
+constexpr char PrefixResonanceNegDaughter[] = "ResonanceNegDau/";
+constexpr char PrefixResonancePosDaughterQa[] = "ResonancePosDauQa/";
+constexpr char PrefixResonanceNegDaughterQa[] = "ResonanceNegDauQa/";
 
-constexpr char PrefixK0shortPosDaughter[] = "K0shortPosDaugh/";
-constexpr char PrefixK0shortNegDaughter[] = "K0shortNegDaugh/";
-constexpr char PrefixK0shortPosDaughterQa[] = "K0shortPosDaughQa/";
-constexpr char PrefixK0shortNegDaughterQa[] = "K0shortNegDaughQa/";
+constexpr char PrefixV0PosDaughter[] = "V0PosDau/";
+constexpr char PrefixV0NegDaughter[] = "V0NegDau/";
+constexpr char PrefixV0PosDaughterQa[] = "V0PosDauQa/";
+constexpr char PrefixV0NegDaughterQa[] = "V0NegDauQa/";
 
-constexpr char PrefixResonancePosDaughter[] = "ResonancePosDaugh/";
-constexpr char PrefixResonanceNegDaughter[] = "ResonanceNegDaugh/";
-constexpr char PrefixResonancePosDaughterQa[] = "ResonancePosDaughQa/";
-constexpr char PrefixResonanceNegDaughterQa[] = "ResonanceNegDaughQa/";
+constexpr char PrefixCascadePosDaughter[] = "CascadePosDau/";
+constexpr char PrefixCascadeNegDaughter[] = "CascadeNegDau/";
+constexpr char PrefixCascadeBachelor[] = "CascadeBachelor/";
+constexpr char PrefixCascadePosDaughterQa[] = "CascadePosDauQa/";
+constexpr char PrefixCascadeNegDaughterQa[] = "CascadeNegDauQa/";
+constexpr char PrefixCascadeBachelorQa[] = "CascadeBachelorQa/";
 
 constexpr std::string_view AnalysisDir = "Kinematics/";
 constexpr std::string_view QaDir = "QA/";

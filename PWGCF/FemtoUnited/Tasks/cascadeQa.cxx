@@ -1,4 +1,4 @@
-// Copyright 2019-2024 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2025 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -13,12 +13,13 @@
 /// \brief Tasks that reads the particle tables and fills QA histograms for vzeros
 /// \author Anton Riedel, TU München, anton.riedel@cern.ch
 
-#include "PWGCF/FemtoUnited/Core/CascadeHistManager.h"
-#include "PWGCF/FemtoUnited/Core/CascadeSelection.h"
-#include "PWGCF/FemtoUnited/Core/CollisionHistManager.h"
-#include "PWGCF/FemtoUnited/Core/CollisionSelection.h"
-#include "PWGCF/FemtoUnited/Core/Modes.h"
-#include "PWGCF/FemtoUnited/Core/TrackHistManager.h"
+#include "PWGCF/FemtoUnited/Core/cascadeHistManager.h"
+#include "PWGCF/FemtoUnited/Core/cascadeSelection.h"
+#include "PWGCF/FemtoUnited/Core/collisionHistManager.h"
+#include "PWGCF/FemtoUnited/Core/collisionSelection.h"
+#include "PWGCF/FemtoUnited/Core/modes.h"
+#include "PWGCF/FemtoUnited/Core/partitions.h"
+#include "PWGCF/FemtoUnited/Core/trackHistManager.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoCascadesDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoCollisionsDerived.h"
 #include "PWGCF/FemtoUnited/DataModel/FemtoTracksDerived.h"
@@ -45,60 +46,60 @@ struct CascadeQa {
 
   struct : ConfigurableGroup {
     std::string prefix = std::string("Options");
+
     Configurable<bool> correlatedPlots{"correlatedPlots", false, "Enable multidimensional histogramms. High memory consumption."};
   } Options;
 
-  collisionselection::ConfCollisionSelection collisionSelection;
-  Filter filterVtxz = femtocollisions::posZ >= collisionSelection.vtxZMin && femtocollisions::posZ <= collisionSelection.vtxZMax;
-  Filter filterMult = femtocollisions::mult >= collisionSelection.multMin && femtocollisions::mult <= collisionSelection.multMax;
-  Filter filterCent = femtocollisions::cent >= collisionSelection.centMin && femtocollisions::cent <= collisionSelection.centMax;
-  Filter filterSpher = femtocollisions::sphericity >= collisionSelection.spherMin && femtocollisions::sphericity <= collisionSelection.spherMax;
-  Filter filterMagField = femtocollisions::magField >= collisionSelection.magFieldMin && femtocollisions::magField <= collisionSelection.magFieldMax;
-
-  // using Collisions = o2::soa::Join<FUCols, FUColPos, FUColMults, FUColCents>;
+  // setup tables
   using Collisions = FUCols;
   using Collision = Collisions::iterator;
 
   using FilteredCollisions = o2::soa::Filtered<Collisions>;
   using FilteredCollision = FilteredCollisions::iterator;
 
-  colhistmanager::ConfCollisionBinning confCollisionBinning;
-
-  using Cascades = o2::soa::Join<FUCascades, FUCascadeMasks, FUCascadeExtras>;
-  using Tracks = o2::soa::Join<FUTracks, FUTrackMasks, FUTrackDCAs, FUTrackExtras, FUTrackPids>;
+  using Xis = o2::soa::Join<FUXis, FUXiMasks, FUXiExtras>;
+  using Omegas = o2::soa::Join<FUOmegas, FUOmegaMasks, FUOmegaExtras>;
+  using Tracks = o2::soa::Join<FUTracks, FUTrackDCAs, FUTrackExtras, FUTrackPids>;
 
   SliceCache cache;
 
-  lambdaselection::ConfCascadeSelection1 confCascadeSelection;
+  // setup collisions
+  colhistmanager::CollisionHistManager colHistManager;
+  colhistmanager::ConfCollisionBinning confCollisionBinning;
+  collisionselection::ConfCollisionSelection collisionSelection;
+  Filter collisionFilter = MAKE_COLLISION_FILTER(collisionSelection);
 
-  Partition<Cascades> CascadePartition =
-    (femtobase::pt > confCascadeSelection.ptMin) &&
-    (femtobase::pt < confCascadeSelection.ptMax) &&
-    (femtobase::eta > confCascadeSelection.etaMin) &&
-    (femtobase::eta < confCascadeSelection.etaMax) &&
-    (femtobase::phi > confCascadeSelection.phiMin) &&
-    (femtobase::phi < confCascadeSelection.phiMax) &&
-    (femtolambdas::lambdaMass > confCascadeSelection.massMin) &&
-    (femtolambdas::lambdaMass < confCascadeSelection.massMax) &&
-    (femtolambdas::antiCascadeMass > confCascadeSelection.antiMassMin) &&
-    (femtolambdas::antiCascadeMass < confCascadeSelection.antiMassMax) &&
-    ncheckbit(femtolambdas::lambdaMask, confCascadeSelection.mask);
-  Preslice<Cascades> perColReco = aod::femtobase::collisionId;
+  // setup for xis
+  cascadeselection::ConfXiSelection confXiSelection;
+  Partition<Xis> xiPartition = MAKE_CASCADE_PARTITION(confXiSelection);
+  Preslice<Xis> preColXis = aod::femtobase::stored::collisionId;
 
-  lambdahistmanager::ConfCascadeBinning1 confCascadeBinning;
-  lambdahistmanager::ConfCascadeQaBinning1 confCascadeQaBinning;
+  cascadehistmanager::ConfXiBinning confXiBinning;
+  cascadehistmanager::ConfXiQaBinning confXiQaBinning;
+  cascadehistmanager::CascadeHistManager<cascadehistmanager::PrefixXiQa> xiHistManager;
 
+  // setup for omegas
+  cascadeselection::ConfOmegaSelection confOmegaSelection;
+  Partition<Omegas> omegaPartition = MAKE_CASCADE_PARTITION(confOmegaSelection);
+  Preslice<Omegas> preColOmegas = aod::femtobase::stored::collisionId;
+
+  cascadehistmanager::ConfOmegaBinning confOmegaBinning;
+  cascadehistmanager::ConfOmegaQaBinning confOmegaQaBinning;
+  cascadehistmanager::CascadeHistManager<cascadehistmanager::PrefixOmegaQa> omegaHistManager;
+
+  // setup for daughters/bachelor
   trackhistmanager::ConfCascadePosDauBinning confPosDaughterBinning;
   trackhistmanager::ConfCascadePosDauQaBinning confPosDaughterQaBinning;
   trackhistmanager::ConfCascadeNegDauBinning confNegDaughterBinning;
   trackhistmanager::ConfCascadeNegDauQaBinning confNegDaughterQaBinning;
+  trackhistmanager::ConfCascadeBachelorBinning confBachelorBinning;
+  trackhistmanager::ConfCascadeBachelorQaBinning confBachelorQaBinning;
 
-  HistogramRegistry hRegistry{"CascadeQA", {}, OutputObjHandlingPolicy::AnalysisObject};
-
-  colhistmanager::CollisionHistManager colHistManager;
-  lambdahistmanager::CascadeHistManager<lambdahistmanager::PrefixCascadeQa> lambdaHistManager;
   trackhistmanager::TrackHistManager<trackhistmanager::PrefixCascadePosDaughterQa> posDaughterManager;
   trackhistmanager::TrackHistManager<trackhistmanager::PrefixCascadeNegDaughterQa> negDaughterManager;
+  trackhistmanager::TrackHistManager<trackhistmanager::PrefixCascadeBachelorQa> bachelorManager;
+
+  HistogramRegistry hRegistry{"FemtoCascadeQA", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   void init(InitContext&)
   {
@@ -106,28 +107,61 @@ struct CascadeQa {
     auto colHistSpec = colhistmanager::makeColHistSpecMap(confCollisionBinning);
     colHistManager.init<modes::Mode::kANALYSIS>(&hRegistry, colHistSpec);
 
-    auto lambdaHistSpec = lambdahistmanager::makeCascadeQaHistSpecMap(confCascadeBinning, confCascadeQaBinning);
-    lambdaHistManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, lambdaHistSpec);
-
     auto posDaughterHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confPosDaughterBinning, confPosDaughterQaBinning);
     posDaughterManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, posDaughterHistSpec);
 
     auto negDaughterHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confNegDaughterBinning, confNegDaughterQaBinning);
     negDaughterManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, negDaughterHistSpec);
+
+    auto bachelorHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confBachelorBinning, confBachelorQaBinning);
+    bachelorManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, bachelorHistSpec);
+
+    if ((doprocessXis + doprocessOmegas) > 1) {
+      LOG(fatal) << "Only one process can be activated";
+    }
+
+    if (doprocessXis) {
+      auto xiHistSpec = cascadehistmanager::makeCascadeQaHistSpecMap(confXiBinning, confXiQaBinning);
+      xiHistManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, xiHistSpec);
+    }
+
+    if (doprocessOmegas) {
+      auto omegaHistSpec = cascadehistmanager::makeCascadeQaHistSpecMap(confOmegaBinning, confOmegaQaBinning);
+      omegaHistManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, omegaHistSpec);
+    }
   };
 
-  void process(FilteredCollision const& col, Cascades const& /*lambdas*/, Tracks const& /*tracks*/)
+  void processXis(FilteredCollision const& col, Xis const& /*xis*/, Tracks const& /*tracks*/)
   {
     colHistManager.fill<modes::Mode::kANALYSIS_QA>(col);
-    auto lambdaSlice = CascadePartition->sliceByCached(femtobase::collisionId, col.globalIndex(), cache);
-    for (auto const& lambda : lambdaSlice) {
-      lambdaHistManager.fill<modes::Mode::kANALYSIS_QA>(lambda);
-      auto posDaugther = lambda.posDauCascade_as<Tracks>();
+    auto xiSlice = xiPartition->sliceByCached(femtobase::stored::collisionId, col.globalIndex(), cache);
+    for (auto const& xi : xiSlice) {
+      xiHistManager.fill<modes::Mode::kANALYSIS_QA, modes::Cascade::kXi>(xi);
+      auto posDaugther = xi.posDau_as<Tracks>();
       posDaughterManager.fill<modes::Mode::kANALYSIS_QA>(posDaugther);
-      auto negDaugther = lambda.negDauCascade_as<Tracks>();
+      auto negDaugther = xi.negDau_as<Tracks>();
       negDaughterManager.fill<modes::Mode::kANALYSIS_QA>(negDaugther);
+      auto bachelor = xi.bachelor_as<Tracks>();
+      bachelorManager.fill<modes::Mode::kANALYSIS_QA>(bachelor);
     }
   }
+  PROCESS_SWITCH(CascadeQa, processXis, "Process Xis", true);
+
+  void processOmegas(FilteredCollision const& col, Omegas const& /*omegas*/, Tracks const& /*tracks*/)
+  {
+    colHistManager.fill<modes::Mode::kANALYSIS_QA>(col);
+    auto omegaSlice = omegaPartition->sliceByCached(femtobase::stored::collisionId, col.globalIndex(), cache);
+    for (auto const& omega : omegaSlice) {
+      omegaHistManager.fill<modes::Mode::kANALYSIS_QA, modes::Cascade::kOmega>(omega);
+      auto posDaugther = omega.posDau_as<Tracks>();
+      posDaughterManager.fill<modes::Mode::kANALYSIS_QA>(posDaugther);
+      auto negDaugther = omega.negDau_as<Tracks>();
+      negDaughterManager.fill<modes::Mode::kANALYSIS_QA>(negDaugther);
+      auto bachelor = omega.bachelor_as<Tracks>();
+      bachelorManager.fill<modes::Mode::kANALYSIS_QA>(bachelor);
+    }
+  }
+  PROCESS_SWITCH(CascadeQa, processOmegas, "Process Omegas", false);
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)

@@ -242,6 +242,9 @@ struct FemtoUnitedProducer {
     if (doprocessTracksVzerosRun3pp && produceCascades) {
       LOG(fatal) << "Only processing Tracks and V0s, cannot produce cascades. Change the process function";
     }
+    if ((doprocessTracksRun3pp + doprocessTracksRun3pp + doprocessTracksV0sCascadesRun3pp) > 1) {
+      LOG(fatal) << "Only one process function can be activated.";
+    }
   };
 
   void init(InitContext& /*contex*/)
@@ -514,7 +517,6 @@ struct FemtoUnitedProducer {
           cascade.mLambda() < confCascadeFilters.massLambdaMin.value || cascade.mLambda() > confCascadeFilters.massLambdaMax.value) {
         continue;
       }
-
       auto bachelor = cascade.template bachelor_as<T2>();
       auto posDaughter = cascade.template posTrack_as<T2>();
       auto negDaughter = cascade.template negTrack_as<T2>();

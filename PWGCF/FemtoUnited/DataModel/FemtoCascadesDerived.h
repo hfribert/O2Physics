@@ -28,7 +28,7 @@ namespace o2::aod
 namespace femtocascades
 {
 // columns for cascade bit masks
-DECLARE_SOA_COLUMN(MaskCascade, maskCascade, femtodatatypes::CascadeMaskType); //! Bitmask for cascade selections
+DECLARE_SOA_COLUMN(Mask, mask, femtodatatypes::CascadeMaskType); //! Bitmask for cascade selections
 
 // columns for cascad debug information
 DECLARE_SOA_COLUMN(MassXi, massXi, float);                         //! Mass of xi
@@ -45,10 +45,7 @@ DECLARE_SOA_COLUMN(LambdaDcaToPv, lambdaDcaToPv, float);           //! Lambda tr
 // DECLARE_SOA_INDEX_COLUMN_FULL(LambdaDaughter, lambdaDaughter, int32_t, FULambdas, "_LambdaDaughter"); //!
 
 // id columns for bachelor
-DECLARE_SOA_INDEX_COLUMN_FULL(CascadeBachelor, cascadeBachelor, int32_t, FUTracks, "_CascadeBachelor"); //!
-// id columns for Lambda daughter tracks
-DECLARE_SOA_INDEX_COLUMN_FULL(PosDauLambda, posDauLambda, int32_t, FUTracks, "_PosDauLambda"); //!
-DECLARE_SOA_INDEX_COLUMN_FULL(NegDauLambda, negDauLambda, int32_t, FUTracks, "_NegDauLambda"); //!
+DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int32_t, FUTracks, "_Bachelor"); //!
 
 } // namespace femtocascades
 
@@ -60,9 +57,9 @@ DECLARE_SOA_TABLE_STAGED_VERSIONED(FUXis_001, "FUXIS", 1,
                                    femtobase::stored::Eta,
                                    femtobase::stored::Phi,
                                    femtobase::stored::Mass,
-                                   femtocascades::CascadeBachelorId,
-                                   femtocascades::PosDauLambdaId,
-                                   femtocascades::NegDauLambdaId,
+                                   femtocascades::BachelorId,
+                                   femtov0s::PosDauId,
+                                   femtov0s::NegDauId,
                                    femtobase::dynamic::Sign<femtobase::stored::SignedPt>,
                                    femtobase::dynamic::Pt<femtobase::stored::SignedPt>,
                                    femtobase::dynamic::P<femtobase::stored::SignedPt, femtobase::stored::Eta>,
@@ -73,7 +70,7 @@ DECLARE_SOA_TABLE_STAGED_VERSIONED(FUXis_001, "FUXIS", 1,
 using FUXis = FUXis_001;
 
 DECLARE_SOA_TABLE_STAGED_VERSIONED(FUXiMasks_001, "FUXIMASKS", 1,
-                                   femtocascades::MaskCascade);
+                                   femtocascades::Mask);
 using FUXiMasks = FUXiMasks_001;
 
 DECLARE_SOA_TABLE_STAGED_VERSIONED(FUOmegas_001, "FUOMEGAS", 1,
@@ -83,9 +80,9 @@ DECLARE_SOA_TABLE_STAGED_VERSIONED(FUOmegas_001, "FUOMEGAS", 1,
                                    femtobase::stored::Eta,
                                    femtobase::stored::Phi,
                                    femtobase::stored::Mass,
-                                   femtocascades::CascadeBachelorId,
-                                   femtocascades::PosDauLambdaId,
-                                   femtocascades::NegDauLambdaId,
+                                   femtocascades::BachelorId,
+                                   femtov0s::PosDauId,
+                                   femtov0s::NegDauId,
                                    femtobase::dynamic::Sign<femtobase::stored::SignedPt>,
                                    femtobase::dynamic::Pt<femtobase::stored::SignedPt>,
                                    femtobase::dynamic::P<femtobase::stored::SignedPt, femtobase::stored::Eta>,
@@ -96,7 +93,7 @@ DECLARE_SOA_TABLE_STAGED_VERSIONED(FUOmegas_001, "FUOMEGAS", 1,
 using FUOmegas = FUOmegas_001;
 
 DECLARE_SOA_TABLE_STAGED_VERSIONED(FUOmegaMasks_001, "FUOMEGAMASKS", 1,
-                                   femtocascades::MaskCascade);
+                                   femtocascades::Mask);
 using FUOmegaMasks = FUOmegaMasks_001;
 
 DECLARE_SOA_TABLE_STAGED_VERSIONED(FUXiExtras_001, "FUXIEXTRAS", 1,

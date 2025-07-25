@@ -50,16 +50,12 @@ struct TwoTrackResonanceQa {
     Configurable<bool> correlatedPlots{"correlatedPlots", false, "Enable multidimensional histogramms. High memory consumption."};
   } Options;
 
-  collisionselection::ConfCollisionSelection collisionSelection;
-  Filter collisionFilter = MAKE_COLLISION_FILTER(collisionSelection);
-
+  // setup tables
   using Collisions = FUCols;
   using Collision = Collisions::iterator;
 
   using FilteredCollisions = o2::soa::Filtered<Collisions>;
   using FilteredCollision = FilteredCollisions::iterator;
-
-  colhistmanager::ConfCollisionBinning confCollisionBinning;
 
   using Phis = o2::soa::Join<FUPhis, FUPhiMasks>;
   using Rho0s = o2::soa::Join<FURhos, FURhoMasks>;
@@ -67,6 +63,12 @@ struct TwoTrackResonanceQa {
   using Tracks = o2::soa::Join<FUTracks, FUTrackDCAs, FUTrackExtras, FUTrackPids>;
 
   SliceCache cache;
+
+  // setup for collisions
+  colhistmanager::CollisionHistManager colHistManager;
+  colhistmanager::ConfCollisionBinning confCollisionBinning;
+  collisionselection::ConfCollisionSelection collisionSelection;
+  Filter collisionFilter = MAKE_COLLISION_FILTER(collisionSelection);
 
   // setup for phis
   twotrackresonanceselection::ConfPhiSelection confPhiSelection;
@@ -100,10 +102,6 @@ struct TwoTrackResonanceQa {
   trackhistmanager::ConfResonanceNegDauQaBinning confNegDaughterQaBinning;
   trackhistmanager::TrackHistManager<trackhistmanager::PrefixResonanceNegDaughterQa> negDaughterManager;
 
-  // setup for collisions
-  colhistmanager::CollisionHistManager colHistManager;
-  twotrackresonancehistmanager::TwoTrackResonanceHistManager<twotrackresonancehistmanager::PrefixTwoTrackResonanceQa> resonanceHistManager;
-
   HistogramRegistry hRegistry{"ResonanceQA", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   void init(InitContext&)
@@ -117,6 +115,10 @@ struct TwoTrackResonanceQa {
 
     auto negDaughterHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confNegDaughterBinning, confNegDaughterQaBinning);
     negDaughterManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, negDaughterHistSpec);
+
+    if ((doprocessPhis + doprocessRho0s + doprocessKstar0s) > 1) {
+      LOG(fatal) << "Only one process can be activated";
+    }
 
     if (doprocessPhis) {
       auto phiHistSpec = twotrackresonancehistmanager::makeTwoTrackResonanceQaHistSpecMap(confPhiBinning);
