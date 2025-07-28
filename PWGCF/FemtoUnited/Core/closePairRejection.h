@@ -42,6 +42,15 @@ enum CprHist {
   kCprHistogramLast
 };
 
+// struct ConfPairBinning : ConfigurableGroup {
+//   std::string prefix = std::string("ClosePairRejection");
+//   Configurable<bool> on{"on", true, "Trun on CPR"};
+//   Configurable<float> detaMax{"detaMax", 0.01f, "Maximium deta"};
+//   Configurable<float> dphistarMax{"dphistarMax", 0.01f, "Maximum dphistar"};
+//   ConfigurableAxis deta{"deta", {{100, -0.2, 0.2}}, "deta"};
+//   ConfigurableAxis dphistar{"dphistar", {{100, -0.2, 0.2}}, "dphi"};
+// } ConfCpr;
+
 // masks to extract charge
 constexpr o2::aod::femtodatatypes::TrackMaskType kSignPlusMask = 2;
 constexpr o2::aod::femtodatatypes::TrackMaskType kSignMinusMask = 1;

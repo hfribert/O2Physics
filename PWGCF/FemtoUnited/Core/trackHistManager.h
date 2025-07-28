@@ -175,6 +175,7 @@ struct ConfTrackQaBinning : o2::framework::ConfigurableGroup {
 };
 
 constexpr const char PrefixTrackQaBinning1[] = "TrackQaBinning1";
+constexpr const char PrefixTrackQaBinning2[] = "TrackQaBinning1";
 constexpr const char PrefixResonancePosDauQaBinning[] = "ResonancePosDauQaBinning";
 constexpr const char PrefixResonanceNegDauQaBinning[] = "ResonanceNegDauQaBinning";
 constexpr const char PrefixV0PosDauQaBinning[] = "V0PosDauQaBinning";
@@ -184,6 +185,7 @@ constexpr const char PrefixCascadeNegDauQaBinning[] = "CascadeNegDauQaBinning";
 constexpr const char PrefixCascadeBachelorQaBinning[] = "CascadeBachelorQaBinning";
 
 using ConfTrackQaBinning1 = ConfTrackQaBinning<PrefixTrackQaBinning1>;
+using ConfTrackQaBinning2 = ConfTrackQaBinning<PrefixTrackQaBinning2>;
 using ConfResonancePosDauQaBinning = ConfTrackQaBinning<PrefixResonancePosDauQaBinning>;
 using ConfResonanceNegDauQaBinning = ConfTrackQaBinning<PrefixResonanceNegDauQaBinning>;
 using ConfV0PosDauQaBinning = ConfTrackQaBinning<PrefixV0PosDauQaBinning>;

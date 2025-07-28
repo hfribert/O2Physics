@@ -29,7 +29,7 @@ o2physics_add_dpl_workflow(femtounited-cascadeqa
           PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
           COMPONENT_NAME Analysis)
 
-# o2physics_add_dpl_workflow(femtounited-pair-track-track
-# 	  SOURCES PairTrackTrack.cxx
-#           PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
-#           COMPONENT_NAME Analysis)
+o2physics_add_dpl_workflow(femtounited-pair-track-track
+	  SOURCES pairTrackTrack.cxx
+          PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::AnalysisCore
+          COMPONENT_NAME Analysis)

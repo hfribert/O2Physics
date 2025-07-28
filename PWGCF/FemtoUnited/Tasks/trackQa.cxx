@@ -47,33 +47,33 @@ struct TrackQa {
     Configurable<bool> correlatedPlots{"correlatedPlots", false, "Enable multidimensional histogramms. High memory consumption."};
   } Options;
 
-  collisionselection::ConfCollisionSelection collisionSelection;
-  Filter collisionFilter = MAKE_COLLISION_FILTER(collisionSelection);
-
-  // using Collisions = o2::soa::Join<FUCols, FUColPos, FUColMults, FUColCents>;
+  // setup tables
   using Collisions = FUCols;
   using Collision = Collisions::iterator;
 
   using FilteredCollisions = o2::soa::Filtered<Collisions>;
   using FilteredCollision = FilteredCollisions::iterator;
 
-  colhistmanager::ConfCollisionBinning confCollisionBinning;
+  using Tracks = o2::soa::Join<FUTracks, FUTrackMasks, FUTrackDCAs, FUTrackExtras, FUTrackPids>;
 
   SliceCache cache;
 
-  using Tracks = o2::soa::Join<FUTracks, FUTrackMasks, FUTrackDCAs, FUTrackExtras, FUTrackPids>;
+  // setup collisions
+  collisionselection::ConfCollisionSelection collisionSelection;
+  Filter collisionFilter = MAKE_COLLISION_FILTER(collisionSelection);
+  colhistmanager::ConfCollisionBinning confCollisionBinning;
+  colhistmanager::CollisionHistManager colHistManager;
 
+  // setup tracks
+  trackselection::ConfTrackSelection1 trackSelections;
   trackhistmanager::ConfTrackBinning1 confTrackBinning;
   trackhistmanager::ConfTrackQaBinning1 confTrackQaBinning;
-  trackselection::ConfTrackSelection1 trackSelections;
+  trackhistmanager::TrackHistManager<trackhistmanager::PrefixTrackQa> trackHistManager;
 
   Partition<Tracks> trackPartition = MAKE_TRACK_PARTITION(trackSelections);
-
   Preslice<Tracks> perColReco = aod::femtobase::stored::collisionId;
 
   HistogramRegistry hRegistry{"FemtoTrackQA", {}, OutputObjHandlingPolicy::AnalysisObject};
-  colhistmanager::CollisionHistManager colHistManager;
-  trackhistmanager::TrackHistManager<trackhistmanager::PrefixTrackQa> trackHistManager;
 
   void init(InitContext&)
   {
@@ -81,7 +81,6 @@ struct TrackQa {
     auto colHistSpec = colhistmanager::makeColHistSpecMap(confCollisionBinning);
     colHistManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, colHistSpec);
     auto trackHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confTrackBinning, confTrackQaBinning);
-
     trackHistManager.init<modes::Mode::kANALYSIS_QA>(&hRegistry, trackHistSpec);
   };
 

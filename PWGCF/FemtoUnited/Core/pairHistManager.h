@@ -21,6 +21,7 @@
 #include "PWGCF/FemtoUnited/Core/histManager.h"
 #include "PWGCF/FemtoUnited/Core/modes.h"
 
+#include "Framework/Configurable.h"
 #include "Framework/HistogramRegistry.h"
 
 #include "Math/Boost.h"
@@ -36,7 +37,7 @@ namespace o2::analysis::femtounited
 {
 namespace pairhistmanager
 {
-// enum for track histograms
+// enum for pair histograms
 enum PairHist {
   // kinemtics
   kKstar,
@@ -53,27 +54,57 @@ enum PairHist {
   kPairHistogramLast
 };
 
-constexpr char PrefixTrackTrackSe[] = "TrackTrack/SE/";
-constexpr char PrefixTrackTrackMe[] = "TrackTrack/ME/";
-constexpr char PrefixTrackVzeroSe[] = "TrackVzero/ME/";
-constexpr char PrefixTrackVzeroMe[] = "TrackVzero/ME/";
+// Mixing configurables
+struct ConfMixing : o2::framework::ConfigurableGroup {
+  std::string prefix = std::string("Mixing");
+  o2::framework::ConfigurableAxis multBins{"multBins", {o2::framework::VARIABLE_WIDTH, 0.0f, 4.0f, 8.0f, 12.0f, 16.0f, 20.0f, 24.0f, 28.0f, 32.0f, 36.0f, 40.0f, 44.0f, 48.0f, 52.0f, 56.0f, 60.0f, 64.0f, 68.0f, 72.0f, 76.0f, 80.0f, 84.0f, 88.0f, 92.0f, 96.0f, 100.0f, 200.0f}, "Mixing bins - multiplicity"};
+  o2::framework::ConfigurableAxis centBins{"centBins", {o2::framework::VARIABLE_WIDTH, 0.0f, 10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f, 70.0f, 80.0f, 90.0f, 100.0f}, "Mixing bins - centrality"};
+  o2::framework::ConfigurableAxis vtxBins{"vtxBins", {o2::framework::VARIABLE_WIDTH, -10.0f, -8.f, -6.f, -4.f, -2.f, 0.f, 2.f, 4.f, 6.f, 8.f, 10.f}, "Mixing bins - z-vertex"};
+  o2::framework::Configurable<int> depth{"depth", 5, "Number of events for mixing"};
+  o2::framework::Configurable<int> policy{"policy", 0, "Binning policy for mixing (alywas in combination with z-vertex) -> 0: multiplicity, -> 1: centrality, -> 2: both"};
+};
 
-constexpr std::string_view AnalysisDir = "Analysis/";
-constexpr std::string_view QaDir = "QA/";
+struct ConfPairBinning : o2::framework::ConfigurableGroup {
+  std::string prefix = std::string("PairBinning");
+  o2::framework::ConfigurableAxis kstar{"kstar", {{600, 0, 6}}, "kstar"};
+  o2::framework::ConfigurableAxis kt{"kt", {{600, 0, 6}}, "kt"};
+  o2::framework::ConfigurableAxis mt{"mt", {{500, 0.8, 5.8}}, "mt"};
+};
 
-// must be in sync with enum TrackVariables
 // the enum gives the correct index in the array
 constexpr std::array<histmanager::HistInfo<PairHist>, kPairHistogramLast> HistTable = {
   {{kKstar, o2::framework::kTH1F, "hKstar", "k*; k* (GeV/#it{c}); Entries"},
    {kKt, o2::framework::kTH1F, "hKt", "transverse momentum; k_{T} (GeV/#it{c}); Entries"},
    {kMt, o2::framework::kTH1F, "hMt", "transverse mass; m_{T} (GeV/#it{c}^{2}); Entries"},
    {kPt1VsPt2, o2::framework::kTH2F, "hPt1VsPt2", "track1 p_{T} vs track2 p_{T}; track1 p_T (GeV/#it{c}); track2 p_{T} (GeV/#it{c})"},
-   {kPt1VsKstar, o2::framework::kTH2F, "hPt1VsKstar", "track1 p_{T} vs k*; track1 p_{T} (GeV/#it{c}); k* (GeV/#it{c})"},
-   {kPt2VsKstar, o2::framework::kTH2F, "hPt2VsKstar", "track2 p_{T} vs k*; track2 p_{T} (GeV/#it{c}); k* (GeV/#it{c})"},
-   {kPt1VsKt, o2::framework::kTH2F, "hPt1VsKt", "track1 p_{T} vs k_{T}; track1 p_{T} (GeV/#it{c}); k_{T} (GeV/#it{c})"},
-   {kPt2VsKt, o2::framework::kTH2F, "hPt2VsKt", "track2 p_{T} vs k_{T}; track2 p_{T} (GeV/#it{c}); k_{T} (GeV/#it{c})"},
-   {kPt1VsMt, o2::framework::kTH2F, "hPt1VsMt", "track1 p_{T} vs m_{T}; track1 p_{T} (GeV/#it{c}); m_{T} (GeV/#it{c})"},
-   {kPt2VsMt, o2::framework::kTH2F, "hPt2VsMt", "track1 p_{T} vs m_{T}; track2 p_{T} (GeV/#it{c}); m_{T} (GeV/#it{c})"}}};
+   {kPt1VsKstar, o2::framework::kTH2F, "hPt1VsKstar", "p_{T,1} vs k*; p_{T,2} (GeV/#it{c}); k* (GeV/#it{c})"},
+   {kPt2VsKstar, o2::framework::kTH2F, "hPt2VsKstar", "p_{T,2} vs k*; p_{T,2} (GeV/#it{c}); k* (GeV/#it{c})"},
+   {kPt1VsKt, o2::framework::kTH2F, "hPt1VsKt", "p_{T,1} vs k_{T}; p_{T,1} (GeV/#it{c}); k_{T} (GeV/#it{c})"},
+   {kPt2VsKt, o2::framework::kTH2F, "hPt2VsKt", "p_{T,2} vs k_{T}; p_{T,2} (GeV/#it{c}); k_{T} (GeV/#it{c})"},
+   {kPt1VsMt, o2::framework::kTH2F, "hPt1VsMt", "p_{T,1} vs m_{T}; p_{T,1} (GeV/#it{c}); m_{T} (GeV/#it{c})"},
+   {kPt2VsMt, o2::framework::kTH2F, "hPt2VsMt", "p_{T,2} vs m_{T}; p_{T,2} (GeV/#it{c}); m_{T} (GeV/#it{c})"}}};
+
+template <typename T1, typename T2, typename T3>
+auto makePairHistSpecMap(const T1& confPairBinning, const T2& confObject1Binning, const T3& confObject2Binning)
+{
+  return std::map<PairHist, std::vector<framework::AxisSpec>>{
+    {kKstar, {confPairBinning.kstar}},
+    {kKt, {confPairBinning.kt}},
+    {kMt, {confPairBinning.mt}},
+    {kPt1VsPt2, {confObject1Binning.pt, confObject2Binning.pt}},
+    {kPt1VsKstar, {confObject1Binning.pt, confPairBinning.kstar}},
+    {kPt2VsKstar, {confObject2Binning.pt, confPairBinning.kstar}},
+    {kPt1VsKt, {confObject1Binning.pt, confPairBinning.kt}},
+    {kPt2VsKt, {confObject2Binning.pt, confPairBinning.kt}},
+    {kPt1VsMt, {confObject1Binning.pt, confPairBinning.mt}},
+    {kPt1VsMt, {confObject2Binning.pt, confPairBinning.mt}}};
+};
+
+constexpr char PrefixTrackTrackSe[] = "TrackTrack/SE/";
+constexpr char PrefixTrackTrackMe[] = "TrackTrack/ME/";
+
+constexpr std::string_view AnalysisDir = "Analysis/";
+constexpr std::string_view QaDir = "QA/";
 
 /// \class FemtoDreamEventHisto
 /// \brief Class for histogramming event properties
@@ -114,15 +145,15 @@ class PairHistManager
   void setMass(int PdgParticle1, int PdgParticle2)
   {
     mMass1 = o2::analysis::femtounited::utils::getMass(PdgParticle1);
-    mMass1 = o2::analysis::femtounited::utils::getMass(PdgParticle2);
+    mMass2 = o2::analysis::femtounited::utils::getMass(PdgParticle2);
   }
 
   template <typename T1, typename T2>
   void setPair(T1 particle1, T2 particle2)
   {
-    mTrack1 = ROOT::Math::PtEtaPhiMVector(particle1.pt(), particle1.eta(), particle1.phi(), mMass1);
-    mTrack2 = ROOT::Math::PtEtaPhiMVector(particle2.pt(), particle2.eta(), particle2.phi(), mMass2);
-    auto partSum = mTrack1 + mTrack1;
+    auto Track1 = ROOT::Math::PtEtaPhiMVector{particle1.pt(), particle1.eta(), particle1.phi(), mMass1};
+    auto Track2 = ROOT::Math::PtEtaPhiMVector{particle2.pt(), particle2.eta(), particle2.phi(), mMass2};
+    auto partSum = Track1 + Track2;
 
     // set kT
     mKt = partSum.Pt();
@@ -131,16 +162,9 @@ class PairHistManager
     float averageMass = (mMass1 + mMass2) / 2.;
     mMt = std::hypot(mKt, averageMass);
 
-    // boost to pair rest frame to get kstar
-    ROOT::Math::PxPyPzEVector track1Cms(mTrack1);
-    ROOT::Math::PxPyPzEVector track2Cms(mTrack2);
-    ROOT::Math::Boost boostPrf = ROOT::Math::Boost(partSum.BoostToCM());
-    track1Cms = boostPrf(mTrack1);
-    track2Cms = boostPrf(mTrack2);
-    auto trackRel = track1Cms - track2Cms;
-
-    // set kstar
-    mKstar = 0.5 * trackRel.P();
+    // Boost Track1 to the pair rest frame and calculate k*
+    ROOT::Math::Boost boostPrf(partSum.BoostToCM());
+    mKstar = boostPrf(ROOT::Math::PxPyPzEVector(Track1)).P();
   }
 
   template <modes::Mode mode>
