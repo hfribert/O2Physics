@@ -97,7 +97,7 @@ auto makePairHistSpecMap(const T1& confPairBinning, const T2& confObject1Binning
     {kPt1VsKt, {confObject1Binning.pt, confPairBinning.kt}},
     {kPt2VsKt, {confObject2Binning.pt, confPairBinning.kt}},
     {kPt1VsMt, {confObject1Binning.pt, confPairBinning.mt}},
-    {kPt1VsMt, {confObject2Binning.pt, confPairBinning.mt}}};
+    {kPt2VsMt, {confObject2Binning.pt, confPairBinning.mt}}};
 };
 
 constexpr char PrefixTrackTrackSe[] = "TrackTrack/SE/";
@@ -151,9 +151,9 @@ class PairHistManager
   template <typename T1, typename T2>
   void setPair(T1 particle1, T2 particle2)
   {
-    auto Track1 = ROOT::Math::PtEtaPhiMVector{particle1.pt(), particle1.eta(), particle1.phi(), mMass1};
-    auto Track2 = ROOT::Math::PtEtaPhiMVector{particle2.pt(), particle2.eta(), particle2.phi(), mMass2};
-    auto partSum = Track1 + Track2;
+    mTrack1 = ROOT::Math::PtEtaPhiMVector{particle1.pt(), particle1.eta(), particle1.phi(), mMass1};
+    mTrack2 = ROOT::Math::PtEtaPhiMVector{particle2.pt(), particle2.eta(), particle2.phi(), mMass2};
+    auto partSum = mTrack1 + mTrack2;
 
     // set kT
     mKt = partSum.Pt();
@@ -163,8 +163,9 @@ class PairHistManager
     mMt = std::hypot(mKt, averageMass);
 
     // Boost Track1 to the pair rest frame and calculate k*
+    auto track1 = ROOT::Math::PxPyPzEVector(mTrack1);
     ROOT::Math::Boost boostPrf(partSum.BoostToCM());
-    mKstar = boostPrf(ROOT::Math::PxPyPzEVector(Track1)).P();
+    mKstar = boostPrf(track1).P();
   }
 
   template <modes::Mode mode>

@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file PairTrackTrack.cxx
+/// \file pairTrackTrack.cxx
 /// \brief Tasks that computes correlation between two tracks
 /// \author Anton Riedel, TU München, anton.riedel@cern.ch
 
@@ -89,17 +89,22 @@ struct PairTrackTrack {
   pairhistmanager::PairHistManager<pairhistmanager::PrefixTrackTrackMe> pairHistManagerMe;
 
   // setup mixing
-  ColumnBinningPolicy<aod::femtocollisions::PosZ, aod::femtocollisions::Mult> mixBinningMult{{confMixing.vtxBins, confMixing.multBins}, true};
-  ColumnBinningPolicy<aod::femtocollisions::PosZ, aod::femtocollisions::Cent> mixBinningCent{{confMixing.vtxBins, confMixing.centBins}, true};
-  ColumnBinningPolicy<aod::femtocollisions::PosZ, aod::femtocollisions::Mult, aod::femtocollisions::Cent> mixBinningMultCent{{confMixing.vtxBins, confMixing.multBins, confMixing.centBins}, true};
+  std::vector<double> defaultVtxBins{10, -10, 10};
+  std::vector<double> defaultMultBins{50, 0, 200};
+  std::vector<double> defaultCentBins{10, 0, 100};
+  ColumnBinningPolicy<femtocollisions::PosZ, femtocollisions::Mult> mixBinningMult{{defaultVtxBins, defaultMultBins}, true};
+  ColumnBinningPolicy<aod::femtocollisions::PosZ, aod::femtocollisions::Cent> mixBinningCent{{defaultVtxBins, defaultCentBins}, true};
+  ColumnBinningPolicy<aod::femtocollisions::PosZ, aod::femtocollisions::Mult, aod::femtocollisions::Cent> mixBinningMultCent{{defaultVtxBins, defaultMultBins, defaultCentBins}, true};
   pairhistmanager::ConfMixing confMixing;
 
   HistogramRegistry hRegistry{"FemtoTrackTrack", {}, OutputObjHandlingPolicy::AnalysisObject};
+  std::mt19937 rng;
 
   // setup cpr
-  // closepairrejection::ClosePairRejection<closepairrejection::PrefixTrackTrackSe> cprSe;
-  // closepairrejection::ClosePairRejection<closepairrejection::PrefixTrackTrackMe> cprMe;
-  // paircleaner::PairCleaner pc;
+  closepairrejection::ConfCpr confCpr;
+  closepairrejection::ClosePairRejection<closepairrejection::PrefixTrackTrackSe> cprSe;
+  closepairrejection::ClosePairRejection<closepairrejection::PrefixTrackTrackMe> cprMe;
+  paircleaner::PairCleaner pc;
 
   void init(InitContext&)
   {
@@ -115,44 +120,41 @@ struct PairTrackTrack {
     colHistManager.init<modes::Mode::kANALYSIS>(&hRegistry, colHistSpec);
 
     auto trackHistSpec1 = trackhistmanager::makeTrackHistSpecMap(confTrackBinning1);
-    trackHistManager1.init<modes::Mode::kANALYSIS_QA>(&hRegistry, trackHistSpec1);
+    trackHistManager1.init<modes::Mode::kANALYSIS>(&hRegistry, trackHistSpec1);
 
     auto trackHistSpec2 = trackhistmanager::makeTrackHistSpecMap(confTrackBinning2);
-    trackHistManager2.init<modes::Mode::kANALYSIS_QA>(&hRegistry, trackHistSpec2);
+    trackHistManager2.init<modes::Mode::kANALYSIS>(&hRegistry, trackHistSpec2);
 
     // setup histograms for pair
     auto pairHistSpec = pairhistmanager::makePairHistSpecMap(confPairBinning, confTrackBinning1, confTrackBinning2);
+    pairHistManagerSe.init<modes::Mode::kANALYSIS>(&hRegistry, pairHistSpec);
+    pairHistManagerSe.setMass(trackSelections1.pdgCode.value, trackSelections2.pdgCode.value);
+    pairHistManagerMe.init<modes::Mode::kANALYSIS>(&hRegistry, pairHistSpec);
+    pairHistManagerMe.setMass(trackSelections1.pdgCode.value, trackSelections2.pdgCode.value);
+
+    // setup histograms for cpr
+    auto cprHistSpec = closepairrejection::makeCprHistSpecMap(confCpr);
+    cprSe.init<modes::Mode::kANALYSIS>(&hRegistry, cprHistSpec);
+    cprSe.setLimits(confCpr.detaMax, confCpr.dphistarMax);
+    cprMe.init<modes::Mode::kANALYSIS>(&hRegistry, cprHistSpec);
+    cprMe.setLimits(confCpr.detaMax, confCpr.dphistarMax);
 
     // setup rng if necessary
-    // if (Options.randomizePairSeed.value > 0) {
-    //   uint64_t randomSeed = 0;
-    //   if (Options.randomizePairSeed.value == 0) {
-    //     randomSeed = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-    //   } else {
-    //     randomSeed = static_cast<uint64_t>(Options.randomizePairSeed.value);
-    //   }
-    //   rng = std::mt19937(randomSeed);
-    // }
-
-    // pairHistManagerSe.init<modes::Mode::kANALYSIS>(&hRegistry, pairHistSpec);
-    // pairHistManagerSe.setMass(trackSelections1.pdgCode.value, trackSelections2.pdgCode.value);
-    //
-    // pairHistManagerMe.init<modes::Mode::kANALYSIS>(&hRegistry, pairHistSpec);
-    // pairHistManagerMe.setMass(trackSelections1.pdgCode.value, trackSelections2.pdgCode.value);
-    //
-    // std::map<closepairrejection::CprHist, std::vector<framework::AxisSpec>> cprHistSpec = {
-    //   {closepairrejection::kAverage, {ConfCpr.deta, ConfCpr.dphistar}},
-    //   {closepairrejection::kRadius0, {ConfCpr.deta, ConfCpr.dphistar}},
-    //   {closepairrejection::kRadius1, {ConfCpr.deta, ConfCpr.dphistar}}};
-    // cprSe.init<modes::Mode::kANALYSIS>(&hRegistry, cprHistSpec);
-    // cprSe.setLimits(ConfCpr.detaMax.value, ConfCpr.dphistarMax.value);
-    // cprMe.init<modes::Mode::kANALYSIS>(&hRegistry, cprHistSpec);
-    // cprMe.setLimits(ConfCpr.detaMax.value, ConfCpr.dphistarMax.value);
+    if (Options.randomizePairSeed.value >= 0) {
+      uint64_t randomSeed = 0;
+      if (Options.randomizePairSeed.value == 0) {
+        randomSeed = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+      } else {
+        randomSeed = static_cast<uint64_t>(Options.randomizePairSeed.value);
+      }
+      rng = std::mt19937(randomSeed);
+    }
   };
 
   template <modes::Mode mode, typename P1, typename P2>
   void doSameEvent(P1 SliceTrk1, P2 SliceTrk2)
   {
+    // fill single particle histograms
     for (auto const& part : SliceTrk1) {
       trackHistManager1.fill<mode>(part);
     }
@@ -163,50 +165,51 @@ struct PairTrackTrack {
       }
     }
 
-    // /// Now build the combinations
-    // float rand = 0.;
-    // if (Options.sameSpecies.value) {
-    //   for (auto const& [p1, p2] : combinations(CombinationsStrictlyUpperIndexPolicy(SliceTrk1, SliceTrk2))) {
-    //     if (ConfCpr.on.value) {
-    //       cprSe.setPair(p1, p2);
-    //       if (cprSe.isClosePair()) {
-    //         continue;
-    //       }
-    //     }
-    //     // track cleaning
-    //     if (!pc.isCleanTrackPair(p1, p2)) {
-    //       continue;
-    //     }
-    //     // randomize track1 and track2 if configured
-    //     if (Options.randomizePairSeed.value >= 0) {
-    //       std::uniform_real_distribution<float> dist(0, 1);
-    //       rand = dist(rng);
-    //     }
-    //     if (rand <= 0.5) {
-    //       pairHistManagerSe.setPair(p1, p2);
-    //     } else {
-    //       pairHistManagerSe.setPair(p2, p1);
-    //     }
-    //     cprSe.fill<mode>();
-    //     pairHistManagerSe.fill<mode>();
-    //   }
-    // } else {
-    //   for (auto const& [p1, p2] : combinations(CombinationsFullIndexPolicy(SliceTrk1, SliceTrk2))) {
-    //     if (ConfCpr.on.value) {
-    //       cprSe.setPair(p1, p2);
-    //       if (cprSe.isClosePair()) {
-    //         continue;
-    //       }
-    //     }
-    //     // pair cleaning
-    //     if (!pc.isCleanTrackPair(p1, p2)) {
-    //       continue;
-    //     }
-    //     cprSe.fill<mode>();
-    //     pairHistManagerSe.setPair(p1, p2);
-    //     pairHistManagerSe.fill<mode>();
-    //   }
-    // }
+    /// Now build the combinations
+    std::uniform_real_distribution<float> dist(0, 1);
+    float rand = 0.;
+    if (Options.sameSpecies.value) {
+      for (auto const& [p1, p2] : combinations(CombinationsStrictlyUpperIndexPolicy(SliceTrk1, SliceTrk1))) {
+
+        if (confCpr.on.value) {
+          cprSe.setPair(p1, p2);
+          if (cprSe.isClosePair()) {
+            continue;
+          }
+        }
+        // track cleaning
+        if (!pc.isCleanTrackPair(p1, p2)) {
+          continue;
+        }
+        // randomize track1 and track2 if configured
+        if (Options.randomizePairSeed.value >= 0) {
+          rand = dist(rng);
+        }
+        if (rand <= 0.5) {
+          pairHistManagerSe.setPair(p1, p2);
+        } else {
+          pairHistManagerSe.setPair(p2, p1);
+        }
+        cprSe.fill<mode>();
+        pairHistManagerSe.fill<mode>();
+      }
+    } else {
+      for (auto const& [p1, p2] : combinations(CombinationsFullIndexPolicy(SliceTrk1, SliceTrk2))) {
+        if (confCpr.on.value) {
+          cprSe.setPair(p1, p2);
+          if (cprSe.isClosePair()) {
+            continue;
+          }
+        }
+        // pair cleaning
+        if (!pc.isCleanTrackPair(p1, p2)) {
+          continue;
+        }
+        cprSe.fill<mode>();
+        pairHistManagerSe.setPair(p1, p2);
+        pairHistManagerSe.fill<mode>();
+      }
+    }
   }
 
   // template <modes::Mode mode, typename CT, typename TT, typename BP>
@@ -242,13 +245,13 @@ struct PairTrackTrack {
 
   void processSameEvent(FilteredCollision const& col, Tracks const& /*tracks*/)
   {
-    colHistManager.fill<modes::Mode::kANALYSIS_QA>(col);
+    colHistManager.fill<modes::Mode::kANALYSIS>(col);
     auto trackSlice1 = trackPartition1->sliceByCached(femtobase::stored::collisionId, col.globalIndex(), cache);
     auto trackSlice2 = trackPartition2->sliceByCached(femtobase::stored::collisionId, col.globalIndex(), cache);
     if (trackSlice1.size() == 0 || trackSlice2.size() == 0) {
       return;
     }
-    // cprSe.setMagField(col.magField());
+    cprSe.setMagField(col.magField());
     doSameEvent<modes::Mode::kANALYSIS>(trackSlice1, trackSlice1);
   }
   PROCESS_SWITCH(PairTrackTrack, processSameEvent, "Enable processing same event", true);

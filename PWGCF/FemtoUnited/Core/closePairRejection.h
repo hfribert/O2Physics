@@ -42,18 +42,24 @@ enum CprHist {
   kCprHistogramLast
 };
 
-// struct ConfPairBinning : ConfigurableGroup {
-//   std::string prefix = std::string("ClosePairRejection");
-//   Configurable<bool> on{"on", true, "Trun on CPR"};
-//   Configurable<float> detaMax{"detaMax", 0.01f, "Maximium deta"};
-//   Configurable<float> dphistarMax{"dphistarMax", 0.01f, "Maximum dphistar"};
-//   ConfigurableAxis deta{"deta", {{100, -0.2, 0.2}}, "deta"};
-//   ConfigurableAxis dphistar{"dphistar", {{100, -0.2, 0.2}}, "dphi"};
-// } ConfCpr;
+struct ConfCpr : o2::framework::ConfigurableGroup {
+  std::string prefix = std::string("ClosePairRejection");
+  o2::framework::Configurable<bool> on{"on", true, "Trun on CPR"};
+  o2::framework::Configurable<float> detaMax{"detaMax", 0.01f, "Maximium deta"};
+  o2::framework::Configurable<float> dphistarMax{"dphistarMax", 0.01f, "Maximum dphistar"};
+  o2::framework::ConfigurableAxis binningDeta{"binningDeta", {{200, -0.1, 0.1}}, "deta"};
+  o2::framework::ConfigurableAxis binningDphistar{"binningDphistar", {{200, -0.1, 0.1}}, "dphi"};
+};
 
-// masks to extract charge
-constexpr o2::aod::femtodatatypes::TrackMaskType kSignPlusMask = 2;
-constexpr o2::aod::femtodatatypes::TrackMaskType kSignMinusMask = 1;
+template <typename T>
+auto makeCprHistSpecMap(const T& confCpr)
+{
+  return std::map<CprHist, std::vector<framework::AxisSpec>>{
+    {kAverage, {confCpr.binningDeta, confCpr.binningDphistar}},
+    {kRadius0, {confCpr.binningDeta, confCpr.binningDphistar}},
+    {kRadius1, {confCpr.binningDeta, confCpr.binningDphistar}}};
+};
+
 // tpc radii for computing phistar
 constexpr int kNradii = 9;
 constexpr std::array<float, kNradii> kTpcRadius = {85., 105., 125., 145., 165., 185., 205., 225., 245.};
@@ -115,30 +121,10 @@ class ClosePairRejection
     mDeta = track1.eta() - track2.eta();
     // set dphi at primary vertex
     mDphi = track1.phi() - track2.phi();
-
-    // get charge of the tracks
-    int chargeTrack1 = 0.;
-    int chargeTrack2 = 0.;
-
-    if ((track1.trackMask() & kSignPlusMask) == kSignPlusMask) {
-      chargeTrack1 = 1;
-    } else if ((track1.trackMask() & kSignMinusMask) == kSignMinusMask) {
-      chargeTrack1 = -1;
-    } else {
-      LOG(warn) << "ClosePairRejection was not able to determine the charge of the track!";
-    }
-    if ((track2.trackMask() & kSignPlusMask) == kSignPlusMask) {
-      chargeTrack2 = 1;
-    } else if ((track2.trackMask() & kSignMinusMask) == kSignMinusMask) {
-      chargeTrack2 = -1;
-    } else {
-      LOG(warn) << "ClosePairRejection was not able to determine the charge of the track!";
-    }
-
     // compute dphistar at different TPC radii
     for (int i = 0; i < kNradii; i++) {
-      mDphistar.at(i) = utils::dphistar(mMagField, kTpcRadius.at(i), chargeTrack1, track1.pt(), track1.phi()) -
-                        utils::dphistar(mMagField, kTpcRadius.at(i), chargeTrack2, track2.pt(), track2.phi());
+      mDphistar.at(i) = (utils::dphistar(mMagField, kTpcRadius.at(i), track1.sign(), track1.pt(), track1.phi()) -
+                         utils::dphistar(mMagField, kTpcRadius.at(i), track2.sign(), track2.pt(), track2.phi()));
       ;
     }
     // get average
@@ -147,11 +133,7 @@ class ClosePairRejection
 
   bool isClosePair()
   {
-    if (std::pow(mAverageDphistar / mDphistarMax, 2) + std::pow(mDeta / mDetaMax, 2) < 1.) {
-      return true;
-    } else {
-      return false;
-    }
+    return std::pow(mAverageDphistar / mDphistarMax, 2) + std::pow(mDeta / mDetaMax, 2) < 1.;
   }
 
   template <modes::Mode mode>
@@ -171,12 +153,14 @@ class ClosePairRejection
  private:
   o2::framework::HistogramRegistry* mHistogramRegistry;
   float mMagField = 0.f;
-  float mDetaMax = 0.f;
-  float mDphistarMax = 0.f;
-  float mDeta = 0;
+
   float mDphi = 0;
+  float mDphistarMax = 0.f;
   float mAverageDphistar = 0;
   std::array<float, kNradii> mDphistar{0};
+
+  float mDetaMax = 0.f;
+  float mDeta = 0.f;
 };
 }; // namespace closepairrejection
 }; // namespace o2::analysis::femtounited
