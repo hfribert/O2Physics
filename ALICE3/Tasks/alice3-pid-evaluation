@@ -1,0 +1,446 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+///
+/// \file alice3-pid-evaluation.cxx
+///
+/// \brief This task computes PID purity and efficiency from the OTF PID tables for multiple detectors.
+///        Supports both inclusive (multiple identifications possible) and exclusive 
+///        (single best identification) PID modes. Analyzes individual detectors (Tracker, TOF Inner, 
+///        TOF Outer, RICH) as well as combined detector performance using quadrature combination
+///        of nSigma values.
+///
+/// \author Henrik Fribert TUM
+/// \since  August 14, 2025
+///
+
+#include "Framework/AnalysisDataModel.h"
+#include "Framework/AnalysisTask.h"
+#include "Framework/runDataProcessing.h"
+#include "Framework/RunningWorkflowInfo.h"
+#include "Framework/HistogramRegistry.h"
+#include "Framework/ASoAHelpers.h"
+#include "CommonUtils/NameConf.h"
+#include "ALICE3/DataModel/OTFPIDTrk.h"
+#include "ALICE3/DataModel/OTFTOF.h"
+#include "ALICE3/DataModel/OTFRICH.h"
+#include "ReconstructionDataFormats/DCA.h"
+#include "Common/DataModel/TrackSelectionTables.h"
+
+#include "TH1F.h"
+#include "TH2F.h"
+#include "TProfile.h"
+#include "TVector3.h"
+
+#include <array>
+#include <vector>
+
+using namespace o2;
+using namespace o2::framework;
+
+struct Alice3PidEvaluation {
+
+  HistogramRegistry histos{"histos", {}, OutputObjHandlingPolicy::AnalysisObject};
+
+  Configurable<float> nSigmaCutoff{"nSigmaCutoff", 3.0f, "N-sigma cutoff for PID selection"};
+  Configurable<int> mNumLogBins{"numLogBins", 200, "Number of logarithmic momentum bins"};
+  Configurable<bool> useExclusiveIdentification{"useExclusiveIdentification", true, "Use exclusive identification (pick hypothesis with smallest |nSigma|)"};
+  Configurable<bool> requireUniqueIdentification{"requireUniqueIdentification", false, "In exclusive mode, require only one hypothesis within cutoff"};
+  Configurable<bool> includeTrackerInCombined{"includeTrackerInCombined", true, "Include Tracker in combined analysis"};
+  Configurable<bool> includeTofInnerInCombined{"includeTofInnerInCombined", true, "Include TOF Inner in combined analysis"};
+  Configurable<bool> includeTofOuterInCombined{"includeTofOuterInCombined", true, "Include TOF Outer in combined analysis"};
+  Configurable<bool> includeRichInCombined{"includeRichInCombined", true, "Include RICH in combined analysis"};
+
+  std::vector<double> mLogBins;
+
+  // PID particle hypothesis (now includes nuclei)
+  enum PidHypothesis { kElectron, kMuon, kPion, kKaon, kProton, kDeuteron, kTriton, kHelium3, kAlpha, kCount };
+  static constexpr std::array<int, PidHypothesis::kCount> kHypothesisPdg = {11, 13, 211, 321, 2212, 1000010020, 1000010030, 1000020030, 1000020040};
+  static constexpr std::array<const char*, PidHypothesis::kCount> kHypothesisNames = {"Electron", "Muon", "Pion", "Kaon", "Proton", "Deuteron", "Triton", "Helium3", "Alpha"};
+
+  // Detector-specific histograms
+  struct DetectorHistograms {
+    std::array<std::shared_ptr<TH1>, PidHypothesis::kCount> hTotalTrue;
+    // std::array<std::array<std::shared_ptr<TH1>, PidHypothesis::kCount>, PidHypothesis::kCount> hSelectedAsHypothesis;
+    std::array<std::shared_ptr<TProfile>, PidHypothesis::kCount> hEfficiency;
+    std::array<std::shared_ptr<TProfile>, PidHypothesis::kCount> hPurityAsHypothesis;
+  };
+
+  // Additional histograms for combined analysis
+  std::shared_ptr<TH2> hDetectorParticipation2D; // 2D: momentum vs number of detectors
+
+  DetectorHistograms trackerHists;
+  DetectorHistograms tofInnerHists;
+  DetectorHistograms tofOuterHists;
+  DetectorHistograms richHists;
+  DetectorHistograms combinedHists;  // Combined detector analysis (all detectors)
+  DetectorHistograms combinedNoTrackerHists;  // Combined detector analysis (without tracker)
+  void init(o2::framework::InitContext&) {
+    LOG(info) << "Initializing multi-detector PID evaluation for all particle types";
+    LOG(info) << "Combined analysis includes: "
+              << (includeTrackerInCombined.value ? "Tracker " : "")
+              << (includeTofInnerInCombined.value ? "TOF_Inner " : "")
+              << (includeTofOuterInCombined.value ? "TOF_Outer " : "")
+              << (includeRichInCombined.value ? "RICH " : "");
+    
+    // Logarithmic momentum bins
+    mLogBins.clear();
+    double pMin = 0.05;
+    double pMax = 10;
+    double logMin = std::log10(pMin);
+    double logMax = std::log10(pMax);
+    double dLog = (logMax - logMin) / mNumLogBins.value;
+    for (int i = 0; i <= mNumLogBins.value; ++i) {
+      mLogBins.push_back(std::pow(10, logMin + i * dLog));
+    }
+    const AxisSpec axisMomentum{mLogBins, "#it{p} (GeV/#it{c})"};
+
+    // Lambda function to create detector-specific histograms
+    auto createDetectorHistograms = [&](DetectorHistograms& detHists, const std::string& detectorName) {
+      // Create histograms for each true particle type
+      for (int trueIdx = 0; trueIdx < PidHypothesis::kCount; ++trueIdx) {
+        const auto& trueName = kHypothesisNames[trueIdx];
+        
+        // Total true counts for each particle type
+        detHists.hTotalTrue[trueIdx] = histos.add<TH1>(Form("%s/hTotalTrue%s", detectorName.c_str(), trueName), 
+                                                      Form("%s: Total True %s; #it{p} (GeV/#it{c})", detectorName.c_str(), trueName), 
+                                                      kTH1F, {axisMomentum});
+
+        // Efficiency for correctly identifying each particle type
+        detHists.hEfficiency[trueIdx] = histos.add<TProfile>(Form("%s/hEfficiency%s", detectorName.c_str(), trueName), 
+                                                            Form("%s: PID Efficiency for %s; #it{p} (GeV/#it{c}); Efficiency", detectorName.c_str(), trueName), 
+                                                            kTProfile, {axisMomentum});
+
+        // For each true particle type: how often it's selected as each hypothesis
+        // for (int hypIdx = 0; hypIdx < PidHypothesis::kCount; ++hypIdx) {
+        //   const auto& hypName = kHypothesisNames[hypIdx];
+        //   detHists.hSelectedAsHypothesis[trueIdx][hypIdx] = histos.add<TH1>(Form("%s/h%sSelectedAs%s", detectorName.c_str(), trueName, hypName), 
+        //                                                                   Form("%s: True %s Selected as %s; #it{p} (GeV/#it{c})", detectorName.c_str(), trueName, hypName), 
+        //                                                                   kTH1F, {axisMomentum});
+        // }
+      }
+
+      // Purity histograms - when selecting as each hypothesis, what fraction are truly that particle
+      for (int hypIdx = 0; hypIdx < PidHypothesis::kCount; ++hypIdx) {
+        const auto& hypName = kHypothesisNames[hypIdx];
+        detHists.hPurityAsHypothesis[hypIdx] = histos.add<TProfile>(Form("%s/hPurityAs%s", detectorName.c_str(), hypName), 
+                                                                   Form("%s: Purity when selecting as %s; #it{p} (GeV/#it{c}); Purity", detectorName.c_str(), hypName), 
+                                                                   kTProfile, {axisMomentum});
+      }
+    };
+
+    // Create histograms for each detector
+    createDetectorHistograms(trackerHists, "Tracker");
+    createDetectorHistograms(tofInnerHists, "TOF_Inner");
+    createDetectorHistograms(tofOuterHists, "TOF_Outer");
+    createDetectorHistograms(richHists, "RICH");
+    createDetectorHistograms(combinedHists, "Combined");  // Combined detector analysis (all detectors)
+    createDetectorHistograms(combinedNoTrackerHists, "Combined_NoTracker");  // Combined detector analysis (without tracker)
+
+    // Detector participation histogram
+    const AxisSpec axisDetectorCount{5, -0.5, 4.5, "Number of detectors"};
+    hDetectorParticipation2D = histos.add<TH2>("Combined/hDetectorParticipation2D", 
+                                              "Detector participation vs momentum; #it{p} (GeV/#it{c}); Number of detectors", 
+                                              kTH2F, {axisMomentum, axisDetectorCount});
+  }
+
+  void process(soa::Join<aod::Tracks, aod::TracksCov, aod::McTrackLabels, aod::UpgradeTrkPids, aod::UpgradeTrkPidSignals, aod::UpgradeTofs, aod::UpgradeRichs> const& tracks,
+               aod::McParticles const& /*mcParticles*/)
+  {
+    // Helper function to check if nSigma value is valid (handles different sentinel values)
+    auto isValidNSigma = [](float nSigma) -> bool {
+      return (nSigma < 999.0f && nSigma > -999.0f);  // Exclude 999, -100, -1000 sentinel values
+    };
+
+    // Helper function to compute combined nSigma values using quadrature
+    auto computeCombinedNSigma = [&](const std::vector<std::array<float, PidHypothesis::kCount>>& detectorNSigmas, float p) -> std::array<float, PidHypothesis::kCount> {
+      std::array<float, PidHypothesis::kCount> combinedNSigma;
+      
+      // Count how many detectors contribute at least one valid measurement
+      int totalValidDetectors = 0;
+      for (const auto& detNSigma : detectorNSigmas) {
+        bool detectorHasValidMeasurement = false;
+        for (int hypIdx = 0; hypIdx < PidHypothesis::kCount; ++hypIdx) {
+          if (isValidNSigma(detNSigma[hypIdx])) {
+            detectorHasValidMeasurement = true;
+            break;
+          }
+        }
+        if (detectorHasValidMeasurement) {
+          totalValidDetectors++;
+        }
+      }
+      
+      for (int hypIdx = 0; hypIdx < PidHypothesis::kCount; ++hypIdx) {
+        float sumSquares = 0.0f;
+        int validDetectors = 0;
+        
+        // Sum squares of valid nSigma values for this hypothesis
+        for (const auto& detNSigma : detectorNSigmas) {
+          if (isValidNSigma(detNSigma[hypIdx])) {  // Valid measurement
+            sumSquares += detNSigma[hypIdx] * detNSigma[hypIdx];
+            validDetectors++;
+          }
+        }
+        
+        if (validDetectors > 0) {
+          combinedNSigma[hypIdx] = std::sqrt(sumSquares);  // Quadrature sum without averaging
+        } else {
+          combinedNSigma[hypIdx] = 999.0f;  // No valid measurements
+        }
+      }
+      
+      // Fill detector participation histogram
+      if (totalValidDetectors > 0) {
+        hDetectorParticipation2D->Fill(p, totalValidDetectors);
+      }
+      
+      return combinedNSigma;
+    };
+
+    // Helper function to analyze a detector
+    auto analyzeDetector = [&](DetectorHistograms& detHists, const std::array<float, PidHypothesis::kCount>& nSigmaValues, 
+                              int trueParticleIndex, float p, const std::string& detectorName = "",
+                              const std::array<float, PidHypothesis::kCount>* trackerNSigmaPtr = nullptr,
+                              const std::array<float, PidHypothesis::kCount>* tofInnerNSigmaPtr = nullptr,
+                              const std::array<float, PidHypothesis::kCount>* tofOuterNSigmaPtr = nullptr) {
+      
+      // Fill total true counts for this particle type
+      detHists.hTotalTrue[trueParticleIndex]->Fill(p);
+
+      // Check if this track has valid nSigma values
+      bool hasValidNSigma = false;
+      for (int i = 0; i < PidHypothesis::kCount; ++i) {
+        if (isValidNSigma(nSigmaValues[i])) {
+          hasValidNSigma = true;
+          break;
+        }
+      }
+      
+      // Only process tracks with valid measurements for efficiency/purity
+      if (!hasValidNSigma) {
+        return; // Skip tracks with invalid measurements (999.f, -100, -1000 nSigma values)
+      }
+
+      // Track how often this true particle gets selected as each hypothesis
+      // for (int hypIdx = 0; hypIdx < PidHypothesis::kCount; ++hypIdx) {
+      //   if (std::fabs(nSigmaValues[hypIdx]) < nSigmaCutoff.value) {
+      //     detHists.hSelectedAsHypothesis[trueParticleIndex][hypIdx]->Fill(p);
+      //   }
+      // }
+
+      // Calculate efficiency: was this particle correctly identified?
+      bool correctlyIdentified = false;
+      if (useExclusiveIdentification.value) {
+        // Exclusive mode: find the hypothesis with smallest |nSigma|
+        int bestHypothesis = -1;
+        float minAbsNSigma = 999.0f;
+        int validHypotheses = 0;
+        
+        for (int hypIdx = 0; hypIdx < PidHypothesis::kCount; ++hypIdx) {
+          if (std::fabs(nSigmaValues[hypIdx]) < nSigmaCutoff.value) {
+            validHypotheses++;
+            if (std::fabs(nSigmaValues[hypIdx]) < minAbsNSigma) {
+              minAbsNSigma = std::fabs(nSigmaValues[hypIdx]);
+              bestHypothesis = hypIdx;
+            }
+          }
+        }
+        
+        // Check if we require unique identification
+        if (requireUniqueIdentification.value && validHypotheses > 1) {
+          bestHypothesis = -1; // Reject ambiguous cases
+        }
+        
+        correctlyIdentified = (bestHypothesis == trueParticleIndex);
+        
+        // DEBUG: Print info for tracks identified as alpha in combined PID
+        if (bestHypothesis == kAlpha && detectorName == "Combined") {
+          LOGF(info, "DEBUG: p=%.3f GeV/c, true=%s, nSigma (Combined): [e=%.2f, mu=%.2f, pi=%.2f, K=%.2f, p=%.2f, d=%.2f, t=%.2f, He3=%.2f, alpha=%.2f]",
+               p, kHypothesisNames[trueParticleIndex],
+               nSigmaValues[kElectron], nSigmaValues[kMuon], nSigmaValues[kPion], nSigmaValues[kKaon], nSigmaValues[kProton],
+               nSigmaValues[kDeuteron], nSigmaValues[kTriton], nSigmaValues[kHelium3], nSigmaValues[kAlpha]);
+
+          // Also print tracker-only and TOF-only nSigma values for this track
+          if (trackerNSigmaPtr != nullptr) {
+            LOGF(info, "DEBUG: p=%.3f GeV/c, nSigma (Tracker):   [e=%.2f, mu=%.2f, pi=%.2f, K=%.2f, p=%.2f, d=%.2f, t=%.2f, He3=%.2f, alpha=%.2f]",
+                 p,
+                 (*trackerNSigmaPtr)[kElectron], (*trackerNSigmaPtr)[kMuon], (*trackerNSigmaPtr)[kPion], (*trackerNSigmaPtr)[kKaon], (*trackerNSigmaPtr)[kProton],
+                 (*trackerNSigmaPtr)[kDeuteron], (*trackerNSigmaPtr)[kTriton], (*trackerNSigmaPtr)[kHelium3], (*trackerNSigmaPtr)[kAlpha]);
+          }
+          if (tofInnerNSigmaPtr != nullptr) {
+            LOGF(info, "DEBUG: p=%.3f GeV/c, nSigma (TOF Inner): [e=%.2f, mu=%.2f, pi=%.2f, K=%.2f, p=%.2f, d=%.2f, t=%.2f, He3=%.2f, alpha=%.2f]",
+                 p,
+                 (*tofInnerNSigmaPtr)[kElectron], (*tofInnerNSigmaPtr)[kMuon], (*tofInnerNSigmaPtr)[kPion], (*tofInnerNSigmaPtr)[kKaon], (*tofInnerNSigmaPtr)[kProton],
+                 (*tofInnerNSigmaPtr)[kDeuteron], (*tofInnerNSigmaPtr)[kTriton], (*tofInnerNSigmaPtr)[kHelium3], (*tofInnerNSigmaPtr)[kAlpha]);
+          }
+          if (tofOuterNSigmaPtr != nullptr) {
+            LOGF(info, "DEBUG: p=%.3f GeV/c, nSigma (TOF Outer): [e=%.2f, mu=%.2f, pi=%.2f, K=%.2f, p=%.2f, d=%.2f, t=%.2f, He3=%.2f, alpha=%.2f]",
+                 p,
+                 (*tofOuterNSigmaPtr)[kElectron], (*tofOuterNSigmaPtr)[kMuon], (*tofOuterNSigmaPtr)[kPion], (*tofOuterNSigmaPtr)[kKaon], (*tofOuterNSigmaPtr)[kProton],
+                 (*tofOuterNSigmaPtr)[kDeuteron], (*tofOuterNSigmaPtr)[kTriton], (*tofOuterNSigmaPtr)[kHelium3], (*tofOuterNSigmaPtr)[kAlpha]);
+          }
+        }
+        
+        // Fill purity histograms for the selected hypothesis
+        if (bestHypothesis >= 0) {
+          bool isCorrect = (bestHypothesis == trueParticleIndex);
+          detHists.hPurityAsHypothesis[bestHypothesis]->Fill(p, isCorrect ? 1.0 : 0.0);
+        }
+        
+      } else {
+        // Inclusive mode: particle is correctly identified if its true hypothesis is within cutoff
+        correctlyIdentified = (std::fabs(nSigmaValues[trueParticleIndex]) < nSigmaCutoff.value);
+        
+        // Fill purity histograms for all hypotheses within cutoff
+        for (int hypIdx = 0; hypIdx < PidHypothesis::kCount; ++hypIdx) {
+          if (std::fabs(nSigmaValues[hypIdx]) < nSigmaCutoff.value) {
+            bool isCorrect = (hypIdx == trueParticleIndex);
+            detHists.hPurityAsHypothesis[hypIdx]->Fill(p, isCorrect ? 1.0 : 0.0);
+          }
+        }
+      }
+
+      // Fill efficiency histogram
+      detHists.hEfficiency[trueParticleIndex]->Fill(p, correctlyIdentified ? 1.0 : 0.0);
+    };
+
+    for (const auto& track : tracks) {
+      if (!track.has_mcParticle()) {
+        continue;
+      }
+      
+      const auto& mcParticle = track.mcParticle();
+      const float p = mcParticle.p();
+      const int truePdg = std::abs(mcParticle.pdgCode());
+
+      // Find the true particle type in our hypothesis list
+      int trueParticleIndex = -1;
+      for (int i = 0; i < PidHypothesis::kCount; ++i) {
+        if (kHypothesisPdg[i] == truePdg) {
+          trueParticleIndex = i;
+          break;
+        }
+      }
+
+      // Only process particles that are in our hypothesis list
+      if (trueParticleIndex == -1) {
+        continue;
+      }
+
+      // Analyze Tracker detector
+      std::array<float, PidHypothesis::kCount> trackerNSigma;
+      trackerNSigma[kElectron] = track.nSigmaEl();
+      trackerNSigma[kMuon] = track.nSigmaMu();
+      trackerNSigma[kPion] = track.nSigmaPi();
+      trackerNSigma[kKaon] = track.nSigmaKa();
+      trackerNSigma[kProton] = track.nSigmaPr();
+      trackerNSigma[kDeuteron] = track.nSigmaDe();   // Tracker HAS deuteron PID
+      trackerNSigma[kTriton] = track.nSigmaTr();     // Tracker HAS triton PID
+      trackerNSigma[kHelium3] = track.nSigmaHe();    // Tracker HAS helium-3 PID
+      trackerNSigma[kAlpha] = track.nSigmaAl();      // Tracker HAS alpha PID
+      
+      analyzeDetector(trackerHists, trackerNSigma, trueParticleIndex, p, "Tracker");
+
+      // Analyze TOF Inner detector
+      std::array<float, PidHypothesis::kCount> tofInnerNSigma;
+      tofInnerNSigma[kElectron] = track.nSigmaElectronInnerTOF();
+      tofInnerNSigma[kMuon] = track.nSigmaMuonInnerTOF();
+      tofInnerNSigma[kPion] = track.nSigmaPionInnerTOF();
+      tofInnerNSigma[kKaon] = track.nSigmaKaonInnerTOF();
+      tofInnerNSigma[kProton] = track.nSigmaProtonInnerTOF();
+      tofInnerNSigma[kDeuteron] = track.nSigmaDeuteronInnerTOF();
+      tofInnerNSigma[kTriton] = track.nSigmaTritonInnerTOF();
+      tofInnerNSigma[kHelium3] = track.nSigmaHelium3InnerTOF();
+      tofInnerNSigma[kAlpha] = track.nSigmaAlphaInnerTOF();
+      
+      analyzeDetector(tofInnerHists, tofInnerNSigma, trueParticleIndex, p, "TOF_Inner");
+
+      // Analyze TOF Outer detector
+      std::array<float, PidHypothesis::kCount> tofOuterNSigma;
+      tofOuterNSigma[kElectron] = track.nSigmaElectronOuterTOF();
+      tofOuterNSigma[kMuon] = track.nSigmaMuonOuterTOF();
+      tofOuterNSigma[kPion] = track.nSigmaPionOuterTOF();
+      tofOuterNSigma[kKaon] = track.nSigmaKaonOuterTOF();
+      tofOuterNSigma[kProton] = track.nSigmaProtonOuterTOF();
+      tofOuterNSigma[kDeuteron] = track.nSigmaDeuteronOuterTOF();
+      tofOuterNSigma[kTriton] = track.nSigmaTritonOuterTOF();
+      tofOuterNSigma[kHelium3] = track.nSigmaHelium3OuterTOF();
+      tofOuterNSigma[kAlpha] = track.nSigmaAlphaOuterTOF();
+      
+      analyzeDetector(tofOuterHists, tofOuterNSigma, trueParticleIndex, p, "TOF_Outer");
+
+      // Analyze RICH detector
+      std::array<float, PidHypothesis::kCount> richNSigma;
+      richNSigma[kElectron] = track.nSigmaElectronRich();
+      richNSigma[kMuon] = track.nSigmaMuonRich();
+      richNSigma[kPion] = track.nSigmaPionRich();
+      richNSigma[kKaon] = track.nSigmaKaonRich();
+      richNSigma[kProton] = track.nSigmaProtonRich();
+      richNSigma[kDeuteron] = track.nSigmaDeuteronRich();
+      richNSigma[kTriton] = track.nSigmaTritonRich();
+      richNSigma[kHelium3] = track.nSigmaHelium3Rich();
+      richNSigma[kAlpha] = 999.0f;  // RICH doesn't have alpha support yet
+      
+      analyzeDetector(richHists, richNSigma, trueParticleIndex, p, "RICH");
+
+      // Analyze Combined detectors (all detectors)
+      std::vector<std::array<float, PidHypothesis::kCount>> allDetectorNSigmas;
+      
+      if (includeTrackerInCombined.value) {
+        allDetectorNSigmas.push_back(trackerNSigma);
+      }
+      
+      if (includeTofInnerInCombined.value) {
+        allDetectorNSigmas.push_back(tofInnerNSigma);
+      }
+      
+      if (includeTofOuterInCombined.value) {
+        allDetectorNSigmas.push_back(tofOuterNSigma);
+      }
+      
+      // Only include RICH if the true particle is NOT an alpha (since RICH doesn't support alpha)
+      if (includeRichInCombined.value && trueParticleIndex != kAlpha) {
+        allDetectorNSigmas.push_back(richNSigma);
+      }
+      
+      // Combined analysis with selected detectors
+      if (!allDetectorNSigmas.empty()) {
+        std::array<float, PidHypothesis::kCount> combinedNSigma = computeCombinedNSigma(allDetectorNSigmas, p);
+        analyzeDetector(combinedHists, combinedNSigma, trueParticleIndex, p, "Combined", &trackerNSigma, &tofInnerNSigma, &tofOuterNSigma);
+      }
+
+      // Combined analysis without tracker (TOF + RICH only)
+      std::vector<std::array<float, PidHypothesis::kCount>> noTrackerDetectorNSigmas;
+      
+      if (includeTofInnerInCombined.value) {
+        noTrackerDetectorNSigmas.push_back(tofInnerNSigma);
+      }
+      
+      if (includeTofOuterInCombined.value) {
+        noTrackerDetectorNSigmas.push_back(tofOuterNSigma);
+      }
+      
+      // Only include RICH if the true particle is NOT an alpha (since RICH doesn't support alpha)
+      if (includeRichInCombined.value && trueParticleIndex != kAlpha) {
+        noTrackerDetectorNSigmas.push_back(richNSigma);
+      }
+      
+      if (!noTrackerDetectorNSigmas.empty()) {
+        std::array<float, PidHypothesis::kCount> combinedNoTrackerNSigma = computeCombinedNSigma(noTrackerDetectorNSigmas, p);
+        analyzeDetector(combinedNoTrackerHists, combinedNoTrackerNSigma, trueParticleIndex, p, "Combined_NoTracker", nullptr, &tofInnerNSigma, &tofOuterNSigma);
+      }
+    }
+  }
+};
+
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc) {
+  return WorkflowSpec{adaptAnalysisTask<Alice3PidEvaluation>(cfgc)};
+}
