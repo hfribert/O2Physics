@@ -377,7 +377,7 @@ struct OnTheFlyRichPid {
       mapPdgLut.insert(std::make_pair(1000010020, lutDeChar));
       mapPdgLut.insert(std::make_pair(1000010030, lutTrChar));
       mapPdgLut.insert(std::make_pair(1000020030, lutHeChar));
-      mapPdgLut.insert(std::make_pair(1000020040, lutAlChar));
+      // mapPdgLut.insert(std::make_pair(1000020040, lutAlChar));
 
       for (const auto& e : mapPdgLut) {
         if (!mSmearer.loadTable(e.first, e.second)) {
@@ -807,7 +807,7 @@ struct OnTheFlyRichPid {
 
       auto fillDummyValues = [&](bool gasRich = false) {
         upgradeRich(kErrorValue, kErrorValue, kErrorValue, kErrorValue, kErrorValue, kErrorValue, kErrorValue, kErrorValue, kErrorValue);
-        upgradeRichSignal(false, false, false, false, false, false, gasRich);
+        upgradeRichSignal(false, false, false, false, false, false, false, false, false, false, gasRich);
       };
 
       // first step: find precise arrival time (if any)
@@ -1109,7 +1109,7 @@ struct OnTheFlyRichPid {
 
       // Sigmas have been fully calculated. Please populate the NSigma helper table (once per track)
       upgradeRich(nSigmaBarrelRich[0], nSigmaBarrelRich[1], nSigmaBarrelRich[2], nSigmaBarrelRich[3], nSigmaBarrelRich[4], nSigmaBarrelRich[5], nSigmaBarrelRich[6], nSigmaBarrelRich[7], nSigmaBarrelRich[8]);
-      upgradeRichSignal(expectedAngleBarrelRichOk, signalBarrelRich[0], signalBarrelRich[1], signalBarrelRich[2], signalBarrelRich[3], signalBarrelRich[4], expectedAngleBarrelGasRichOk);
+      upgradeRichSignal(expectedAngleBarrelRichOk, signalBarrelRich[0], signalBarrelRich[1], signalBarrelRich[2], signalBarrelRich[3], signalBarrelRich[4], signalBarrelRich[5], signalBarrelRich[6], signalBarrelRich[7], signalBarrelRich[8], expectedAngleBarrelGasRichOk);
     }
   }
 };

@@ -84,24 +84,6 @@ struct OnTheFlyTofPid {
   // necessary for particle charges
   Service<o2::framework::O2DatabasePDG> pdg;
 
-  // Function to check if a PDG code is one of our 9 allowed particles
-  bool isAllowedParticle(int pdgCode) {
-    static const std::array<int, 9> allowedPdgCodes = {
-      11,         // Electron
-      13,         // Muon
-      211,        // Pion
-      321,        // Kaon
-      2212,       // Proton
-      1000010020, // Deuteron
-      1000010030, // Triton
-      1000020030, // Helium-3
-      1000020040  // Alpha
-    };
-    
-    int absPdgCode = std::abs(pdgCode);
-    return std::find(allowedPdgCodes.begin(), allowedPdgCodes.end(), absPdgCode) != allowedPdgCodes.end();
-  }
-
   // these are the settings governing the TOF layers to be used
   // note that there are two layers foreseen for now: inner and outer TOF
   // more could be added (especially a disk TOF at a certain z?)
@@ -163,6 +145,9 @@ struct OnTheFlyTofPid {
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::AnalysisObject};
   OutputObj<THashList> listEfficiency{"efficiency"};
   static constexpr int kParticles = 9;
+
+  // Store individual velocity histograms for each particle type
+  std::array<std::shared_ptr<TH2>, kParticles> h2dVelocityVsRigidityOuterParticle;
 
   void init(o2::framework::InitContext& initContext)
   {
@@ -275,6 +260,12 @@ struct OnTheFlyTofPid {
         auto addHistogram = [&](const std::string& name, const AxisSpec& axis) {
           return histos.add<TH2>(name, "", kTH2F, {axisMomentum, axis});
         };
+
+        // Add individual velocity vs rigidity histograms for each particle type for outer TOF
+        h2dVelocityVsRigidityOuterParticle[iTrue] = histos.add<TH2>(
+          ("oTOF/velocity/h2dVelocityVsRigidityOuter" + particleNames2[iTrue]).c_str(), 
+          ("Velocity vs Rigidity Outer TOF - " + particleNames[iTrue]).c_str(), 
+          kTH2F, {axisMomentum, axisVelocity});
 
         const AxisSpec axisTrackTimeRes{plotsConfig.nBinsTimeRes, 0.0f, +200.0f, "Track time resolution - " + particleNames[iTrue] + " (ps)"};
         h2dInnerTimeResTrack[iTrue] = addHistogram("iTOF/res/h2dInnerTimeResTrack" + particleNames2[iTrue] + "VsP", axisTrackTimeRes);
@@ -510,11 +501,6 @@ struct OnTheFlyTofPid {
         continue;
       auto mcParticle = track.mcParticle();
       
-      // Filter out particles that are not in our allowed list of 9 particles
-      if (!isAllowedParticle(mcParticle.pdgCode())) {
-        continue;
-      }
-      
       if (std::abs(mcParticle.eta()) > simConfig.multiplicityEtaRange) {
         continue;
       }
@@ -548,12 +534,6 @@ struct OnTheFlyTofPid {
         LOG(debug) << "Track without mcParticle found!";
       }
       const auto& mcParticle = track.mcParticle();
-      
-      // Filter out particles that are not in our allowed list of 9 particles
-      if (!isAllowedParticle(mcParticle.pdgCode())) {
-        upgradeTofMC(-999.f, -999.f, -999.f, -999.f);
-        continue;
-      }
       
       o2::track::TrackParCov o2track = o2::upgrade::convertMCParticleToO2Track(mcParticle, pdg);
 
@@ -639,9 +619,9 @@ struct OnTheFlyTofPid {
       }
       const auto& mcParticle = track.mcParticle();
       
-      // Filter out particles that are not in our allowed list of 9 particles
-      if (!isAllowedParticle(mcParticle.pdgCode())) {
-        continue;
+      // Check if we have a corresponding entry in tracksWithTime
+      if (trackWithTimeIndex >= static_cast<int>(tracksWithTime.size())) {
+        LOG(fatal) << "Track with time index " << trackWithTimeIndex << " exceeds tracksWithTime size " << tracksWithTime.size();
       }
 
       const auto& trkWithTime = tracksWithTime[trackWithTimeIndex++];
@@ -684,9 +664,23 @@ struct OnTheFlyTofPid {
           histos.fill(HIST("iTOF/h2dTrackLengthInnerRecoVsPt"), noSmearingPt, trackLengthRecoInnerTOF);
         }
         if (trackLengthRecoOuterTOF > 0) {
+          // Print debug info for the combined histogram
+          LOGF(info, "Combined histogram: PDG=%d, rigidity=%f, outerBeta=%f", mcParticle.pdgCode(), rigidity, outerBeta);
           histos.fill(HIST("oTOF/h2dVelocityVsRigidityOuter"), rigidity, outerBeta);
           histos.fill(HIST("oTOF/h2dTrackLengthOuterVsPt"), noSmearingPt, trackLengthOuterTOF);
           histos.fill(HIST("oTOF/h2dTrackLengthOuterRecoVsPt"), noSmearingPt, trackLengthRecoOuterTOF);
+          
+          // Fill particle-specific velocity vs rigidity histograms for outer TOF
+          static constexpr int kParticlePdgs[kParticles] = {kElectron, kMuonMinus, kPiPlus, kKPlus, kProton, 1000010020, 1000010030, 1000020030, 1000020040};
+          for (int ii = 0; ii < kParticles; ii++) {
+            auto pdgParticleForComparison = pdg->GetParticle(kParticlePdgs[ii]);
+            if (pdgParticleForComparison && std::abs(mcParticle.pdgCode()) == pdgParticleForComparison->PdgCode()) {
+              LOGF(info, "Particle-specific histogram %d: PDG=%d matches %d, rigidity=%f, outerBeta=%f", 
+                   ii, mcParticle.pdgCode(), kParticlePdgs[ii], rigidity, outerBeta);
+              h2dVelocityVsRigidityOuterParticle[ii]->Fill(rigidity, outerBeta);
+              break;
+            }
+          }
         }
       }
 
@@ -801,8 +795,8 @@ struct OnTheFlyTofPid {
                              expectedTimeOuterTOF[0], expectedTimeOuterTOF[1], expectedTimeOuterTOF[2], expectedTimeOuterTOF[3], expectedTimeOuterTOF[4], expectedTimeOuterTOF[5], expectedTimeOuterTOF[6], expectedTimeOuterTOF[7], expectedTimeOuterTOF[8]);
     }
 
-    if (trackWithTimeIndex != tracks.size()) {
-      LOG(fatal) << "Track with time index " << trackWithTimeIndex << " does not match the number of tracks " << tracks.size();
+    if (trackWithTimeIndex != static_cast<int>(tracksWithTime.size())) {
+      LOG(fatal) << "Track with time index " << trackWithTimeIndex << " does not match the tracksWithTime size " << tracksWithTime.size();
     }
   }
 };
