@@ -29,6 +29,7 @@
 #include "ALICE3/Core/DelphesO2TrackSmearer.h"
 #include "ALICE3/Core/TrackUtilities.h"
 #include "ALICE3/DataModel/OTFTOF.h"
+#include "ALICE3/DataModel/OTFPIDTrk.h"
 #include "Common/Core/trackUtilities.h"
 #include "Common/DataModel/TrackSelectionTables.h"
 
@@ -61,18 +62,19 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <algorithm>
 
 using namespace o2;
 using namespace o2::framework;
 
-std::array<std::shared_ptr<TH2>, 5> h2dInnerTimeResTrack;
-std::array<std::shared_ptr<TH2>, 5> h2dInnerTimeResTotal;
-std::array<std::shared_ptr<TH2>, 5> h2dOuterTimeResTrack;
-std::array<std::shared_ptr<TH2>, 5> h2dOuterTimeResTotal;
-std::array<std::array<std::shared_ptr<TH2>, 5>, 5> h2dInnerNsigmaTrue;
-std::array<std::array<std::shared_ptr<TH2>, 5>, 5> h2dOuterNsigmaTrue;
-std::array<std::array<std::shared_ptr<TH2>, 5>, 5> h2dInnerDeltaTrue;
-std::array<std::array<std::shared_ptr<TH2>, 5>, 5> h2dOuterDeltaTrue;
+std::array<std::shared_ptr<TH2>, 9> h2dInnerTimeResTrack;
+std::array<std::shared_ptr<TH2>, 9> h2dInnerTimeResTotal;
+std::array<std::shared_ptr<TH2>, 9> h2dOuterTimeResTrack;
+std::array<std::shared_ptr<TH2>, 9> h2dOuterTimeResTotal;
+std::array<std::array<std::shared_ptr<TH2>, 9>, 9> h2dInnerNsigmaTrue;
+std::array<std::array<std::shared_ptr<TH2>, 9>, 9> h2dOuterNsigmaTrue;
+std::array<std::array<std::shared_ptr<TH2>, 9>, 9> h2dInnerDeltaTrue;
+std::array<std::array<std::shared_ptr<TH2>, 9>, 9> h2dOuterDeltaTrue;
 
 struct OnTheFlyTofPid {
   Produces<aod::UpgradeTofMC> upgradeTofMC;
@@ -81,6 +83,24 @@ struct OnTheFlyTofPid {
 
   // necessary for particle charges
   Service<o2::framework::O2DatabasePDG> pdg;
+
+  // Function to check if a PDG code is one of our 9 allowed particles
+  bool isAllowedParticle(int pdgCode) {
+    static const std::array<int, 9> allowedPdgCodes = {
+      11,         // Electron
+      13,         // Muon
+      211,        // Pion
+      321,        // Kaon
+      2212,       // Proton
+      1000010020, // Deuteron
+      1000010030, // Triton
+      1000020030, // Helium-3
+      1000020040  // Alpha
+    };
+    
+    int absPdgCode = std::abs(pdgCode);
+    return std::find(allowedPdgCodes.begin(), allowedPdgCodes.end(), absPdgCode) != allowedPdgCodes.end();
+  }
 
   // these are the settings governing the TOF layers to be used
   // note that there are two layers foreseen for now: inner and outer TOF
@@ -102,6 +122,10 @@ struct OnTheFlyTofPid {
     Configurable<std::string> lutPi{"lutPi", "inherit", "LUT for pions (if inherit, inherits from otf tracker task)"};
     Configurable<std::string> lutKa{"lutKa", "inherit", "LUT for kaons (if inherit, inherits from otf tracker task)"};
     Configurable<std::string> lutPr{"lutPr", "inherit", "LUT for protons (if inherit, inherits from otf tracker task)"};
+    Configurable<std::string> lutDe{"lutDe", "inherit", "LUT for deuterons (if inherit, inherits from otf tracker task)"};
+    Configurable<std::string> lutTr{"lutTr", "inherit", "LUT for tritons (if inherit, inherits from otf tracker task)"};
+    Configurable<std::string> lutHe3{"lutHe3", "inherit", "LUT for helium-3 (if inherit, inherits from otf tracker task)"};
+    Configurable<std::string> lutAl{"lutAl", "inherit", "LUT for alphas (if inherit, inherits from otf tracker task)"};
   } simConfig;
 
   struct : ConfigurableGroup {
@@ -138,7 +162,7 @@ struct OnTheFlyTofPid {
   // for handling basic QA histograms if requested
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::AnalysisObject};
   OutputObj<THashList> listEfficiency{"efficiency"};
-  static constexpr int kParticles = 5;
+  static constexpr int kParticles = 9;
 
   void init(o2::framework::InitContext& initContext)
   {
@@ -165,6 +189,10 @@ struct OnTheFlyTofPid {
     configLutPath(simConfig.lutPi);
     configLutPath(simConfig.lutKa);
     configLutPath(simConfig.lutPr);
+    configLutPath(simConfig.lutDe);
+    configLutPath(simConfig.lutTr);
+    configLutPath(simConfig.lutHe3);
+    configLutPath(simConfig.lutAl);
 
     // Load LUT for pt and eta smearing
     if (simConfig.flagIncludeTrackTimeRes && simConfig.flagTOFLoadDelphesLUTs) {
@@ -174,18 +202,30 @@ struct OnTheFlyTofPid {
       const char* lutPiChar = simConfig.lutPi->c_str();
       const char* lutKaChar = simConfig.lutKa->c_str();
       const char* lutPrChar = simConfig.lutPr->c_str();
+      const char* lutDeChar = simConfig.lutDe->c_str();
+      const char* lutTrChar = simConfig.lutTr->c_str();
+      const char* lutHeChar = simConfig.lutHe3->c_str();
+      const char* lutAlChar = simConfig.lutHe3->c_str(); // Use He3 LUT for alphas until proper LUT is available
 
       LOGF(info, "Will load electron lut file ..: %s for TOF PID", lutElChar);
       LOGF(info, "Will load muon lut file ......: %s for TOF PID", lutMuChar);
       LOGF(info, "Will load pion lut file ......: %s for TOF PID", lutPiChar);
       LOGF(info, "Will load kaon lut file ......: %s for TOF PID", lutKaChar);
       LOGF(info, "Will load proton lut file ....: %s for TOF PID", lutPrChar);
+      LOGF(info, "Will load deuteron lut file ..: %s for TOF PID", lutDeChar);
+      LOGF(info, "Will load triton lut file ....: %s for TOF PID", lutTrChar);
+      LOGF(info, "Will load helium-3 lut file ..: %s for TOF PID", lutHeChar);
+      LOGF(info, "Will load alpha lut file .....: %s for TOF PID (using He3 LUT)", lutAlChar);
 
       mapPdgLut.insert(std::make_pair(11, lutElChar));
       mapPdgLut.insert(std::make_pair(13, lutMuChar));
       mapPdgLut.insert(std::make_pair(211, lutPiChar));
       mapPdgLut.insert(std::make_pair(321, lutKaChar));
       mapPdgLut.insert(std::make_pair(2212, lutPrChar));
+      mapPdgLut.insert(std::make_pair(1000010020, lutDeChar));
+      mapPdgLut.insert(std::make_pair(1000010030, lutTrChar));
+      mapPdgLut.insert(std::make_pair(1000020030, lutHeChar));
+      // For alphas, load the He3 LUT but with the He3 PDG code in the smearer
 
       for (const auto& e : mapPdgLut) {
         if (!mSmearer.loadTable(e.first, e.second)) {
@@ -206,18 +246,18 @@ struct OnTheFlyTofPid {
       listEfficiency.setObject(new THashList);
       listEfficiency->Add(new TEfficiency("effEventTime", "effEventTime", plotsConfig.nBinsMult, 0.0f, plotsConfig.maxMultRange));
 
-      const AxisSpec axisMomentum{static_cast<int>(plotsConfig.nBinsP), 0.0f, +10.0f, "#it{p} (GeV/#it{c})"};
-      const AxisSpec axisMomentumSmall{static_cast<int>(plotsConfig.nBinsP), 0.0f, +1.0f, "#it{p} (GeV/#it{c})"};
+      const AxisSpec axisMomentum{static_cast<int>(plotsConfig.nBinsP), 0.0f, +10.0f, "#it{p/z} (GeV/#it{c})"};
+      const AxisSpec axisMomentumSmall{static_cast<int>(plotsConfig.nBinsP), 0.0f, +1.0f, "#it{p/z} (GeV/#it{c})"};
       const AxisSpec axisVelocity{static_cast<int>(plotsConfig.nBinsBeta), 0.0f, +1.1f, "Measured #beta"};
       const AxisSpec axisTrackLengthInner{static_cast<int>(plotsConfig.nBinsTrackLengthInner), 0.0f, 60.0f, "Track length (cm)"};
       const AxisSpec axisTrackLengthOuter{static_cast<int>(plotsConfig.nBinsTrackLengthOuter), 0.0f, 300.0f, "Track length (cm)"};
       const AxisSpec axisTrackDeltaLength{static_cast<int>(plotsConfig.nBinsTrackDeltaLength), 0.0f, 30.0f, "Delta Track length (cm)"};
-      histos.add("iTOF/h2dVelocityVsMomentumInner", "h2dVelocityVsMomentumInner", kTH2F, {axisMomentum, axisVelocity});
+      histos.add("iTOF/h2dVelocityVsRigidityInner", "h2dVelocityVsRigidityInner", kTH2F, {axisMomentum, axisVelocity});
       histos.add("iTOF/h2dTrackLengthInnerVsPt", "h2dTrackLengthInnerVsPt", kTH2F, {axisMomentumSmall, axisTrackLengthInner});
       histos.add("iTOF/h2dTrackLengthInnerRecoVsPt", "h2dTrackLengthInnerRecoVsPt", kTH2F, {axisMomentumSmall, axisTrackLengthInner});
       histos.add("iTOF/h2dDeltaTrackLengthInnerVsPt", "h2dDeltaTrackLengthInnerVsPt", kTH2F, {axisMomentumSmall, axisTrackDeltaLength});
 
-      histos.add("oTOF/h2dVelocityVsMomentumOuter", "h2dVelocityVsMomentumOuter", kTH2F, {axisMomentum, axisVelocity});
+      histos.add("oTOF/h2dVelocityVsRigidityOuter", "h2dVelocityVsRigidityOuter", kTH2F, {axisMomentum, axisVelocity});
       histos.add("oTOF/h2dTrackLengthOuterVsPt", "h2dTrackLengthOuterVsPt", kTH2F, {axisMomentumSmall, axisTrackLengthOuter});
       histos.add("oTOF/h2dTrackLengthOuterRecoVsPt", "h2dTrackLengthOuterRecoVsPt", kTH2F, {axisMomentumSmall, axisTrackLengthOuter});
       histos.add("oTOF/h2dDeltaTrackLengthOuterVsPt", "h2dDeltaTrackLengthOuterVsPt", kTH2F, {axisMomentumSmall, axisTrackDeltaLength});
@@ -229,8 +269,8 @@ struct OnTheFlyTofPid {
       histos.add("h2dRelativePtResolution", "h2dRelativePtResolution", kTH2F, {axisPt, axisRelativePt});
       histos.add("h2dRelativeEtaResolution", "h2dRelativeEtaResolution", kTH2F, {axisEta, axisRelativeEta});
 
-      std::string particleNames[kParticles] = {"#it{e}", "#it{#mu}", "#it{#pi}", "#it{K}", "#it{p}"};
-      std::string particleNames2[kParticles] = {"Elec", "Muon", "Pion", "Kaon", "Prot"};
+      std::string particleNames[kParticles] = {"#it{e}", "#it{#mu}", "#it{#pi}", "#it{K}", "#it{p}", "#it{d}", "#it{t}", "^{3}He", "#it{#alpha}"};
+      std::string particleNames2[kParticles] = {"Elec", "Muon", "Pion", "Kaon", "Prot", "Deut", "Trit", "He3", "Al"};
       for (int iTrue = 0; iTrue < kParticles; iTrue++) {
         auto addHistogram = [&](const std::string& name, const AxisSpec& axis) {
           return histos.add<TH2>(name, "", kTH2F, {axisMomentum, axis});
@@ -469,6 +509,12 @@ struct OnTheFlyTofPid {
       if (!track.has_mcParticle())
         continue;
       auto mcParticle = track.mcParticle();
+      
+      // Filter out particles that are not in our allowed list of 9 particles
+      if (!isAllowedParticle(mcParticle.pdgCode())) {
+        continue;
+      }
+      
       if (std::abs(mcParticle.eta()) > simConfig.multiplicityEtaRange) {
         continue;
       }
@@ -502,6 +548,13 @@ struct OnTheFlyTofPid {
         LOG(debug) << "Track without mcParticle found!";
       }
       const auto& mcParticle = track.mcParticle();
+      
+      // Filter out particles that are not in our allowed list of 9 particles
+      if (!isAllowedParticle(mcParticle.pdgCode())) {
+        upgradeTofMC(-999.f, -999.f, -999.f, -999.f);
+        continue;
+      }
+      
       o2::track::TrackParCov o2track = o2::upgrade::convertMCParticleToO2Track(mcParticle, pdg);
 
       float xPv = -100.f;
@@ -585,6 +638,11 @@ struct OnTheFlyTofPid {
         continue;
       }
       const auto& mcParticle = track.mcParticle();
+      
+      // Filter out particles that are not in our allowed list of 9 particles
+      if (!isAllowedParticle(mcParticle.pdgCode())) {
+        continue;
+      }
 
       const auto& trkWithTime = tracksWithTime[trackWithTimeIndex++];
       const float trackLengthRecoInnerTOF = trkWithTime.mTrackLengthInnerTOF.first;
@@ -602,20 +660,31 @@ struct OnTheFlyTofPid {
       static std::array<float, kParticles> expectedTimeInnerTOF, expectedTimeOuterTOF;
       static std::array<float, kParticles> deltaTimeInnerTOF, deltaTimeOuterTOF;
       static std::array<float, kParticles> nSigmaInnerTOF, nSigmaOuterTOF;
-      static constexpr int kParticlePdgs[kParticles] = {kElectron, kMuonMinus, kPiPlus, kKPlus, kProton};
+      static constexpr int kParticlePdgs[kParticles] = {kElectron, kMuonMinus, kPiPlus, kKPlus, kProton, 1000010020, 1000010030, 1000020030, 1000020040};
       float masses[kParticles];
+
+      auto truePdgInfo = pdg->GetParticle(mcParticle.pdgCode());
+      float rigidity = momentum; // fallback to momentum if charge unknown
+      
+      // Use MC truth charge for rigidity calculation
+      if (truePdgInfo) {
+        const float trueCharge = std::abs(truePdgInfo->Charge()) / 3.0f;
+        if (trueCharge > 0) {
+          rigidity = momentum / trueCharge;
+        }
+      }
 
       if (plotsConfig.doQAplots) {
         // unit conversion: length in cm, time in ps
         const float innerBeta = (trackLengthInnerTOF / measuredTimeInnerTOF) / o2::constants::physics::LightSpeedCm2PS;
         const float outerBeta = (trackLengthOuterTOF / measuredTimeOuterTOF) / o2::constants::physics::LightSpeedCm2PS;
         if (trackLengthRecoInnerTOF > 0) {
-          histos.fill(HIST("iTOF/h2dVelocityVsMomentumInner"), momentum, innerBeta);
+          histos.fill(HIST("iTOF/h2dVelocityVsRigidityInner"), rigidity, innerBeta);
           histos.fill(HIST("iTOF/h2dTrackLengthInnerVsPt"), noSmearingPt, trackLengthInnerTOF);
           histos.fill(HIST("iTOF/h2dTrackLengthInnerRecoVsPt"), noSmearingPt, trackLengthRecoInnerTOF);
         }
         if (trackLengthRecoOuterTOF > 0) {
-          histos.fill(HIST("oTOF/h2dVelocityVsMomentumOuter"), momentum, outerBeta);
+          histos.fill(HIST("oTOF/h2dVelocityVsRigidityOuter"), rigidity, outerBeta);
           histos.fill(HIST("oTOF/h2dTrackLengthOuterVsPt"), noSmearingPt, trackLengthOuterTOF);
           histos.fill(HIST("oTOF/h2dTrackLengthOuterRecoVsPt"), noSmearingPt, trackLengthRecoOuterTOF);
         }
@@ -630,8 +699,14 @@ struct OnTheFlyTofPid {
         nSigmaOuterTOF[ii] = -100;
 
         auto pdgInfoThis = pdg->GetParticle(kParticlePdgs[ii]);
+        if (!pdgInfoThis) {
+          LOGF(fatal, "Could not get PDG info for particle with PDG code %d", kParticlePdgs[ii]);
+        }
         masses[ii] = pdgInfoThis->Mass();
-        const float v = computeParticleVelocity(momentum, masses[ii]);
+        
+        const float chargeHypothesis = std::abs(pdgInfoThis->Charge()) / 3.0f;
+        const float momentumHypothesis = rigidity * chargeHypothesis;
+        const float v = computeParticleVelocity(momentumHypothesis, masses[ii]);
 
         expectedTimeInnerTOF[ii] = trackLengthInnerTOF / v;
         expectedTimeOuterTOF[ii] = trackLengthOuterTOF / v;
@@ -643,27 +718,30 @@ struct OnTheFlyTofPid {
         float innerTotalTimeReso = simConfig.innerTOFTimeReso;
         float outerTotalTimeReso = simConfig.outerTOFTimeReso;
         if (simConfig.flagIncludeTrackTimeRes) {
-          double ptResolution = std::pow(momentum / std::cosh(pseudorapidity), 2) * std::sqrt(trkWithTime.mMomentum.second);
+          double ptResolution = std::pow(momentumHypothesis / std::cosh(pseudorapidity), 2) * std::sqrt(trkWithTime.mMomentum.second);
           double etaResolution = std::fabs(std::sin(2.0 * std::atan(std::exp(-pseudorapidity)))) * std::sqrt(trkWithTime.mPseudorapidity.second);
           if (simConfig.flagTOFLoadDelphesLUTs) {
-            ptResolution = mSmearer.getAbsPtRes(pdgInfoThis->PdgCode(), dNdEta, pseudorapidity, momentum / std::cosh(pseudorapidity));
-            etaResolution = mSmearer.getAbsEtaRes(pdgInfoThis->PdgCode(), dNdEta, pseudorapidity, momentum / std::cosh(pseudorapidity));
+            // For alpha particles, use He3 PDG code in the smearer since we use He3 LUT
+            int smearerPdgCode = (pdgInfoThis->PdgCode() == 1000020040) ? 1000020030 : pdgInfoThis->PdgCode();
+            ptResolution = mSmearer.getAbsPtRes(smearerPdgCode, dNdEta, pseudorapidity, momentumHypothesis / std::cosh(pseudorapidity));
+            etaResolution = mSmearer.getAbsEtaRes(smearerPdgCode, dNdEta, pseudorapidity, momentumHypothesis / std::cosh(pseudorapidity));
           }
-          float innerTrackTimeReso = calculateTrackTimeResolutionAdvanced(momentum / std::cosh(pseudorapidity), pseudorapidity, ptResolution, etaResolution, masses[ii], simConfig.innerTOFRadius, simConfig.magneticField);
-          float outerTrackTimeReso = calculateTrackTimeResolutionAdvanced(momentum / std::cosh(pseudorapidity), pseudorapidity, ptResolution, etaResolution, masses[ii], simConfig.outerTOFRadius, simConfig.magneticField);
+          float innerTrackTimeReso = calculateTrackTimeResolutionAdvanced(momentumHypothesis / std::cosh(pseudorapidity), pseudorapidity, ptResolution, etaResolution, masses[ii], simConfig.innerTOFRadius, simConfig.magneticField);
+          float outerTrackTimeReso = calculateTrackTimeResolutionAdvanced(momentumHypothesis / std::cosh(pseudorapidity), pseudorapidity, ptResolution, etaResolution, masses[ii], simConfig.outerTOFRadius, simConfig.magneticField);
           innerTotalTimeReso = std::hypot(simConfig.innerTOFTimeReso, innerTrackTimeReso);
           outerTotalTimeReso = std::hypot(simConfig.outerTOFTimeReso, outerTrackTimeReso);
 
           if (plotsConfig.doQAplots) {
-            if (std::fabs(mcParticle.pdgCode()) == pdg->GetParticle(kParticlePdgs[ii])->PdgCode()) {
+            auto pdgParticleForComparison = pdg->GetParticle(kParticlePdgs[ii]);
+            if (pdgParticleForComparison && std::fabs(mcParticle.pdgCode()) == pdgParticleForComparison->PdgCode()) {
               if (trackLengthRecoInnerTOF > 0) {
-                h2dInnerTimeResTrack[ii]->Fill(momentum, innerTrackTimeReso);
-                h2dInnerTimeResTotal[ii]->Fill(momentum, innerTotalTimeReso);
+                h2dInnerTimeResTrack[ii]->Fill(momentumHypothesis, innerTrackTimeReso);
+                h2dInnerTimeResTotal[ii]->Fill(momentumHypothesis, innerTotalTimeReso);
               }
               if (trackLengthRecoOuterTOF > 0) {
-                const float transverseMomentum = momentum / std::cosh(pseudorapidity);
-                h2dOuterTimeResTrack[ii]->Fill(momentum, outerTrackTimeReso);
-                h2dOuterTimeResTotal[ii]->Fill(momentum, outerTotalTimeReso);
+                const float transverseMomentum = momentumHypothesis / std::cosh(pseudorapidity);
+                h2dOuterTimeResTrack[ii]->Fill(momentumHypothesis, outerTrackTimeReso);
+                h2dOuterTimeResTotal[ii]->Fill(momentumHypothesis, outerTotalTimeReso);
                 static constexpr int kIdPion = 2;
                 if (ii == kIdPion) {
                   histos.fill(HIST("h2dRelativePtResolution"), transverseMomentum, 100.0 * ptResolution / transverseMomentum);
@@ -685,19 +763,20 @@ struct OnTheFlyTofPid {
 
       if (plotsConfig.doQAplots) {
         for (int ii = 0; ii < kParticles; ii++) {
-          if (std::fabs(mcParticle.pdgCode()) != pdg->GetParticle(kParticlePdgs[ii])->PdgCode()) {
+          auto pdgParticleForComparison = pdg->GetParticle(kParticlePdgs[ii]);
+          if (!pdgParticleForComparison || std::fabs(mcParticle.pdgCode()) != pdgParticleForComparison->PdgCode()) {
             continue;
           }
           if (trackLengthRecoInnerTOF > 0) {
             for (int iii = 0; iii < kParticles; iii++) {
-              h2dInnerNsigmaTrue[ii][iii]->Fill(momentum, nSigmaInnerTOF[iii]);
-              h2dInnerDeltaTrue[ii][iii]->Fill(momentum, deltaTimeInnerTOF[iii]);
+              h2dInnerNsigmaTrue[ii][iii]->Fill(rigidity, nSigmaInnerTOF[iii]);
+              h2dInnerDeltaTrue[ii][iii]->Fill(rigidity, deltaTimeInnerTOF[iii]);
             }
           }
           if (trackLengthRecoOuterTOF > 0) {
             for (int iii = 0; iii < kParticles; iii++) {
-              h2dOuterNsigmaTrue[ii][iii]->Fill(momentum, nSigmaOuterTOF[iii]);
-              h2dOuterDeltaTrue[ii][iii]->Fill(momentum, deltaTimeOuterTOF[iii]);
+              h2dOuterNsigmaTrue[ii][iii]->Fill(rigidity, nSigmaOuterTOF[iii]);
+              h2dOuterDeltaTrue[ii][iii]->Fill(rigidity, deltaTimeOuterTOF[iii]);
             }
           }
         }
@@ -714,12 +793,12 @@ struct OnTheFlyTofPid {
 
       // Sigmas have been fully calculated. Please populate the NSigma helper table (once per track)
       upgradeTof(tzero[0], tzero[1],
-                 nSigmaInnerTOF[0], nSigmaInnerTOF[1], nSigmaInnerTOF[2], nSigmaInnerTOF[3], nSigmaInnerTOF[4],
+                 nSigmaInnerTOF[0], nSigmaInnerTOF[1], nSigmaInnerTOF[2], nSigmaInnerTOF[3], nSigmaInnerTOF[4], nSigmaInnerTOF[5], nSigmaInnerTOF[6], nSigmaInnerTOF[7], nSigmaInnerTOF[8],
                  measuredTimeInnerTOF, trackLengthRecoInnerTOF,
-                 nSigmaOuterTOF[0], nSigmaOuterTOF[1], nSigmaOuterTOF[2], nSigmaOuterTOF[3], nSigmaOuterTOF[4],
+                 nSigmaOuterTOF[0], nSigmaOuterTOF[1], nSigmaOuterTOF[2], nSigmaOuterTOF[3], nSigmaOuterTOF[4], nSigmaOuterTOF[5], nSigmaOuterTOF[6], nSigmaOuterTOF[7], nSigmaOuterTOF[8],
                  measuredTimeOuterTOF, trackLengthRecoOuterTOF);
-      upgradeTofExpectedTime(expectedTimeInnerTOF[0], expectedTimeInnerTOF[1], expectedTimeInnerTOF[2], expectedTimeInnerTOF[3], expectedTimeInnerTOF[4],
-                             expectedTimeOuterTOF[0], expectedTimeOuterTOF[1], expectedTimeOuterTOF[2], expectedTimeOuterTOF[3], expectedTimeOuterTOF[4]);
+      upgradeTofExpectedTime(expectedTimeInnerTOF[0], expectedTimeInnerTOF[1], expectedTimeInnerTOF[2], expectedTimeInnerTOF[3], expectedTimeInnerTOF[4], expectedTimeInnerTOF[5], expectedTimeInnerTOF[6], expectedTimeInnerTOF[7], expectedTimeInnerTOF[8],
+                             expectedTimeOuterTOF[0], expectedTimeOuterTOF[1], expectedTimeOuterTOF[2], expectedTimeOuterTOF[3], expectedTimeOuterTOF[4], expectedTimeOuterTOF[5], expectedTimeOuterTOF[6], expectedTimeOuterTOF[7], expectedTimeOuterTOF[8]);
     }
 
     if (trackWithTimeIndex != tracks.size()) {
