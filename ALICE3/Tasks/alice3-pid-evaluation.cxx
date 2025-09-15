@@ -386,7 +386,7 @@ struct Alice3PidEvaluation {
       richNSigma[kProton] = track.nSigmaProtonRich();
       richNSigma[kDeuteron] = track.nSigmaDeuteronRich();
       richNSigma[kTriton] = track.nSigmaTritonRich();
-      richNSigma[kHelium3] = track.nSigmaHelium3Rich();
+      richNSigma[kHelium3] = track.nSigmaHe3Rich();  // Fixed: use nSigmaHe3Rich instead of nSigmaHelium3Rich
       richNSigma[kAlpha] = 999.0f;  // RICH doesn't have alpha support yet
       
       analyzeDetector(richHists, richNSigma, trueParticleIndex, p, "RICH");

@@ -85,9 +85,8 @@ struct FemtoProducer {
   // collision builder
   collisionbuilder::CollisionBuilderProducts collisionBuilderProducts;
   collisionbuilder::ConfCollisionTables confCollisionTables;
-  collisionbuilder::ConfCollisionFilters confCollisionFilters;
-  collisionbuilder::ConfCollisionBits confCollisionBits;
-  collisionbuilder::ConfCollisionTriggers confCollisionTriggers;
+  collisionbuilder::ConfCollisionFilter confCollisionFilter;
+  collisionbuilder::ConfCollisionFlags confCollisionFlags;
   collisionbuilder::CollisionBuilder collisionBuilder;
 
   // track builder
@@ -181,7 +180,7 @@ struct FemtoProducer {
     ccdb->setCreatedNotAfter(now);
 
     // collision selection
-    collisionBuilder.init(confCollisionFilters, confCollisionBits, confCollisionTables, confCollisionTriggers, context);
+    collisionBuilder.init(confCollisionFilter, confCollisionFlags, confCollisionTables, context);
 
     // configure track builder
     trackBuilder.init(confTrackBits, confTrackFilters, confTrackTables, context);
@@ -213,10 +212,9 @@ struct FemtoProducer {
   template <modes::System system, typename T1, typename T2, typename T3, typename T4>
   void processTracks(T1 const& col, T2 const& /* bcs*/, T3 const& tracks, T4 const& tracksWithItsPid)
   {
-    auto bc = col.template bc_as<T2>();
-    initFromCcdb(bc);
-    collisionBuilder.buildCollision<system>(bc, col, tracks, ccdb, magField);
-    if (!collisionBuilder.checkCollision(bc, col)) {
+    initFromCcdb(col.template bc_as<T2>());
+    collisionBuilder.buildCollision<system>(col, tracks, magField);
+    if (!collisionBuilder.checkCuts(col)) {
       return;
     }
     collisionBuilder.fillCollision<system>(collisionBuilderProducts, col);

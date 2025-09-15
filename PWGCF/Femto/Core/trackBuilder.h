@@ -449,24 +449,24 @@ class TrackBuilder
   template <typename T1, typename T2, typename T3, typename T4>
   void init(T1& config, T2& filter, T3& table, T4& initContext)
   {
-    mTrackSelection.configure(config, filter);
+    trackSelection.configure(config, filter);
     LOG(info) << "Initialize femto track builder...";
 
-    mProduceTracks = utils::enableTable("FTracks_001", table.produceTracks.value, initContext);
-    mProduceTrackMasks = utils::enableTable("FTrackMasks_001", table.produceTrackMasks.value, initContext);
-    mProduceTrackDcas = utils::enableTable("FTrackDcas_001", table.produceTrackDcas.value, initContext);
-    mProduceTrackExtras = utils::enableTable("FTrackExtras_001", table.produceTrackExtras.value, initContext);
-    mProduceElectronPids = utils::enableTable("FElectronPids_001", table.produceElectronPids.value, initContext);
-    mProducePionPids = utils::enableTable("FPionPids_001", table.producePionPids.value, initContext);
-    mProduceKaonPids = utils::enableTable("FKaonPids_001", table.produceKaonPids.value, initContext);
-    mProduceProtonPids = utils::enableTable("FProtonPids_001", table.produceProtonPids.value, initContext);
-    mProduceDeuteronPids = utils::enableTable("FDeuteronPids_001", table.produceDeuteronPids.value, initContext);
-    mProduceTritonPids = utils::enableTable("FTritonPids_001", table.produceTritonPids.value, initContext);
-    mProduceHeliumPids = utils::enableTable("FHeliumPids_001", table.produceHeliumPids.value, initContext);
+    produceTracks = utils::enableTable("FTracks_001", table.produceTracks.value, initContext);
+    produceTrackMasks = utils::enableTable("FTrackMasks_001", table.produceTrackMasks.value, initContext);
+    produceTrackDcas = utils::enableTable("FTrackDcas_001", table.produceTrackDcas.value, initContext);
+    produceTrackExtras = utils::enableTable("FTrackExtras_001", table.produceTrackExtras.value, initContext);
+    produceElectronPids = utils::enableTable("FElectronPids_001", table.produceElectronPids.value, initContext);
+    producePionPids = utils::enableTable("FPionPids_001", table.producePionPids.value, initContext);
+    produceKaonPids = utils::enableTable("FKaonPids_001", table.produceKaonPids.value, initContext);
+    produceProtonPids = utils::enableTable("FProtonPids_001", table.produceProtonPids.value, initContext);
+    produceDeuteronPids = utils::enableTable("FDeuteronPids_001", table.produceDeuteronPids.value, initContext);
+    produceTritonPids = utils::enableTable("FTritonPids_001", table.produceTritonPids.value, initContext);
+    produceHeliumPids = utils::enableTable("FHeliumPids_001", table.produceHeliumPids.value, initContext);
 
-    if (mProduceTracks || mProduceTrackMasks || mProduceTrackDcas || mProduceTrackExtras || mProduceElectronPids || mProducePionPids || mProduceKaonPids || mProduceProtonPids || mProduceDeuteronPids || mProduceTritonPids || mProduceHeliumPids) {
-      mFillAnyTable = true;
-      mTrackSelection.printSelections(trackSelsName, trackSelsToString);
+    if (produceTracks || produceTrackMasks || produceTrackDcas || produceTrackExtras || produceElectronPids || producePionPids || produceKaonPids || produceProtonPids || produceDeuteronPids || produceTritonPids || produceHeliumPids) {
+      fillAnyTable = true;
+      trackSelection.printSelections(trackSelsName, trackSelsToString);
     } else {
       LOG(info) << "No tables configured";
     }
@@ -476,15 +476,15 @@ class TrackBuilder
   template <typename T1, typename T2, typename T3, typename T4>
   void fillTracks(T1 const& tracks, T2& trackProducts, T3& collisionProducts, T4& indexMap)
   {
-    if (!mFillAnyTable) {
+    if (!fillAnyTable) {
       return;
     }
     for (const auto& track : tracks) {
-      if (!mTrackSelection.checkFilters(track) || !mTrackSelection.hasTofAboveThreshold(track)) {
+      if (!trackSelection.checkFilters(track) || !trackSelection.hasTofAboveThreshold(track)) {
         continue;
       }
-      mTrackSelection.applySelections(track);
-      if (!mTrackSelection.passesAllRequiredSelections()) {
+      trackSelection.applySelections(track);
+      if (!trackSelection.passesAllRequiredSelections()) {
         continue;
       }
       this->fillTrack<modes::Track::kPrimaryTrack>(track, trackProducts, collisionProducts, indexMap);
@@ -494,25 +494,25 @@ class TrackBuilder
   template <modes::Track type, typename T1, typename T2, typename T3, typename T4>
   void fillTrack(T1 const& track, T2& trackProducts, T3& collisionProducts, T4& indexMap)
   {
-    if (mProduceTracks) {
+    if (produceTracks) {
       trackProducts.producedTracks(collisionProducts.producedCollision.lastIndex(),
                                    track.pt() * track.sign(),
                                    track.eta(),
                                    track.phi());
     }
 
-    if (mProduceTrackMasks) {
+    if (produceTrackMasks) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
-        trackProducts.producedTrackMasks(mTrackSelection.getBitmask());
+        trackProducts.producedTrackMasks(trackSelection.getBitmask());
       } else {
         trackProducts.producedTrackMasks(static_cast<o2::aod::femtodatatypes::TrackMaskType>(0u));
       }
     }
 
-    if (mProduceTrackDcas) {
+    if (produceTrackDcas) {
       trackProducts.producedTrackDcas(track.dcaXY(), track.dcaZ());
     }
-    if (mProduceTrackExtras) {
+    if (produceTrackExtras) {
       trackProducts.producedTrackExtras(track.isPVContributor(),
                                         track.itsNCls(),
                                         track.itsNClsInnerBarrel(),
@@ -527,49 +527,49 @@ class TrackBuilder
                                         track.mass());
     }
 
-    if (mProduceElectronPids) {
+    if (produceElectronPids) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
         trackProducts.producedElectronPids(track.itsNSigmaEl(), track.tpcNSigmaEl(), track.tofNSigmaEl());
       } else {
         trackProducts.producedElectronPids(0, track.tpcNSigmaEl(), track.tofNSigmaEl());
       }
     }
-    if (mProducePionPids) {
+    if (producePionPids) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
         trackProducts.producedPionPids(track.itsNSigmaPi(), track.tpcNSigmaPi(), track.tofNSigmaPi());
       } else {
         trackProducts.producedPionPids(0, track.tpcNSigmaPi(), track.tofNSigmaPi());
       }
     }
-    if (mProduceKaonPids) {
+    if (produceKaonPids) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
         trackProducts.producedKaonPids(track.itsNSigmaKa(), track.tpcNSigmaKa(), track.tofNSigmaKa());
       } else {
         trackProducts.producedKaonPids(0, track.tpcNSigmaKa(), track.tofNSigmaKa());
       }
     }
-    if (mProduceProtonPids) {
+    if (produceProtonPids) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
         trackProducts.producedProtonPids(track.itsNSigmaPr(), track.tpcNSigmaPr(), track.tofNSigmaPr());
       } else {
         trackProducts.producedProtonPids(0, track.tpcNSigmaPr(), track.tofNSigmaPr());
       }
     }
-    if (mProduceDeuteronPids) {
+    if (produceDeuteronPids) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
         trackProducts.producedDeuteronPids(track.itsNSigmaDe(), track.tpcNSigmaDe(), track.tofNSigmaDe());
       } else {
         trackProducts.producedDeuteronPids(0, track.tpcNSigmaDe(), track.tofNSigmaDe());
       }
     }
-    if (mProduceTritonPids) {
+    if (produceTritonPids) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
         trackProducts.producedTritonPids(track.itsNSigmaTr(), track.tpcNSigmaTr(), track.tofNSigmaTr());
       } else {
         trackProducts.producedTritonPids(0, track.tpcNSigmaTr(), track.tofNSigmaTr());
       }
     }
-    if (mProduceHeliumPids) {
+    if (produceHeliumPids) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
         trackProducts.producedHeliumPids(track.itsNSigmaHe(), track.tpcNSigmaHe(), track.tofNSigmaHe());
       } else {
@@ -594,19 +594,19 @@ class TrackBuilder
   }
 
  private:
-  TrackSelection mTrackSelection;
-  bool mFillAnyTable = false;
-  bool mProduceTracks = false;
-  bool mProduceTrackMasks = false;
-  bool mProduceTrackDcas = false;
-  bool mProduceTrackExtras = false;
-  bool mProduceElectronPids = false;
-  bool mProducePionPids = false;
-  bool mProduceKaonPids = false;
-  bool mProduceProtonPids = false;
-  bool mProduceDeuteronPids = false;
-  bool mProduceTritonPids = false;
-  bool mProduceHeliumPids = false;
+  TrackSelection trackSelection;
+  bool fillAnyTable = false;
+  bool produceTracks = false;
+  bool produceTrackMasks = false;
+  bool produceTrackDcas = false;
+  bool produceTrackExtras = false;
+  bool produceElectronPids = false;
+  bool producePionPids = false;
+  bool produceKaonPids = false;
+  bool produceProtonPids = false;
+  bool produceDeuteronPids = false;
+  bool produceTritonPids = false;
+  bool produceHeliumPids = false;
 };
 
 } // namespace trackbuilder
