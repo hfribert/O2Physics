@@ -9,12 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file v0Builder.h
-/// \brief v0 builder
+/// \file kinkBuilder.h
+/// \brief kink builder
 /// \author Anton Riedel, TU München, anton.riedel@cern.ch
+/// \author Henrik Fribert, TU München, henrik.fribert@cern.ch
 
-#ifndef PWGCF_FEMTO_CORE_V0BUILDER_H_
-#define PWGCF_FEMTO_CORE_V0BUILDER_H_
+#ifndef PWGCF_FEMTO_CORE_KINKBUILDER_H_
+#define PWGCF_FEMTO_CORE_KINKBUILDER_H_
 
 #include "PWGCF/Femto/Core/baseSelection.h"
 #include "PWGCF/Femto/Core/dataTypes.h"
@@ -39,260 +40,181 @@
 
 namespace o2::analysis::femto
 {
-namespace v0builder
+namespace kinkbuilder
 {
 
 // filters applied in the producer task
-struct ConfV0Filters : o2::framework::ConfigurableGroup {
-  std::string prefix = std::string("V0Filters");
+struct ConfKinkFilters : o2::framework::ConfigurableGroup {
+  std::string prefix = std::string("KinkFilters");
   o2::framework::Configurable<float> ptMin{"ptMin", 0.f, "Minimum pT"};
   o2::framework::Configurable<float> ptMax{"ptMax", 99.f, "Maximum pT"};
   o2::framework::Configurable<float> etaMin{"etaMin", -10.f, "Minimum eta"};
   o2::framework::Configurable<float> etaMax{"etaMax", 10.f, "Maximum eta"};
   o2::framework::Configurable<float> phiMin{"phiMin", 0.f, "Minimum phi"};
   o2::framework::Configurable<float> phiMax{"phiMax", 1.f * o2::constants::math::TwoPI, "Maximum phi"};
-  o2::framework::Configurable<float> massMinLambda{"massMinLambda", 1.f, "Minimum mass for Lambda hypothesis"};
-  o2::framework::Configurable<float> massMaxLambda{"massMaxLambda", 1.2f, "Maximum mass for Lambda hypothesis"};
-  o2::framework::Configurable<float> massMinK0short{"massMinK0short", 0.45f, "Minimum mass for K0Short hypothesis"};
-  o2::framework::Configurable<float> massMaxK0short{"massMaxK0short", 0.53f, "Maximum mass for K0Short hypothesis"};
-  o2::framework::Configurable<float> rejectMassMinLambda{"rejectMassMinLambda", 1.11f, "Minimum mass to rejection K0short hypothesis for Lambda candidates"};
-  o2::framework::Configurable<float> rejectMassMaxLambda{"rejectMassMaxLambda", 1.12f, "Maximum mass to rejection K0short hypothesis for Lambda candidates"};
-  o2::framework::Configurable<float> rejectMassMinK0short{"rejectMassMinK0short", 0.48f, "Minimum mass to rejection K0short hypothesis for Lambda candidates"};
-  o2::framework::Configurable<float> rejectMassMaxK0short{"rejectMassMaxK0short", 0.5f, "Maximum mass to rejection K0short hypothesis for Lambda candidates"};
+  o2::framework::Configurable<float> massMinSigma{"massMinSigma", 1.1f, "Minimum mass for Sigma hypothesis"};
+  o2::framework::Configurable<float> massMaxSigma{"massMaxSigma", 1.3f, "Maximum mass for Sigma hypothesis"};
 };
 
-// selections bits for all v0s
-#define V0_DEFAULT_BITS                                                                                                                                          \
-  o2::framework::Configurable<std::vector<float>> dcaDauMax{"dcaDauMax", {1.5f}, "Maximum DCA between the daughters at decay vertex (cm)"};                      \
-  o2::framework::Configurable<std::vector<float>> cpaMin{"cpaMin", {0.99f}, "Minimum cosine of pointing angle"};                                                 \
-  o2::framework::Configurable<std::vector<float>> transRadMin{"transRadMin", {0.2f}, "Minimum transverse radius (cm)"};                                          \
-  o2::framework::Configurable<std::vector<float>> transRadMax{"transRadMax", {100.f}, "Maximum transverse radius (cm)"};                                         \
-  o2::framework::Configurable<std::vector<float>> decayVtxMax{"decayVtxMax", {100.f}, "Maximum distance in x,y,z of the decay vertex from primary vertex (cm)"}; \
-  o2::framework::Configurable<std::vector<float>> dauAbsEtaMax{"dauAbsEtaMax", {0.8f}, "Maximum |eta| for daughter tracks"};                                     \
-  o2::framework::Configurable<std::vector<float>> dauDcaMin{"dauDcaMin", {0.05f}, "Minimum DCA of the daughters from primary vertex (cm)"};                      \
-  o2::framework::Configurable<std::vector<float>> dauTpcClustersMin{"dauTpcClustersMin", {80.f}, "Minimum number of TPC clusters for daughter tracks"};
+// selections bits for all kinks
+#define KINK_DEFAULT_BITS                                                                                                                     \
+  o2::framework::Configurable<std::vector<float>> kinkTopoDcaMax{"kinkTopoDcaMax", {2.0f}, "Maximum kink topological DCA"};                   \
+  o2::framework::Configurable<std::vector<float>> transRadMin{"transRadMin", {0.2f}, "Minimum transverse radius (cm)"};                       \
+  o2::framework::Configurable<std::vector<float>> transRadMax{"transRadMax", {100.f}, "Maximum transverse radius (cm)"};                      \
+  o2::framework::Configurable<std::vector<float>> dauAbsEtaMax{"DauAbsEtaMax", {0.8f}, "Maximum absolute pseudorapidity for daughter track"}; \
+  o2::framework::Configurable<std::vector<float>> dauDcaPvMin{"dauDcaPvMin", {0.0f}, "Minimum DCA of daughter from primary vertex (cm)"};     \
+  o2::framework::Configurable<std::vector<float>> mothDcaPvMax{"mothDcaPvMax", {1.0f}, "Maximum DCA of mother from primary vertex (cm)"};     \
+  o2::framework::Configurable<std::vector<float>> alphaAPMax{"alphaAPMax", {0.0f}, "Maximum Alpha_AP for Sigma candidates"};                  \
+  o2::framework::Configurable<std::vector<float>> qtAPMin{"qtAPMin", {0.15f}, "Minimum qT_AP for Sigma candidates"};
 
-// derived selection bits for lambda
-struct ConfLambdaBits : o2::framework::ConfigurableGroup {
-  std::string prefix = std::string("LambdaBits");
-  V0_DEFAULT_BITS
-  o2::framework::Configurable<std::vector<float>> posDauTpcPion{"posDauTpcPion", {5.f}, "Maximum |nsimga_Pion| TPC for positive daughter tracks"};
-  o2::framework::Configurable<std::vector<float>> posDauTpcProton{"posDauTpcProton", {5.f}, "Maximum |nsimga_Proton| TPC for positive daughter tracks"};
-  o2::framework::Configurable<std::vector<float>> negDauTpcPion{"negDauTpcPion", {5.f}, "Maximum |nsimga_Pion| TPC for negative daughter tracks"};
-  o2::framework::Configurable<std::vector<float>> negDauTpcProton{"negDauTpcProton", {5.f}, "Maximum |nsimga_Proton| TPC negative for daughter tracks"};
+// derived selection bits for sigma
+struct ConfSigmaBits : o2::framework::ConfigurableGroup {
+  std::string prefix = std::string("SigmaBits");
+  KINK_DEFAULT_BITS
+  o2::framework::Configurable<std::vector<float>> chaDauTpcPion{"chaDauTpcPion", {5.f}, "Maximum |nsigma_Pion| TPC for charged daughter tracks"};
 };
 
-// derived selection bits for K0Short
-struct ConfK0shortBits : o2::framework::ConfigurableGroup {
-  std::string prefix = std::string("K0shortBits");
-  V0_DEFAULT_BITS
-  o2::framework::Configurable<std::vector<float>> posDauTpcPion{"posDauTpcPion", {5.f}, "Maximum |nsimga_Pion| TPC for positive daughter tracks"};
-  o2::framework::Configurable<std::vector<float>> negDauTpcPion{"negDauTpcPion", {5.f}, "Maximum |nsimga_Pion| TPC for negative daughter tracks"};
-};
+#undef KINK_DEFAULT_BITS
 
-#undef V0_DEFAULT_BITS
+// base selection for analysis task for kinks
+#define KINK_DEFAULT_SELECTIONS(defaultMassMin, defaultMassMax, defaultPdgCode)                         \
+  o2::framework::Configurable<int> pdgCode{"pdgCode", defaultPdgCode, "Kink PDG code"};                 \
+  o2::framework::Configurable<float> ptMin{"ptMin", 0.f, "Minimum pT"};                                 \
+  o2::framework::Configurable<float> ptMax{"ptMax", 999.f, "Maximum pT"};                               \
+  o2::framework::Configurable<float> etaMin{"etaMin", -10.f, "Minimum eta"};                            \
+  o2::framework::Configurable<float> etaMax{"etaMax", 10.f, "Maximum eta"};                             \
+  o2::framework::Configurable<float> phiMin{"phiMin", 0.f, "Minimum phi"};                              \
+  o2::framework::Configurable<float> phiMax{"phiMax", 1.f * o2::constants::math::TwoPI, "Maximum phi"}; \
+  o2::framework::Configurable<float> massMin{"massMin", defaultMassMin, "Minimum invariant mass for Sigma"};      \
+  o2::framework::Configurable<float> massMax{"massMax", defaultMassMax, "Maximum invariant mass for Sigma"};      \
+  o2::framework::Configurable<o2::aod::femtodatatypes::KinkMaskType> mask{"mask", 0, "Bitmask for kink selection"};
 
-// base selection for analysis task for v0s
-#define V0_DEFAULT_SELECTIONS(defaultMassMin, defaultMassMax, defaultPdgCode)                                 \
-  o2::framework::Configurable<int> pdgCode{"pdgCode", defaultPdgCode, "V0 PDG code"};                         \
-  o2::framework::Configurable<float> ptMin{"ptMin", 0.f, "Minimum pT"};                                       \
-  o2::framework::Configurable<float> ptMax{"ptMax", 999.f, "Maximum pT"};                                     \
-  o2::framework::Configurable<float> etaMin{"etaMin", -10.f, "Minimum eta"};                                  \
-  o2::framework::Configurable<float> etaMax{"etaMax", 10.f, "Maximum eta"};                                   \
-  o2::framework::Configurable<float> phiMin{"phiMin", 0.f, "Minimum eta"};                                    \
-  o2::framework::Configurable<float> phiMax{"phiMax", 1.f * o2::constants::math::TwoPI, "Maximum phi"};       \
-  o2::framework::Configurable<float> massMin{"massMin", defaultMassMin, "Minimum invariant mass for Lambda"}; \
-  o2::framework::Configurable<float> massMax{"massMax", defaultMassMax, "Maximum invariant mass for Lambda"}; \
-  o2::framework::Configurable<o2::aod::femtodatatypes::V0MaskType> mask{"mask", 0, "Bitmask for v0 selection"};
-
-// base selection for analysis task for lambdas
+// base selection for analysis task for sigmas
 template <const char* Prefix>
-struct ConfLambdaSelection : o2::framework::ConfigurableGroup {
+struct ConfSigmaSelection : o2::framework::ConfigurableGroup {
   std::string prefix = Prefix;
-  V0_DEFAULT_SELECTIONS(1.0, 1.2, 3122)
-  o2::framework::Configurable<int> sign{"sign", 1, "Sign of the Lambda (+1 for Lambda and -1 for Antilambda"};
+  KINK_DEFAULT_SELECTIONS(1.1, 1.3, 3112)
+  o2::framework::Configurable<int> sign{"sign", -1, "Sign of the Sigma mother track (e.g. -1 for Sigma- or +1 for AntiSigma-)"};
 };
 
-// base selection for analysis task for k0short
-template <const char* Prefix>
-struct ConfK0shortSelection : o2::framework::ConfigurableGroup {
-  std::string prefix = Prefix;
-  V0_DEFAULT_SELECTIONS(0.47, 0.51, 310)
+#undef KINK_DEFAULT_SELECTIONS
+
+constexpr const char PrefixSigmaSelection1[] = "SigmaSelection1";
+using ConfSigmaSelection1 = ConfSigmaSelection<PrefixSigmaSelection1>;
+
+/// The different selections for kinks
+enum KinkSeles {
+  kKinkTopoDcaMax,
+  kTransRadMin,
+  kTransRadMax,
+
+  kDauAbsEtaMax,
+  kDauDcaPvMin,
+  kMothDcaPvMax,
+
+  kChaDaughTpcPion,
+
+  kAlphaAPMax,
+  kQtAPMin,
+
+  kKinkSelesMax
 };
 
-#undef V0_DEFAULT_SELECTIONS
-
-constexpr const char PrefixLambdaSelection1[] = "LambdaSelection1";
-using ConfLambdaSelection1 = ConfLambdaSelection<PrefixLambdaSelection1>;
-constexpr const char PrefixK0shortSelection1[] = "K0shortSelection1";
-using ConfK0shortSelection1 = ConfK0shortSelection<PrefixK0shortSelection1>;
-
-/// The different selections for v0s
-enum V0Seles {
-  // selections for lambdas
-  kCpaMin,      ///< Min. CPA (cosine pointing angle)
-  kDcaDaughMax, ///< Max. DCA of the daughters at decay vertex
-  kDecayVtxMax, ///< Max. distance of decay vertex in x,y,z
-  kTransRadMin, ///< Min. transverse radius
-  kTransRadMax, ///< max. transverse radius
-
-  // selection for daughter
-  kDauAbsEtaMax, ///< Max. absolute pseudo rapidity
-  kDauDcaMin,    ///< Min. DCA of the positive daughters at primary vertex
-  kDauTpcClsMin, ///< Min. number of TPC clusters of positive daughter
-
-  // pid selection for daughters
-  kPosDaughTpcPion,   ///< TPC Pion PID for positive daughter
-  kPosDaughTpcProton, ///< TPC Proton PID for positive daughter
-  kNegDaughTpcPion,   ///< TPC Pion PID for negative daughter
-  kNegDaughTpcProton, ///< TPC Proton PID for negative daughter
-
-  kV0SelsMax
+// Name constants for kink selections
+const char sigmaSelsName[] = "Sigma selection object";
+const std::unordered_map<KinkSeles, std::string> kinkSelsNames = {
+  {kKinkTopoDcaMax, "kinkTopoDcaMax"},
+  {kTransRadMin, "transRadMin"},
+  {kTransRadMax, "transRadMax"},
+  {kDauAbsEtaMax, "dauAbsEtaMax"},
+  {kDauDcaPvMin, "dauDcaPvMin"},
+  {kMothDcaPvMax, "mothDcaPvMax"},
+  {kChaDaughTpcPion, "chaDauTpcPion"},
+  {kAlphaAPMax, "alphaAPMax"},
+  {kQtAPMin, "qtAPMin"}
 };
 
-const char v0SelsName[] = "K0short selection object";
-const std::unordered_map<V0Seles, std::string> v0SelsToStrings = {
-  {kCpaMin, "Min. CPA (cosine pointing angle)"},
-  {kDcaDaughMax, "Max. DCA of the daughters at decay vertex"},
-  {kDecayVtxMax, "Max. distance of decay vertex in x,y,z"},
-  {kTransRadMin, "Min. transverse radius"},
-  {kTransRadMax, "Max. transverse radius"},
-
-  {kDauAbsEtaMax, "Max. absolute pseudo rapidity"},
-  {kDauDcaMin, "Min. DCA of the positive daughters at primary vertex"},
-  {kDauTpcClsMin, "Min. number of TPC clusters of positive daughter"},
-
-  {kPosDaughTpcPion, "TPC Pion PID for positive daughter"},
-  {kPosDaughTpcProton, "TPC Proton PID for positive daughter"},
-  {kNegDaughTpcPion, "TPC Pion PID for negative daughter"},
-  {kNegDaughTpcProton, "TPC Proton PID for negative daughter"}};
-
-/// \class FemtoDreamTrackCuts
-/// \brief Cut class to contain and execute all cuts applied to tracks
-template <modes::V0 v0Type>
-class V0Selection : public BaseSelection<float, o2::aod::femtodatatypes::V0MaskType, kV0SelsMax>
+/// \class KinkSelection
+/// \brief Cut class to contain and execute all cuts applied to kinks
+template <modes::Kink kinkType>
+class KinkSelection : public BaseSelection<float, o2::aod::femtodatatypes::KinkMaskType, kKinkSelesMax>
 {
  public:
-  V0Selection() {}
-  virtual ~V0Selection() = default;
+  KinkSelection() {}
+  virtual ~KinkSelection() = default;
 
-  template <typename T1, typename T2>
-  void configure(T1& config, T2& filter)
+  template <typename TConfig, typename TFilter>
+  void configure(TConfig const& config, TFilter const& filter)
   {
-    mPtMin = filter.ptMin.value;
-    mPtMax = filter.ptMax.value;
-    mEtaMin = filter.etaMin.value;
-    mEtaMax = filter.etaMax.value;
-    mPhiMin = filter.phiMin.value;
-    mPhiMax = filter.phiMax.value;
-
-    if constexpr (modes::isEqual(v0Type, modes::V0::kLambda) || modes::isEqual(v0Type, modes::V0::kAntiLambda)) {
-      mMassLambdaLowerLimit = filter.massMinLambda.value;
-      mMassLambdaUpperLimit = filter.massMaxLambda.value;
-      mMassK0shortLowerLimit = filter.rejectMassMinK0short.value;
-      mMassK0shortUpperLimit = filter.rejectMassMaxK0short.value;
-
-      if constexpr (modes::isEqual(v0Type, modes::V0::kLambda)) {
-        this->addSelection(config.posDauTpcProton.value, kPosDaughTpcProton, limits::kAbsUpperLimit, true, true);
-        this->addSelection(config.negDauTpcPion.value, kNegDaughTpcPion, limits::kAbsUpperLimit, true, true);
-      }
-
-      if constexpr (modes::isEqual(v0Type, modes::V0::kAntiLambda)) {
-        this->addSelection(config.posDauTpcPion.value, kPosDaughTpcPion, limits::kAbsUpperLimit, true, true);
-        this->addSelection(config.negDauTpcProton.value, kNegDaughTpcProton, limits::kAbsUpperLimit, true, true);
-      }
-    }
-    if constexpr (modes::isEqual(v0Type, modes::V0::kK0short)) {
-      mMassK0shortLowerLimit = filter.massMinK0short.value;
-      mMassK0shortUpperLimit = filter.massMaxK0short.value;
-      mMassLambdaLowerLimit = filter.rejectMassMinLambda.value;
-      mMassLambdaUpperLimit = filter.rejectMassMaxLambda.value;
-      this->addSelection(config.posDauTpcPion.value, kPosDaughTpcPion, limits::kAbsUpperLimit, true, true);
-      this->addSelection(config.negDauTpcPion.value, kNegDaughTpcPion, limits::kAbsUpperLimit, true, true);
+    if constexpr (modes::isEqual(kinkType, modes::Kink::kSigma)) {
+      mMassSigmaLowerLimit = filter.massMinSigma.value;
+      mMassSigmaUpperLimit = filter.massMaxSigma.value;
+      this->addSelection(config.chaDauTpcPion.value, kChaDaughTpcPion, limits::kAbsUpperLimit, false, true);
     }
 
-    this->addSelection(config.dcaDauMax.value, kDcaDaughMax, limits::kAbsUpperLimit, true, true);
-    this->addSelection(config.cpaMin.value, kCpaMin, limits::kLowerLimit, true, true);
-    this->addSelection(config.transRadMin.value, kTransRadMin, limits::kLowerLimit, true, true);
-    this->addSelection(config.transRadMax.value, kTransRadMax, limits::kUpperLimit, true, true);
-    this->addSelection(config.dauAbsEtaMax.value, kDauAbsEtaMax, limits::kAbsUpperLimit, true, true);
-    this->addSelection(config.dauDcaMin.value, kDauDcaMin, limits::kAbsLowerFunctionLimit, true, true);
-    this->addSelection(config.dauTpcClustersMin.value, kDauTpcClsMin, limits::kLowerLimit, true, true);
-  }
+    this->addSelection(config.kinkTopoDcaMax.value, kKinkTopoDcaMax, limits::kUpperLimit, false, true);
+    this->addSelection(config.transRadMin.value, kTransRadMin, limits::kLowerLimit, false, true);
+    this->addSelection(config.transRadMax.value, kTransRadMax, limits::kUpperLimit, false, true);
+    this->addSelection(config.dauAbsEtaMax.value, kDauAbsEtaMax, limits::kAbsUpperLimit, false, true);
+    this->addSelection(config.dauDcaPvMin.value, kDauDcaPvMin, limits::kLowerLimit, false, true);
+    this->addSelection(config.mothDcaPvMax.value, kMothDcaPvMax, limits::kUpperLimit, false, true);
 
-  template <typename T1, typename T2>
-  void applySelections(T1 const& v0candidate, T2 const& /*tracks*/)
+    this->addSelection(config.alphaAPMax.value, kAlphaAPMax, limits::kUpperLimit, false, true);
+    this->addSelection(config.qtAPMin.value, kQtAPMin, limits::kLowerLimit, false, true);
+  };
+
+  template <typename KinkCand, typename Tracks>
+  void applySelections(KinkCand const& kinkCand, Tracks const& /*tracks*/)
   {
     this->reset();
-    // v0 selections
-    this->evaluateObservable(kCpaMin, v0candidate.v0cosPA());
-    this->evaluateObservable(kDcaDaughMax, v0candidate.dcaV0daughters());
-    // for decay vertex, the x,y and z coordinate have to be below a certain threshold
-    // compare the largest of the 3 to the limit set by the bit
-    std::array<float, 3> decayCoordinates = {std::fabs(v0candidate.x()), std::fabs(v0candidate.y()), std::fabs(v0candidate.z())};
-    this->evaluateObservable(kDecayVtxMax, *std::max_element(decayCoordinates.begin(), decayCoordinates.end()));
-    this->evaluateObservable(kTransRadMin, v0candidate.v0radius());
-    this->evaluateObservable(kTransRadMax, v0candidate.v0radius());
 
-    // daughter selection
-    // for daughter selections, both have to fit the same track quality selection, so we store only one bit for both
-    // take largest/smallest from both daughters and evaluate the observable with this value
-    auto posDaughter = v0candidate.template posTrack_as<T2>();
-    auto negDaughter = v0candidate.template negTrack_as<T2>();
+    // Since the extended tracks now include TracksIU, we can access them directly
+      auto dauTrack = kinkCand.template daughter_as<Tracks>();
+      auto mothTrack = kinkCand.template mother_as<Tracks>();    // Use momentum from kink candidate (reconstructed at kink vertex)
+    std::array<float, 3> momMother = {kinkCand.pxMoth(), kinkCand.pyMoth(), kinkCand.pzMoth()};
+    std::array<float, 3> momDaughter = {kinkCand.pxDaug(), kinkCand.pyDaug(), kinkCand.pzDaug()};
 
-    std::array<float, 2> etaDaughters = {std::fabs(posDaughter.eta()), std::fabs(negDaughter.eta())};
-    this->evaluateObservable(kDauAbsEtaMax, *std::max_element(etaDaughters.begin(), etaDaughters.end()));
+    // Alpha_AP
+    std::array<float, 3> momMissing = {momMother[0] - momDaughter[0], momMother[1] - momDaughter[1], momMother[2] - momDaughter[2]};
+    float lQlP = std::inner_product(momMother.begin(), momMother.end(), momDaughter.begin(), 0.f);
+    float lQlN = std::inner_product(momMother.begin(), momMother.end(), momMissing.begin(), 0.f);
+    float alphaAP = (lQlP + lQlN != 0.f) ? (lQlP - lQlN) / (lQlP + lQlN) : 0.f;
+    this->evaluateObservable(kAlphaAPMax, alphaAP);
 
-    std::array<float, 2> dcaDaughters = {std::hypot(posDaughter.dcaXY(), posDaughter.dcaZ()), std::hypot(negDaughter.dcaXY(), negDaughter.dcaZ())};
-    this->evaluateObservable(kDauDcaMin, *std::min_element(dcaDaughters.begin(), dcaDaughters.end()));
+    // qT_AP
+    float dp = lQlP;
+    float p2V0 = std::inner_product(momMother.begin(), momMother.end(), momMother.begin(), 0.f);
+    float p2A = std::inner_product(momDaughter.begin(), momDaughter.end(), momDaughter.begin(), 0.f);
+    float qtAP = std::sqrt(std::max(0.f, p2A - dp * dp / p2V0));
+    this->evaluateObservable(kQtAPMin, qtAP);
 
-    std::array<float, 2> clustersDaughters = {1.f * posDaughter.tpcNClsFound(), 1.f * negDaughter.tpcNClsFound()};
-    this->evaluateObservable(kDauTpcClsMin, *std::min_element(clustersDaughters.begin(), clustersDaughters.end()));
+    this->evaluateObservable(kKinkTopoDcaMax, kinkCand.dcaKinkTopo());
+    
+    // float transRadius = std::hypot(kinkCand.xDecVtx(), kinkCand.yDecVtx());
+    this->evaluateObservable(kTransRadMin, kinkCand.transRadius());
+    this->evaluateObservable(kTransRadMax, kinkCand.transRadius());
 
-    // daughter pid selections
-    this->evaluateObservable(kPosDaughTpcPion, posDaughter.tpcNSigmaPi());
-    this->evaluateObservable(kPosDaughTpcProton, posDaughter.tpcNSigmaPr());
-    this->evaluateObservable(kNegDaughTpcPion, negDaughter.tpcNSigmaPi());
-    this->evaluateObservable(kNegDaughTpcProton, negDaughter.tpcNSigmaPr());
+    this->evaluateObservable(kDauAbsEtaMax, std::fabs(dauTrack.eta()));
+    this->evaluateObservable(kDauDcaPvMin, std::abs(kinkCand.dcaDaugPv()));
+    this->evaluateObservable(kMothDcaPvMax, std::abs(kinkCand.dcaMothPv()));
+
+    this->evaluateObservable(kChaDaughTpcPion, std::abs(dauTrack.tpcNSigmaPi()));
 
     this->assembleBitmask();
-  }
+  };
 
   template <typename T>
-  bool checkFilters(const T& v0) const
+  bool checkHypothesis(T const& kinkCand)
   {
-    return ((v0.pt() > mPtMin && v0.pt() < mPtMax) &&
-            (v0.eta() > mEtaMin && v0.eta() < mEtaMax) &&
-            (v0.phi() > mPhiMin && v0.phi() < mPhiMax));
-  }
-
-  template <typename T>
-  bool checkHypothesis(T const& v0candidate) const
-  {
-    // no need to check PID of the daughters here, they are set as minimal cuts
-    if constexpr (modes::isEqual(v0Type, modes::V0::kLambda)) {
-      return (v0candidate.mLambda() > mMassLambdaLowerLimit && v0candidate.mLambda() < mMassLambdaUpperLimit) &&   // inside Lambda window
-             (v0candidate.mK0Short() < mMassK0shortLowerLimit || v0candidate.mK0Short() > mMassK0shortUpperLimit); // outside K0short window
-    }
-    if constexpr (modes::isEqual(v0Type, modes::V0::kAntiLambda)) {
-      return                                                                                                        // check PID for daughters
-        (v0candidate.mAntiLambda() > mMassLambdaLowerLimit && v0candidate.mAntiLambda() < mMassLambdaUpperLimit) && // inside AntiLambda window
-        (v0candidate.mK0Short() < mMassK0shortLowerLimit || v0candidate.mK0Short() > mMassK0shortUpperLimit);       // outside K0short window
-    }
-    if constexpr (modes::isEqual(v0Type, modes::V0::kK0short)) {
-      return (v0candidate.mK0Short() > mMassK0shortLowerLimit && v0candidate.mK0Short() < mMassK0shortUpperLimit) &&   // inside K0short window
-             (v0candidate.mLambda() < mMassLambdaLowerLimit || v0candidate.mLambda() > mMassLambdaUpperLimit) &&       // outside Lambda window
-             (v0candidate.mAntiLambda() < mMassLambdaLowerLimit || v0candidate.mAntiLambda() > mMassLambdaUpperLimit); // outside AntiLambda window
+    if constexpr (modes::isEqual(kinkType, modes::Kink::kSigma)) {
+      return (kinkCand.mSigmaMinus() > mMassSigmaLowerLimit && kinkCand.mSigmaMinus() < mMassSigmaUpperLimit);
     }
     return false;
   }
-
+    
  protected:
-  float mMassK0shortLowerLimit = 0.483f;
-  float mMassK0shortUpperLimit = 0.503f;
-
-  float mMassLambdaLowerLimit = 1.105f;
-  float mMassLambdaUpperLimit = 1.125f;
+  float mMassSigmaLowerLimit = 0.f;
+  float mMassSigmaUpperLimit = 99.f;
 
   // kinematic filters
   float mPtMin = 0.f;
@@ -303,56 +225,39 @@ class V0Selection : public BaseSelection<float, o2::aod::femtodatatypes::V0MaskT
   float mPhiMax = o2::constants::math::TwoPI;
 };
 
-struct V0BuilderProducts : o2::framework::ProducesGroup {
-  o2::framework::Produces<o2::aod::FLambdas> producedLambdas;
-  o2::framework::Produces<o2::aod::FLambdaMasks> producedLambdaMasks;
-  o2::framework::Produces<o2::aod::FLambdaExtras> producedLambdaExtras;
-  o2::framework::Produces<o2::aod::FK0shorts> producedK0shorts;
-  o2::framework::Produces<o2::aod::FK0shortMasks> producedK0shortMasks;
-  o2::framework::Produces<o2::aod::FK0shortExtras> producedK0shortExtras;
+struct KinkBuilderProducts : o2::framework::ProducesGroup {
+  o2::framework::Produces<o2::aod::FSigmas> producedSigmas;
+  o2::framework::Produces<o2::aod::FSigmaMasks> producedSigmaMasks;
+  o2::framework::Produces<o2::aod::FSigmaExtras> producedSigmaExtras;
 };
 
-struct ConfV0Tables : o2::framework::ConfigurableGroup {
-  std::string prefix = std::string("V0Tables");
-  o2::framework::Configurable<int> produceLambdas{"produceLambdas", -1, "Produce Lambdas (-1: auto; 0 off; 1 on)"};
-  o2::framework::Configurable<int> produceLambdaMasks{"produceLambdaMasks", -1, "Produce LambdaMasks (-1: auto; 0 off; 1 on)"};
-  o2::framework::Configurable<int> produceLambdaExtras{"produceLambdaExtras", -1, "Produce LambdaExtras (-1: auto; 0 off; 1 on)"};
-  o2::framework::Configurable<int> produceK0shorts{"produceK0shorts", -1, "Produce K0shorts (-1: auto; 0 off; 1 on)"};
-  o2::framework::Configurable<int> produceK0shortMasks{"produceK0shortMasks", -1, "Produce K0shortMasks (-1: auto; 0 off; 1 on)"};
-  o2::framework::Configurable<int> produceK0shortExtras{"produceK0shortExtras", -1, "Produce K0shortExtras (-1: auto; 0 off; 1 on)"};
+struct ConfKinkTables : o2::framework::ConfigurableGroup {
+  std::string prefix = std::string("KinkTables");
+  o2::framework::Configurable<int> produceSigmas{"produceSigmas", -1, "Produce Sigmas (-1: auto; 0 off; 1 on)"};
+  o2::framework::Configurable<int> produceSigmaMasks{"produceSigmaMasks", -1, "Produce SigmaMasks (-1: auto; 0 off; 1 on)"};
+  o2::framework::Configurable<int> produceSigmaExtras{"produceSigmaExtras", -1, "Produce SigmaExtras (-1: auto; 0 off; 1 on)"};
 };
 
-template <modes::V0 v0Type>
-class V0Builder
+template <modes::Kink kinkType>
+class KinkBuilder
 {
  public:
-  V0Builder() {}
-  virtual ~V0Builder() = default;
+  KinkBuilder() {}
+  virtual ~KinkBuilder() = default;
 
   template <typename T1, typename T2, typename T3, typename T4>
   void init(T1& config, T2& filter, T3& table, T4& initContext)
   {
-    v0Selection.configure(config, filter);
-    if constexpr (modes::isEqual(v0Type, modes::V0::kLambda) || modes::isEqual(v0Type, modes::V0::kAntiLambda)) {
-      if constexpr (modes::isEqual(v0Type, modes::V0::kLambda)) {
-        LOG(info) << "Initialize femto Lambda builder...";
-      }
-      if constexpr (modes::isEqual(v0Type, modes::V0::kAntiLambda)) {
-        LOG(info) << "Initialize femto AntiLambda builder...";
-      }
-      produceLambdas = utils::enableTable("FLambdas_001", table.produceLambdas.value, initContext);
-      produceLambdaMasks = utils::enableTable("FLambdaMasks_001", table.produceLambdaMasks.value, initContext);
-      produceLambdaExtras = utils::enableTable("FLambdaExtras_001", table.produceLambdaExtras.value, initContext);
+    kinkSelection.configure(config, filter);
+    if constexpr (modes::isEqual(kinkType, modes::Kink::kSigma)) {
+        LOG(info) << "Initialize femto Sigma builder...";
+      produceSigmas = utils::enableTable("FSigmas_001", table.produceSigmas.value, initContext);
+      produceSigmaMasks = utils::enableTable("FSigmaMasks_001", table.produceSigmaMasks.value, initContext);
+      produceSigmaExtras = utils::enableTable("FSigmaExtras_001", table.produceSigmaExtras.value, initContext);
     }
-    if constexpr (modes::isEqual(v0Type, modes::V0::kK0short)) {
-      LOG(info) << "Initialize femto K0short builder...";
-      produceK0shorts = utils::enableTable("FK0shorts_001", table.produceK0shorts.value, initContext);
-      produceK0shortMasks = utils::enableTable("FK0shortMasks_001", table.produceK0shortMasks.value, initContext);
-      produceK0shortExtras = utils::enableTable("FK0shortExtras_001", table.produceK0shortExtras.value, initContext);
-    }
-    if (produceLambdas || produceLambdaMasks || produceLambdaExtras || produceK0shorts || produceK0shortMasks || produceK0shortExtras) {
+    if (produceSigmas || produceSigmaMasks || produceSigmaExtras) {
       mFillAnyTable = true;
-      v0Selection.printSelections(v0SelsName, v0SelsToStrings);
+      kinkSelection.printSelections(sigmaSelsName, kinkSelsNames);
     } else {
       LOG(info) << "No tables configured";
     }
@@ -360,112 +265,69 @@ class V0Builder
   }
 
   template <typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
-  void fillV0s(T1& collisionProducts, T2& trackProducts, T3& v0products, T4 const& v0s, T5 const& tracks, T6& trackBuilder, T7& indexMap)
+  void fillKinks(T1& collisionProducts, T2& trackProducts, T3& kinkProducts, T4 const& kinks, T5 const& tracks, T6& trackBuilder, T7& indexMap)
   {
     if (!mFillAnyTable) {
       return;
     }
-    int64_t posDaughterIndex = 0;
-    int64_t negDaughterIndex = 0;
-    for (const auto& v0 : v0s) {
-      if (!v0Selection.checkFilters(v0)) {
+    int64_t daughterIndex = 0;
+    for (const auto& kink : kinks) {
+      if (!kinkSelection.checkFilters(kink)) {
         continue;
       }
-      v0Selection.applySelections(v0, tracks);
-      if (v0Selection.passesAllRequiredSelections() && v0Selection.checkHypothesis(v0)) {
-        auto posDaughter = v0.template posTrack_as<T5>();
-        auto negDaughter = v0.template negTrack_as<T5>();
-        posDaughterIndex = trackBuilder.template getDaughterIndex<modes::Track::kV0Daughter>(posDaughter, trackProducts, collisionProducts, indexMap);
-        negDaughterIndex = trackBuilder.template getDaughterIndex<modes::Track::kV0Daughter>(negDaughter, trackProducts, collisionProducts, indexMap);
-        if constexpr (modes::isEqual(v0Type, modes::V0::kLambda)) {
-          fillLambda(collisionProducts, v0products, v0, 1.f, posDaughterIndex, negDaughterIndex);
-        }
-        if constexpr (modes::isEqual(v0Type, modes::V0::kAntiLambda)) {
-          fillLambda(collisionProducts, v0products, v0, -1.f, posDaughterIndex, negDaughterIndex);
-        }
-        if constexpr (modes::isEqual(v0Type, modes::V0::kK0short)) {
-          fillK0short(collisionProducts, v0products, v0, posDaughterIndex, negDaughterIndex);
+      kinkSelection.applySelections(kink, tracks);
+      if (kinkSelection.passesAllRequiredSelections() && kinkSelection.checkHypothesis(kink)) {
+        auto daughter = kink.template daughter_as<T5>();
+        daughterIndex = trackBuilder.template getDaughterIndex<modes::Track::kKinkDaughter>(daughter, trackProducts, collisionProducts, indexMap);
+        if constexpr (modes::isEqual(kinkType, modes::Kink::kSigma)) {
+          fillSigma(collisionProducts, kinkProducts, kink, 1.f, daughterIndex);
         }
       }
     }
   }
 
   template <typename T1, typename T2, typename T3>
-  void fillLambda(T1& collisionProducts, T2& v0products, T3 const& v0, float sign, int posDaughterIndex, int negDaughterIndex)
+  void fillSigma(T1& collisionProducts, T2& kinkProducts, T3 const& kink, float sign, int daughterIndex)
   {
-    float mass, massAnti;
+    float mass;
     if (sign > 0.f) {
-      mass = v0.mLambda();
-      massAnti = v0.mAntiLambda();
+      mass = kink.mSigmaMinus();
     } else {
-      mass = v0.mAntiLambda();
-      massAnti = v0.mLambda();
+      mass = kink.mSigmaPlus();
     }
-    if (produceLambdas) {
-      v0products.producedLambdas(collisionProducts.producedCollision.lastIndex(),
-                                 sign * v0.pt(),
-                                 v0.eta(),
-                                 v0.phi(),
+    if (produceSigmas) {
+      kinkProducts.producedSigmas(collisionProducts.producedCollision.lastIndex(),
+                                 sign * kink.ptMoth(),
+                                 kink.eta(),
+                                 kink.phi(),
                                  mass,
-                                 posDaughterIndex,
-                                 negDaughterIndex);
+                                 daughterIndex);
     }
-    if (produceLambdaMasks) {
-      v0products.producedLambdaMasks(v0Selection.getBitmask());
+    if (produceSigmaMasks) {
+      kinkProducts.producedSigmaMasks(kinkSelection.getBitmask());
     }
-    if (produceLambdaExtras) {
-      v0products.producedLambdaExtras(
-        massAnti,
-        v0.mK0Short(),
-        v0.v0cosPA(),
-        v0.dcaV0daughters(),
-        v0.v0radius(),
-        v0.x(),
-        v0.y(),
-        v0.z());
+    if (produceSigmaExtras) {
+      kinkProducts.producedSigmaExtras(
+        kink.kinkAngle(),
+        kink.dcaDaugPv(),
+        kink.dcaMothPv(),
+        kink.xDecVtx(),
+        kink.yDecVtx(),
+        kink.zDecVtx(),
+        kink.transRadius());
     }
   }
 
-  template <typename T1, typename T2, typename T3>
-  void fillK0short(T1& collisionProducts, T2& v0products, T3 const& v0, int posDaughterIndex, int negDaughterIndex)
-  {
-    if (produceK0shorts) {
-      v0products.producedK0shorts(collisionProducts.producedCollision.lastIndex(),
-                                  v0.pt(),
-                                  v0.eta(),
-                                  v0.phi(),
-                                  v0.mK0Short(),
-                                  posDaughterIndex,
-                                  negDaughterIndex);
-    }
-    if (produceK0shortMasks) {
-      v0products.producedK0shortMasks(v0Selection.getBitmask());
-    }
-    if (produceK0shortExtras) {
-      v0products.producedK0shortExtras(
-        v0.mLambda(),
-        v0.mAntiLambda(),
-        v0.v0cosPA(),
-        v0.dcaV0daughters(),
-        v0.v0radius(),
-        v0.x(),
-        v0.y(),
-        v0.z());
-    }
-  }
 
   bool fillAnyTable() { return mFillAnyTable; }
 
  private:
-  V0Selection<v0Type> v0Selection;
+  KinkSelection<kinkType> kinkSelection;
   bool mFillAnyTable = false;
-  bool produceLambdas = false;
-  bool produceLambdaMasks = false;
-  bool produceLambdaExtras = false;
-  bool produceK0shorts = false;
-  bool produceK0shortMasks = false;
-  bool produceK0shortExtras = false;
+  bool produceSigmas = false;
+  bool produceSigmaMasks = false;
+  bool produceSigmaExtras = false;
 };
-} // namespace v0builder
+} // namespace kinkbuilder
 } // namespace o2::analysis::femto
-#endif // PWGCF_FEMTO_CORE_V0BUILDER_H_
+#endif // PWGCF_FEMTO_CORE_KINKBUILDER_H_

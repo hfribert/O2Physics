@@ -481,6 +481,57 @@ DECLARE_SOA_TABLE_STAGED_VERSIONED(FK0shortExtras_001, "FK0SHORTEXTRA", 1, //! k
 
 using FK0shortExtras = FK0shortExtras_001;
 
+namespace femtokinks
+{
+// columns for bit masks
+DECLARE_SOA_COLUMN(Mask, mask, femtodatatypes::KinkMaskType); //! Bitmask for kink selections
+
+// columns for debug information
+DECLARE_SOA_COLUMN(KinkAngle, kinkAngle, float);     //! Kink angle between mother and charged daughter at decay vertex
+DECLARE_SOA_COLUMN(DcaMothToPV, dcaMothToPV, float); //! DCA of the mother track to the primary vertex
+DECLARE_SOA_COLUMN(DcaDaugToPV, dcaDaugToPV, float); //! DCA of the charged daughter track to the primary vertex
+DECLARE_SOA_COLUMN(DecayVtxX, decayVtxX, float);     //! x coordinate of decay vertex (relative to PV)
+DECLARE_SOA_COLUMN(DecayVtxY, decayVtxY, float);     //! y coordinate of decay vertex (relative to PV)
+DECLARE_SOA_COLUMN(DecayVtxZ, decayVtxZ, float);     //! z coordinate of decay vertex (relative to PV)
+DECLARE_SOA_COLUMN(TransRadius, transRadius, float); //! Transverse decay radius from PV
+
+// id column for charged daughter track
+DECLARE_SOA_INDEX_COLUMN_FULL(ChaDau, chaDau, int32_t, FTracks, "_ChaDau"); //!
+} // namespace femtokinks
+
+// table for basic sigma minus information
+DECLARE_SOA_TABLE_STAGED_VERSIONED(FUSigmas_001, "FUSIGMA", 1,
+                                  o2::soa::Index<>,
+                                  femtobase::stored::CollisionId, // use sign to differentiate between sigma minus (-1) and anti sigma minus (+1)
+                                  femtobase::stored::SignedPt,
+                                  femtobase::stored::Eta,
+                                  femtobase::stored::Phi,
+                                  femtobase::stored::Mass,
+                                  femtokinks::ChaDauId,
+                                  femtobase::dynamic::Sign<femtobase::stored::SignedPt>,
+                                  femtobase::dynamic::Pt<femtobase::stored::SignedPt>,
+                                  femtobase::dynamic::P<femtobase::stored::SignedPt, femtobase::stored::Eta>,
+                                  femtobase::dynamic::Px<femtobase::stored::SignedPt, femtobase::stored::Eta>,
+                                  femtobase::dynamic::Py<femtobase::stored::SignedPt, femtobase::stored::Eta>,
+                                  femtobase::dynamic::Pz<femtobase::stored::SignedPt, femtobase::stored::Eta>,
+                                  femtobase::dynamic::Theta<femtobase::stored::Eta>);
+using FUSigmas = FUSigmas_001;
+
+DECLARE_SOA_TABLE_STAGED_VERSIONED(FUSigmaMasks_001, "FUSIGMAMASKS", 1,
+                                  femtokinks::Mask);
+using FUSigmaMasks = FUSigmaMasks_001;
+
+DECLARE_SOA_TABLE_STAGED_VERSIONED(FUSigmaExtras_001, "FUSIGMAEXTRAS", 1,
+                                  femtokinks::KinkAngle,
+                                  femtokinks::DcaDaugToPV,
+                                  femtokinks::DcaMothToPV,
+                                  femtokinks::DecayVtxX,
+                                  femtokinks::DecayVtxY,
+                                  femtokinks::DecayVtxZ,
+                                  femtokinks::TransRadius);
+
+using FUSigmaExtras = FUSigmaExtras_001;
+
 namespace femtocascades
 {
 // columns for cascade bit masks
