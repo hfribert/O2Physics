@@ -13,8 +13,4 @@ add_subdirectory(Core)
 add_subdirectory(TableProducer)
 add_subdirectory(Tasks)
 
-<<<<<<< HEAD
 add_subdirectory(FemtoNuclei)
-=======
-add_subdirectory(FemtoNuclei)
->>>>>>> a8e39ef360 (femto)
