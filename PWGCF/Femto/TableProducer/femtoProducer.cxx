@@ -95,8 +95,9 @@ struct FemtoProducer {
   // collision builder
   collisionbuilder::CollisionBuilderProducts collisionBuilderProducts;
   collisionbuilder::ConfCollisionTables confCollisionTables;
-  collisionbuilder::ConfCollisionFilter confCollisionFilter;
-  collisionbuilder::ConfCollisionFlags confCollisionFlags;
+  collisionbuilder::ConfCollisionFilters confCollisionFilters;
+  collisionbuilder::ConfCollisionBits confCollisionBits;
+  collisionbuilder::ConfCollisionTriggers confCollisionTriggers;
   collisionbuilder::CollisionBuilder collisionBuilder;
 
   // track builder
@@ -160,7 +161,7 @@ struct FemtoProducer {
   twotrackresonancebuilder::ConfKstarFilters confKstarFilters;
   twotrackresonancebuilder::ConfKstar0Bits confKstar0Bits;
   twotrackresonancebuilder::TwoTrackResonanceBuilder<modes::TwoTrackResonance::kKstar0> kstar0Builder;
-  twotrackresonancebuilder::TwoTrackResonanceBuilder<modes::TwoTrackResonance::kKstarBar0> kstar0barBuilder;
+  twotrackresonancebuilder::TwoTrackResonanceBuilder<modes::TwoTrackResonance::kKstar0Bar> kstar0barBuilder;
 
   // histogramming
   // add histograms in next iteration
@@ -197,7 +198,7 @@ struct FemtoProducer {
     ccdb->setCreatedNotAfter(now);
 
     // collision selection
-    collisionBuilder.init(confCollisionFilter, confCollisionFlags, confCollisionTables, context);
+    collisionBuilder.init(confCollisionFilters, confCollisionBits, confCollisionTables, confCollisionTriggers, context);
 
     // configure track builder
     trackBuilder.init(confTrackBits, confTrackFilters, confTrackTables, context);
@@ -232,9 +233,10 @@ struct FemtoProducer {
   template <modes::System system, typename T1, typename T2, typename T3, typename T4>
   void processTracks(T1 const& col, T2 const& /* bcs*/, T3 const& tracks, T4 const& tracksWithItsPid)
   {
-    initFromCcdb(col.template bc_as<T2>());
-    collisionBuilder.buildCollision<system>(col, tracks, magField);
-    if (!collisionBuilder.checkCuts(col)) {
+    auto bc = col.template bc_as<T2>();
+    initFromCcdb(bc);
+    collisionBuilder.buildCollision<system>(bc, col, tracks, ccdb, magField);
+    if (!collisionBuilder.checkCollision(bc, col)) {
       return;
     }
     collisionBuilder.fillCollision<system>(collisionBuilderProducts, col);
@@ -318,7 +320,7 @@ struct FemtoProducer {
     auto tracksWithItsPid = o2::soa::Attach<consumeddata::Run3FullPidTracks, pidits::ITSNSigmaEl, pidits::ITSNSigmaPi,
                                             pidits::ITSNSigmaKa, pidits::ITSNSigmaPr, pidits::ITSNSigmaDe, pidits::ITSNSigmaTr, pidits::ITSNSigmaHe>(tracks);
     processTracksV0s<modes::System::kPP_Run3>(col, bcs, tracks, tracksWithItsPid, v0s);
-  }
+  };
   PROCESS_SWITCH(FemtoProducer, processTracksV0sRun3pp, "Process tracks and v0s", false);
 
   // process tracks, v0s and casacades

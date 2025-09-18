@@ -262,16 +262,17 @@ class KinkBuilder
   template <typename T1, typename T2, typename T3, typename T4>
   void init(T1& config, T2& filter, T3& table, T4& initContext)
   {
-    kinkSelection.configure(config, filter);
+    mKinkSelection.configure(config, filter);
     if constexpr (modes::isEqual(kinkType, modes::Kink::kSigma)) {
-      produceSigmas = utils::enableTable("FSigmas_001", table.produceSigmas.value, initContext);
-      produceSigmaMasks = utils::enableTable("FSigmaMasks_001", table.produceSigmaMasks.value, initContext);
-      produceSigmaExtras = utils::enableTable("FSigmaExtras_001", table.produceSigmaExtras.value, initContext);
+      LOG(info) << "Initialize femto Sigma builder...";
+      mProduceSigmas = utils::enableTable("FSigmas_001", table.produceSigmas.value, initContext);
+      mProduceSigmaMasks = utils::enableTable("FSigmaMasks_001", table.produceSigmaMasks.value, initContext);
+      mProduceSigmaExtras = utils::enableTable("FSigmaExtras_001", table.produceSigmaExtras.value, initContext);
     }
-    
-    if (produceSigmas || produceSigmaMasks || produceSigmaExtras) {
+
+    if (mProduceSigmas || mProduceSigmaMasks || mProduceSigmaExtras) {
       mFillAnyTable = true;
-      kinkSelection.printSelections(kinkSelsName, kinkSelsToStrings);
+      mKinkSelection.printSelections(kinkSelsName, kinkSelsToStrings);
     }
   }
 
@@ -281,38 +282,28 @@ class KinkBuilder
     if (!mFillAnyTable) {
       return;
     }
-    
     int64_t daughterIndex = 0;
-    
     for (const auto& kink : kinks) {
-      if (!kinkSelection.checkFilters(kink)) {
+      if (!mKinkSelection.checkFilters(kink)) {
         continue;
       }
-      
-      kinkSelection.applySelections(kink, tracks);
-      
-      bool passesAllSelections = kinkSelection.passesAllRequiredSelections();
-      if (!passesAllSelections) {
-        continue;
-      }
-      
-      if (!kinkSelection.checkHypothesis(kink)) {
-        continue;
-      }
-      
-      auto daughter = kink.template trackDaug_as<T5>();
-      daughterIndex = trackBuilder.template getDaughterIndex<modes::Track::kKinkDaughter>(daughter, trackProducts, collisionProducts, indexMap);
-      if constexpr (modes::isEqual(kinkType, modes::Kink::kSigma)) {
-        fillSigma(collisionProducts, kinkProducts, kink, daughterIndex);
+      mKinkSelection.applySelections(kink, tracks);
+      if (mKinkSelection.passesAllRequiredSelections() && mKinkSelection.checkHypothesis(kink)) {
+        auto daughter = kink.template trackDaug_as<T5>();
+        daughterIndex = trackBuilder.template getDaughterIndex<modes::Track::kKinkDaughter>(daughter, trackProducts, collisionProducts, indexMap);
+        if constexpr (modes::isEqual(kinkType, modes::Kink::kSigma)) {
+          fillSigma(collisionProducts, kinkProducts, kink, daughterIndex);
+        }
       }
     }
   }
+
   template <typename T1, typename T2, typename T3>
   void fillSigma(T1& collisionProducts, T2& kinkProducts, T3 const& kink, int daughterIndex)
   {
     float mass;
     mass = kink.mSigmaMinus();
-    if (produceSigmas) {
+    if (mProduceSigmas) {
       kinkProducts.producedSigmas(collisionProducts.producedCollision.lastIndex(),
                                  kink.mothSign() * kink.ptMoth(),
                                  kink.eta(),
@@ -320,10 +311,10 @@ class KinkBuilder
                                  mass,
                                  daughterIndex);
     }
-    if (produceSigmaMasks) {
-      kinkProducts.producedSigmaMasks(kinkSelection.getBitmask());
+    if (mProduceSigmaMasks) {
+      kinkProducts.producedSigmaMasks(mKinkSelection.getBitmask());
     }
-    if (produceSigmaExtras) {
+    if (mProduceSigmaExtras) {
       kinkProducts.producedSigmaExtras(
         kink.kinkAngle(),
         kink.dcaDaugPv(),
@@ -335,11 +326,10 @@ class KinkBuilder
     }
   }
 
-
   bool fillAnyTable() { return mFillAnyTable; }
 
  private:
-  KinkSelection<kinkType> kinkSelection;
+  KinkSelection<kinkType> mKinkSelection;
   bool mFillAnyTable = false;
   bool produceSigmas = false;
   bool produceSigmaMasks = false;
