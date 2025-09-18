@@ -20,6 +20,7 @@
 #include "PWGCF/Femto/Core/partitions.h"
 #include "PWGCF/Femto/Core/trackHistManager.h"
 #include "PWGCF/Femto/Core/kinkBuilder.h"
+#include "PWGCF/Femto/Core/kinkHistManager.h"
 #include "PWGCF/Femto/DataModel/FemtoTables.h"
 #include "PWGLF/DataModel/LFKinkDecayTables.h"
 
@@ -61,55 +62,41 @@ struct FemtoKinkQa {
   using FilteredCollision = FilteredCollisions::iterator;
 
   // Define kink/sigma tables (joining tables for comprehensive information)
-  using Sigmas = o2::soa::Join<FUSigmas, FUSigmaMasks, FUSigmaExtras>;
+  using Sigmas = o2::soa::Join<FSigmas, FSigmaMasks, FSigmaExtras>;
   using Tracks = o2::soa::Join<FTracks, FTrackDcas, FTrackExtras, FTrackPids>;
-  using KinkCandidates = o2::aod::KinkCands;
 
   SliceCache cache;
 
   // setup for sigmas
   kinkbuilder::ConfSigmaSelection1 confSigmaSelection;
 
-  // Setup partition to filter sigma particles based on selection criteria
-  Partition<Sigmas> sigmaPartition = (aod::femtokinks::mask & confSigmaSelection.mask) == confSigmaSelection.mask;
+  Partition<Sigmas> sigmaPartition = MAKE_SIGMA_PARTITION(confSigmaSelection);
   Preslice<Sigmas> perColSigmas = aod::femtobase::stored::collisionId;
 
-  // Setup binning configurations for histogram creation
   kinkhistmanager::ConfSigmaBinning1 confSigmaBinning;
   kinkhistmanager::ConfSigmaQaBinning1 confSigmaQaBinning;
-  
-  // Create the histogram manager for Sigma particles
   kinkhistmanager::KinkHistManager<
     kinkhistmanager::PrefixSigmaQa,
+    trackhistmanager::PrefixKinkChaDaughterQa,
     modes::Mode::kAnalysis_Qa,
     modes::Kink::kSigma>
     sigmaHistManager;
 
-  // setup for daughter tracks
-  trackhistmanager::ConfV0PosDauBinning confV0PosDaughterBinning;
-  trackhistmanager::ConfV0PosDauQaBinning confV0PosDaughterQaBinning;
-
-  // For tracking daughter particles
-  trackhistmanager::ConfTrackBinning confChaDaughterBinning;
-  trackhistmanager::ConfTrackQaBinning confChaDaughterQaBinning;
+  // setup for daughters
+  trackhistmanager::ConfKinkChaDauBinning confKinkChaDaughterBinning;
+  trackhistmanager::ConfKinkChaDauQaBinning confKinkChaDaughterQaBinning;
 
   HistogramRegistry hRegistry{"FemtoKinkQa", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   void init(InitContext&)
   {
-    // Create a map for histogram specs
+    // create a map for histogram specs
     auto colHistSpec = colhistmanager::makeColHistSpecMap(confCollisionBinning);
     colHistManager.init(&hRegistry, colHistSpec);
 
-    // Create charged daughter track histogram specs
-    auto chaDaughterHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confChaDaughterBinning, confChaDaughterQaBinning);
+    // auto chaDaughterHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confKinkChaDaughterBinning, confKinkChaDaughterQaBinning);
 
-    if ((doprocessSigma + doprocessKinkCandidates) > 1) {
-      LOG(fatal) << "Only one process can be activated";
-    }
-
-    // Initialize sigma histograms
-    if (doprocessSigma || doprocessKinkCandidates) {
+    if (doprocessSigma) {
       auto sigmaHistSpec = kinkhistmanager::makeKinkQaHistSpecMap(confSigmaBinning, confSigmaQaBinning);
       sigmaHistManager.init(&hRegistry, sigmaHistSpec);
     }
@@ -124,41 +111,7 @@ struct FemtoKinkQa {
       sigmaHistManager.fill(sigma, tracks);
     }
   }
-  PROCESS_SWITCH(FemtoKinkQa, processSigma, "Process sigmas from femto tables", false);
-
-  // Process function for kink candidates from PWGLF tables
-  void processKinkCandidates(FilteredCollision const& col, KinkCandidates const& kinks, Tracks const& tracks)
-  {
-    colHistManager.fill(col);
-    
-    // Filter kinks belonging to this collision
-    for (auto const& kink : kinks) {
-      if (kink.collisionId() != col.globalIndex()) {
-        continue;
-      }
-      
-      // Adapter to map kinkCand properties to the format expected by histograms
-      struct KinkAdapter {
-        float pt() const { return kinkObj.ptMoth(); }
-        float eta() const { return kinkObj.eta(); }
-        float phi() const { return kinkObj.phi(); }
-        float mass() const { return kinkObj.mSigmaMinus(); }
-        float sign() const { return kinkObj.mothSign() < 0 ? -1.0f : 1.0f; }
-        float kinkAngle() const { return kinkObj.kinkAngle(); }
-        float dcaMothToPV() const { return kinkObj.dcaMothPv(); }
-        float dcaDaugToPV() const { return kinkObj.dcaDaugPv(); }
-        float decayVtxX() const { return kinkObj.xDecVtx(); }
-        float decayVtxY() const { return kinkObj.yDecVtx(); }
-        float decayVtxZ() const { return kinkObj.zDecVtx(); }
-        float transRadius() const { return kinkObj.transRadius(); }
-        
-        KinkCandidates::iterator kinkObj;
-      } adapter{kink};
-      
-      sigmaHistManager.fill(adapter, tracks);
-    }
-  }
-  PROCESS_SWITCH(FemtoKinkQa, processKinkCandidates, "Process kink candidates from LF tables", true);
+  PROCESS_SWITCH(FemtoKinkQa, processSigma, "Process sigmas", true);
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)

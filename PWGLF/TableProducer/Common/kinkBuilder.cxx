@@ -44,7 +44,9 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 using std::array;
 using VBracket = o2::math_utils::Bracket<int>;
-using TracksFull = soa::Join<aod::TracksIU, aod::TracksExtra, aod::TracksCovIU>;
+using TracksFull = soa::Join<aod::TracksIU, aod::TracksExtra, aod::TracksCovIU,
+                             aod::pidTPCFullPi, aod::pidTPCFullPr, aod::pidTPCFullKa,
+                             aod::pidTOFFullPi, aod::pidTOFFullPr, aod::pidTOFFullKa>;
 
 namespace
 {
@@ -83,6 +85,13 @@ struct kinkCandidate {
   float dcaKinkTopo = -999;
   float nSigmaTPCDaug = -999;
   float nSigmaTOFDaug = -999;
+  // PID information for KinkCandsWithPID table
+  float nSigmaTPCPi = -999;
+  float nSigmaTPCPr = -999;
+  float nSigmaTPCKa = -999;
+  float nSigmaTOFPi = -999;
+  float nSigmaTOFPr = -999;
+  float nSigmaTOFKa = -999;
   float dcaXYdaug = -999;
   float dcaXYmoth = -999;
   float kinkAngle = -999;
@@ -416,6 +425,15 @@ struct kinkBuilder {
       kinkCand.mothSign = trackMoth.sign();
       kinkCand.dcaXYdaug = dcaInfoDaug[0];
       kinkCand.dcaKinkTopo = std::sqrt(fitter.getChi2AtPCACandidate());
+
+      // Fill PID information for the daughter track
+      kinkCand.nSigmaTPCPi = trackDaug.tpcNSigmaPi();
+      kinkCand.nSigmaTPCPr = trackDaug.tpcNSigmaPr();
+      kinkCand.nSigmaTPCKa = trackDaug.tpcNSigmaKa();
+      kinkCand.nSigmaTOFPi = trackDaug.tofNSigmaPi();
+      kinkCand.nSigmaTOFPr = trackDaug.tofNSigmaPr();
+      kinkCand.nSigmaTOFKa = trackDaug.tofNSigmaKa();
+
       kinkCandidates.push_back(kinkCand);
     }
   }

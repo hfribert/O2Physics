@@ -500,7 +500,7 @@ DECLARE_SOA_INDEX_COLUMN_FULL(ChaDau, chaDau, int32_t, FTracks, "_ChaDau"); //!
 } // namespace femtokinks
 
 // table for basic sigma minus information
-DECLARE_SOA_TABLE_STAGED_VERSIONED(FUSigmas_001, "FUSIGMA", 1,
+DECLARE_SOA_TABLE_STAGED_VERSIONED(FSigmas_001, "FSIGMA", 1,
                                   o2::soa::Index<>,
                                   femtobase::stored::CollisionId, // use sign to differentiate between sigma minus (-1) and anti sigma minus (+1)
                                   femtobase::stored::SignedPt,
@@ -515,13 +515,13 @@ DECLARE_SOA_TABLE_STAGED_VERSIONED(FUSigmas_001, "FUSIGMA", 1,
                                   femtobase::dynamic::Py<femtobase::stored::SignedPt, femtobase::stored::Eta>,
                                   femtobase::dynamic::Pz<femtobase::stored::SignedPt, femtobase::stored::Eta>,
                                   femtobase::dynamic::Theta<femtobase::stored::Eta>);
-using FUSigmas = FUSigmas_001;
+using FSigmas = FSigmas_001;
 
-DECLARE_SOA_TABLE_STAGED_VERSIONED(FUSigmaMasks_001, "FUSIGMAMASKS", 1,
+DECLARE_SOA_TABLE_STAGED_VERSIONED(FSigmaMasks_001, "FSIGMAMASKS", 1,
                                   femtokinks::Mask);
-using FUSigmaMasks = FUSigmaMasks_001;
+using FSigmaMasks = FSigmaMasks_001;
 
-DECLARE_SOA_TABLE_STAGED_VERSIONED(FUSigmaExtras_001, "FUSIGMAEXTRAS", 1,
+DECLARE_SOA_TABLE_STAGED_VERSIONED(FSigmaExtras_001, "FSIGMAEXTRAS", 1,
                                   femtokinks::KinkAngle,
                                   femtokinks::DcaDaugToPV,
                                   femtokinks::DcaMothToPV,
@@ -530,7 +530,7 @@ DECLARE_SOA_TABLE_STAGED_VERSIONED(FUSigmaExtras_001, "FUSIGMAEXTRAS", 1,
                                   femtokinks::DecayVtxZ,
                                   femtokinks::TransRadius);
 
-using FUSigmaExtras = FUSigmaExtras_001;
+using FSigmaExtras = FSigmaExtras_001;
 
 namespace femtocascades
 {

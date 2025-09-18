@@ -353,14 +353,42 @@ class TrackSelection : public BaseSelection<float, o2::aod::femtodatatypes::Trac
     this->updateLimits(kDCAzMax, Track.pt());
     this->evaluateObservable(kDCAzMax, Track.dcaZ());
 
-    // its pid
-    this->evaluateObservable(kItsElectron, Track.itsNSigmaEl());
-    this->evaluateObservable(kItsPion, Track.itsNSigmaPi());
-    this->evaluateObservable(kItsKaon, Track.itsNSigmaKa());
-    this->evaluateObservable(kItsProton, Track.itsNSigmaPr());
-    this->evaluateObservable(kItsDeuteron, Track.itsNSigmaDe());
-    this->evaluateObservable(kItsTriton, Track.itsNSigmaTr());
-    this->evaluateObservable(kItsHelium, Track.itsNSigmaHe());
+    // its pid (with safety checks for ITS availability)
+    if constexpr (requires { Track.itsNSigmaEl(); }) {
+      this->evaluateObservable(kItsElectron, Track.itsNSigmaEl());
+    } else {
+      this->evaluateObservable(kItsElectron, 0.0f);
+    }
+    if constexpr (requires { Track.itsNSigmaPi(); }) {
+      this->evaluateObservable(kItsPion, Track.itsNSigmaPi());
+    } else {
+      this->evaluateObservable(kItsPion, 0.0f);
+    }
+    if constexpr (requires { Track.itsNSigmaKa(); }) {
+      this->evaluateObservable(kItsKaon, Track.itsNSigmaKa());
+    } else {
+      this->evaluateObservable(kItsKaon, 0.0f);
+    }
+    if constexpr (requires { Track.itsNSigmaPr(); }) {
+      this->evaluateObservable(kItsProton, Track.itsNSigmaPr());
+    } else {
+      this->evaluateObservable(kItsProton, 0.0f);
+    }
+    if constexpr (requires { Track.itsNSigmaDe(); }) {
+      this->evaluateObservable(kItsDeuteron, Track.itsNSigmaDe());
+    } else {
+      this->evaluateObservable(kItsDeuteron, 0.0f);
+    }
+    if constexpr (requires { Track.itsNSigmaTr(); }) {
+      this->evaluateObservable(kItsTriton, Track.itsNSigmaTr());
+    } else {
+      this->evaluateObservable(kItsTriton, 0.0f);
+    }
+    if constexpr (requires { Track.itsNSigmaHe(); }) {
+      this->evaluateObservable(kItsHelium, Track.itsNSigmaHe());
+    } else {
+      this->evaluateObservable(kItsHelium, 0.0f);
+    }
 
     // tpc pid
     this->evaluateObservable(kTpcElectron, Track.tpcNSigmaEl());
@@ -380,14 +408,48 @@ class TrackSelection : public BaseSelection<float, o2::aod::femtodatatypes::Trac
     this->evaluateObservable(kTofTriton, Track.tofNSigmaTr());
     this->evaluateObservable(kTofHelium, Track.tofNSigmaHe());
 
-    // combined tpc + its pid
-    this->evaluateObservable(kTpcitsElectron, std::hypot(Track.tpcNSigmaEl(), Track.itsNSigmaEl()));
-    this->evaluateObservable(kTpcitsPion, std::hypot(Track.tpcNSigmaPi(), Track.itsNSigmaPi()));
-    this->evaluateObservable(kTpcitsKaon, std::hypot(Track.tpcNSigmaKa(), Track.itsNSigmaKa()));
-    this->evaluateObservable(kTpcitsProton, std::hypot(Track.tpcNSigmaPr(), Track.itsNSigmaPr()));
-    this->evaluateObservable(kTpcitsDeuteron, std::hypot(Track.tpcNSigmaDe(), Track.itsNSigmaDe()));
-    this->evaluateObservable(kTpcitsTriton, std::hypot(Track.tpcNSigmaTr(), Track.itsNSigmaTr()));
-    this->evaluateObservable(kTpcitsHelium, std::hypot(Track.tpcNSigmaHe(), Track.itsNSigmaHe()));
+    // combined tpc + its pid (only if ITS PID is available)
+    if constexpr (requires { Track.itsNSigmaEl(); }) {
+      this->evaluateObservable(kTpcitsElectron, std::hypot(Track.tpcNSigmaEl(), Track.itsNSigmaEl()));
+    } else {
+      this->evaluateObservable(kTpcitsElectron, std::abs(Track.tpcNSigmaEl()));
+    }
+    
+    if constexpr (requires { Track.itsNSigmaPi(); }) {
+      this->evaluateObservable(kTpcitsPion, std::hypot(Track.tpcNSigmaPi(), Track.itsNSigmaPi()));
+    } else {
+      this->evaluateObservable(kTpcitsPion, std::abs(Track.tpcNSigmaPi()));
+    }
+    
+    if constexpr (requires { Track.itsNSigmaKa(); }) {
+      this->evaluateObservable(kTpcitsKaon, std::hypot(Track.tpcNSigmaKa(), Track.itsNSigmaKa()));
+    } else {
+      this->evaluateObservable(kTpcitsKaon, std::abs(Track.tpcNSigmaKa()));
+    }
+    
+    if constexpr (requires { Track.itsNSigmaPr(); }) {
+      this->evaluateObservable(kTpcitsProton, std::hypot(Track.tpcNSigmaPr(), Track.itsNSigmaPr()));
+    } else {
+      this->evaluateObservable(kTpcitsProton, std::abs(Track.tpcNSigmaPr()));
+    }
+    
+    if constexpr (requires { Track.itsNSigmaDe(); }) {
+      this->evaluateObservable(kTpcitsDeuteron, std::hypot(Track.tpcNSigmaDe(), Track.itsNSigmaDe()));
+    } else {
+      this->evaluateObservable(kTpcitsDeuteron, std::abs(Track.tpcNSigmaDe()));
+    }
+    
+    if constexpr (requires { Track.itsNSigmaTr(); }) {
+      this->evaluateObservable(kTpcitsTriton, std::hypot(Track.tpcNSigmaTr(), Track.itsNSigmaTr()));
+    } else {
+      this->evaluateObservable(kTpcitsTriton, std::abs(Track.tpcNSigmaTr()));
+    }
+    
+    if constexpr (requires { Track.itsNSigmaHe(); }) {
+      this->evaluateObservable(kTpcitsHelium, std::hypot(Track.tpcNSigmaHe(), Track.itsNSigmaHe()));
+    } else {
+      this->evaluateObservable(kTpcitsHelium, std::abs(Track.tpcNSigmaHe()));
+    }
 
     // combined tpc + tof pid
     this->evaluateObservable(kTpctofElectron, std::hypot(Track.tpcNSigmaEl(), Track.tofNSigmaEl()));
@@ -529,49 +591,77 @@ class TrackBuilder
 
     if (produceElectronPids) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
-        trackProducts.producedElectronPids(track.itsNSigmaEl(), track.tpcNSigmaEl(), track.tofNSigmaEl());
+        if constexpr (requires { track.itsNSigmaEl(); }) {
+          trackProducts.producedElectronPids(track.itsNSigmaEl(), track.tpcNSigmaEl(), track.tofNSigmaEl());
+        } else {
+          trackProducts.producedElectronPids(0, track.tpcNSigmaEl(), track.tofNSigmaEl());
+        }
       } else {
         trackProducts.producedElectronPids(0, track.tpcNSigmaEl(), track.tofNSigmaEl());
       }
     }
     if (producePionPids) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
-        trackProducts.producedPionPids(track.itsNSigmaPi(), track.tpcNSigmaPi(), track.tofNSigmaPi());
+        if constexpr (requires { track.itsNSigmaPi(); }) {
+          trackProducts.producedPionPids(track.itsNSigmaPi(), track.tpcNSigmaPi(), track.tofNSigmaPi());
+        } else {
+          trackProducts.producedPionPids(0, track.tpcNSigmaPi(), track.tofNSigmaPi());
+        }
       } else {
         trackProducts.producedPionPids(0, track.tpcNSigmaPi(), track.tofNSigmaPi());
       }
     }
     if (produceKaonPids) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
-        trackProducts.producedKaonPids(track.itsNSigmaKa(), track.tpcNSigmaKa(), track.tofNSigmaKa());
+        if constexpr (requires { track.itsNSigmaKa(); }) {
+          trackProducts.producedKaonPids(track.itsNSigmaKa(), track.tpcNSigmaKa(), track.tofNSigmaKa());
+        } else {
+          trackProducts.producedKaonPids(0, track.tpcNSigmaKa(), track.tofNSigmaKa());
+        }
       } else {
         trackProducts.producedKaonPids(0, track.tpcNSigmaKa(), track.tofNSigmaKa());
       }
     }
     if (produceProtonPids) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
-        trackProducts.producedProtonPids(track.itsNSigmaPr(), track.tpcNSigmaPr(), track.tofNSigmaPr());
+        if constexpr (requires { track.itsNSigmaPr(); }) {
+          trackProducts.producedProtonPids(track.itsNSigmaPr(), track.tpcNSigmaPr(), track.tofNSigmaPr());
+        } else {
+          trackProducts.producedProtonPids(0, track.tpcNSigmaPr(), track.tofNSigmaPr());
+        }
       } else {
         trackProducts.producedProtonPids(0, track.tpcNSigmaPr(), track.tofNSigmaPr());
       }
     }
     if (produceDeuteronPids) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
-        trackProducts.producedDeuteronPids(track.itsNSigmaDe(), track.tpcNSigmaDe(), track.tofNSigmaDe());
+        if constexpr (requires { track.itsNSigmaDe(); }) {
+          trackProducts.producedDeuteronPids(track.itsNSigmaDe(), track.tpcNSigmaDe(), track.tofNSigmaDe());
+        } else {
+          trackProducts.producedDeuteronPids(0, track.tpcNSigmaDe(), track.tofNSigmaDe());
+        }
       } else {
         trackProducts.producedDeuteronPids(0, track.tpcNSigmaDe(), track.tofNSigmaDe());
       }
     }
     if (produceTritonPids) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
-        trackProducts.producedTritonPids(track.itsNSigmaTr(), track.tpcNSigmaTr(), track.tofNSigmaTr());
+        if constexpr (requires { track.itsNSigmaTr(); }) {
+          trackProducts.producedTritonPids(track.itsNSigmaTr(), track.tpcNSigmaTr(), track.tofNSigmaTr());
+        } else {
+          trackProducts.producedTritonPids(0, track.tpcNSigmaTr(), track.tofNSigmaTr());
+        }
       } else {
         trackProducts.producedTritonPids(0, track.tpcNSigmaTr(), track.tofNSigmaTr());
       }
     }
     if (produceHeliumPids) {
       if constexpr (type == modes::Track::kPrimaryTrack) {
-        trackProducts.producedHeliumPids(track.itsNSigmaHe(), track.tpcNSigmaHe(), track.tofNSigmaHe());
+        if constexpr (requires { track.itsNSigmaHe(); }) {
+          trackProducts.producedHeliumPids(track.itsNSigmaHe(), track.tpcNSigmaHe(), track.tofNSigmaHe());
+        } else {
+          trackProducts.producedHeliumPids(0, track.tpcNSigmaHe(), track.tofNSigmaHe());
+        }
       } else {
         trackProducts.producedHeliumPids(0, track.tpcNSigmaHe(), track.tofNSigmaHe());
       }

@@ -63,6 +63,12 @@ using Run3PpCollisions = soa::Join<aod::Collisions, aod::EvSels, aod::Mults, aod
 // using Run3PpWithoutCentCollisions = soa::Join<aod::Collisions, aod::EvSels, aod::Mults>;
 
 using Run3FullPidTracks =
+  soa::Join<Tracks, TracksExtra, TracksDCA,
+            pidTPCFullEl, pidTPCFullPi, pidTPCFullKa, pidTPCFullPr, pidTPCFullDe, pidTPCFullTr, pidTPCFullHe,
+            pidTOFFullEl, pidTOFFullPi, pidTOFFullKa, pidTOFFullPr, pidTOFFullDe, pidTOFFullTr, pidTOFFullHe,
+            pidTOFbeta, pidTOFmass>;
+
+using Run3FullPidTracksIU =
   soa::Join<Tracks, TracksExtra, TracksDCA, TracksIU, TracksCovIU,
             pidTPCFullEl, pidTPCFullPi, pidTPCFullKa, pidTPCFullPr, pidTPCFullDe, pidTPCFullTr, pidTPCFullHe,
             pidTOFFullEl, pidTOFFullPi, pidTOFFullKa, pidTOFFullPr, pidTOFFullDe, pidTOFFullTr, pidTOFFullHe,
@@ -71,6 +77,8 @@ using Run3FullPidTracks =
 using Run3PpVzeros = V0Datas;
 
 using Run3PpCascades = CascDatas;
+
+using Run3PpKinks = SlimKinkDatas;
 
 } // namespace consumeddata
 } // namespace o2::analysis::femto
@@ -121,7 +129,7 @@ struct FemtoProducer {
   kinkbuilder::KinkBuilderProducts kinkBuilderProducts;
   kinkbuilder::ConfKinkTables confKinkTables;
   kinkbuilder::ConfKinkFilters confKinkFilters;
-  kinkbuilder::ConfSigmaSelection1 confSigmaSelection1;
+  kinkbuilder::ConfSigmaBits confSigmaBits;
   kinkbuilder::KinkBuilder<modes::Kink::kSigma> sigmaBuilder;
 
   // resonance daughter filters and partitions
@@ -152,7 +160,7 @@ struct FemtoProducer {
   twotrackresonancebuilder::ConfKstarFilters confKstarFilters;
   twotrackresonancebuilder::ConfKstar0Bits confKstar0Bits;
   twotrackresonancebuilder::TwoTrackResonanceBuilder<modes::TwoTrackResonance::kKstar0> kstar0Builder;
-  twotrackresonancebuilder::TwoTrackResonanceBuilder<modes::TwoTrackResonance::kKstar0Bar> kstar0barBuilder;
+  twotrackresonancebuilder::TwoTrackResonanceBuilder<modes::TwoTrackResonance::kKstarBar0> kstar0barBuilder;
 
   // histogramming
   // add histograms in next iteration
@@ -244,6 +252,21 @@ struct FemtoProducer {
     kstar0barBuilder.fillResonances(collisionBuilderProducts, trackBuilderProducts, twoTrackResonanceBuilderProducts, groupPositiveTracks, groupNegativeTracks, trackBuilder, indexMapTracks);
   }
 
+  template <modes::System system, typename T1, typename T2, typename T3, typename T4>
+  void processTracksIU(T1 const& col, T2 const& /* bcs*/, T3 const& tracks, T4 const& tracksWithItsPid)
+  {
+    initFromCcdb(col.template bc_as<T2>());
+    collisionBuilder.buildCollision<system>(col, tracks, magField);
+    if (!collisionBuilder.checkCuts(col)) {
+      return;
+    }
+    collisionBuilder.fillCollision<system>(collisionBuilderProducts, col);
+
+    // tracks
+    indexMapTracks.clear();
+    trackBuilder.fillTracks(tracksWithItsPid, trackBuilderProducts, collisionBuilderProducts, indexMapTracks);
+  }
+
   // add v0s
   template <modes::System system, typename T1, typename T2, typename T3, typename T4, typename T5>
   void processTracksV0s(T1 const& col, T2 const& bcs, T3 const& tracks, T4 const& tracksWithItsPid, T5 const& v0s)
@@ -258,7 +281,7 @@ struct FemtoProducer {
   template <modes::System system, typename T1, typename T2, typename T3, typename T4, typename T5>
   void processTracksKinks(T1 const& col, T2 const& bcs, T3 const& tracks, T4 const& tracksWithItsPid, T5 const& kinks)
   {
-    processTracks<system>(col, bcs, tracks, tracksWithItsPid);
+    processTracksIU<system>(col, bcs, tracks, tracksWithItsPid);
     sigmaBuilder.fillKinks(collisionBuilderProducts, trackBuilderProducts, kinkBuilderProducts, kinks, tracks, trackBuilder, indexMapTracks);
   }
 
@@ -295,7 +318,7 @@ struct FemtoProducer {
     auto tracksWithItsPid = o2::soa::Attach<consumeddata::Run3FullPidTracks, pidits::ITSNSigmaEl, pidits::ITSNSigmaPi,
                                             pidits::ITSNSigmaKa, pidits::ITSNSigmaPr, pidits::ITSNSigmaDe, pidits::ITSNSigmaTr, pidits::ITSNSigmaHe>(tracks);
     processTracksV0s<modes::System::kPP_Run3>(col, bcs, tracks, tracksWithItsPid, v0s);
-  };
+  }
   PROCESS_SWITCH(FemtoProducer, processTracksV0sRun3pp, "Process tracks and v0s", false);
 
   // process tracks, v0s and casacades
@@ -316,13 +339,13 @@ struct FemtoProducer {
   void processTracksKinksRun3pp(consumeddata::Run3PpCollisions::iterator const& col,
                                 BCsWithTimestamps const& bcs,
                                 consumeddata::Run3FullPidTracks const& tracks,
-                                o2::aod::KinkCands const& kinks)
+                                consumeddata::Run3PpKinks const& kinks)
   {
     // its pid information is generated dynamically, so we need to add it here
     auto tracksWithItsPid = o2::soa::Attach<consumeddata::Run3FullPidTracks, pidits::ITSNSigmaEl, pidits::ITSNSigmaPi,
                                             pidits::ITSNSigmaKa, pidits::ITSNSigmaPr, pidits::ITSNSigmaDe, pidits::ITSNSigmaTr, pidits::ITSNSigmaHe>(tracks);
     processTracksKinks<modes::System::kPP_Run3>(col, bcs, tracks, tracksWithItsPid, kinks);
-  };
+  }
   PROCESS_SWITCH(FemtoProducer, processTracksKinksRun3pp, "Process tracks and kinks", false);
 };
 

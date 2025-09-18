@@ -176,7 +176,7 @@ class TwoTrackResonanceHistManager
       if constexpr (modes::isEqual(reso, modes::TwoTrackResonance::kPhi) || modes::isEqual(reso, modes::TwoTrackResonance::kRho0)) {
         mHistogramRegistry->fill(HIST(resoPrefix) + HIST(AnalysisDir) + HIST(GetHistName(kSign, HistTable)), 0);
       }
-      if constexpr (modes::isEqual(reso, modes::TwoTrackResonance::kKstar0) || modes::isEqual(reso, modes::TwoTrackResonance::kKstar0Bar)) {
+      if constexpr (modes::isEqual(reso, modes::TwoTrackResonance::kKstar0) || modes::isEqual(reso, modes::TwoTrackResonance::kKstarBar0)) {
         mHistogramRegistry->fill(HIST(resoPrefix) + HIST(AnalysisDir) + HIST(GetHistName(kSign, HistTable)), resonance.sign());
       }
     }

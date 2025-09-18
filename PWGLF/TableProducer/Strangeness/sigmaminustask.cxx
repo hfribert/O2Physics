@@ -281,7 +281,10 @@ struct sigmaminustask {
       rSigmaMinus.fill(HIST("h2DCADaugPt"), kinkCand.mothSign() * kinkCand.ptDaug(), kinkCand.dcaDaugPv());
 
       if (fillOutputTree) {
-        outputDataTable(kinkCand.xDecVtx(), kinkCand.yDecVtx(), kinkCand.zDecVtx(),
+        outputDataTable(kinkCand.collisionId(),
+                        kinkCand.trackMothId(),
+                        kinkCand.trackDaugId(),
+                        kinkCand.xDecVtx(), kinkCand.yDecVtx(), kinkCand.zDecVtx(),
                         kinkCand.pxMoth(), kinkCand.pyMoth(), kinkCand.pzMoth(),
                         kinkCand.pxDaug(), kinkCand.pyDaug(), kinkCand.pzDaug(),
                         kinkCand.dcaMothPv(), kinkCand.dcaDaugPv(), kinkCand.dcaKinkTopo(),
