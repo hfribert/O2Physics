@@ -101,45 +101,6 @@ DECLARE_SOA_DYNAMIC_COLUMN(MXiMinus, mXiMinus, //! mass under Xi minus hypothesi
                             float pzneut = pzmoth - pzch;
                             return RecoDecay::m(std::array{std::array{pxch, pych, pzch}, std::array{pxneut, pyneut, pzneut}}, std::array{o2::constants::physics::MassPionCharged, o2::constants::physics::MassLambda}); });
 
-DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, //! eta of the mother kink
-  [](float pxmoth, float pymoth, float pzmoth) -> float {
-    float p = std::sqrt(pxmoth * pxmoth + pymoth * pymoth + pzmoth * pzmoth);
-    float arg = (p + pzmoth) / (p - pzmoth);
-    if (arg <= 0.f) {
-      return 0.f;
-    }
-    return 0.5f * std::log(arg);
-  });
-
-DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, //! phi of the mother kink
-  [](float pxmoth, float pymoth) -> float {
-    return std::atan2(pymoth, pxmoth);
-  });
-
-DECLARE_SOA_DYNAMIC_COLUMN(TransRadius, transRadius, //! Transverse decay radius
-  [](float xDecVtx, float yDecVtx) -> float {
-    return std::hypot(xDecVtx, yDecVtx);
-  });
-
-DECLARE_SOA_DYNAMIC_COLUMN(KinkAngle, kinkAngle, //! Kink angle between mother and daughter tracks
-  [](float pxMoth, float pyMoth, float pzMoth, float pxDaug, float pyDaug, float pzDaug) -> float {
-    float pMoth = std::sqrt(pxMoth * pxMoth + pyMoth * pyMoth + pzMoth * pzMoth);
-    float pDaug = std::sqrt(pxDaug * pxDaug + pyDaug * pyDaug + pzDaug * pzDaug);
-    
-    if (pMoth <= 0.f || pDaug <= 0.f) {
-      return 0.f;
-    }
-    
-    float dotProduct = pxMoth * pxDaug + pyMoth * pyDaug + pzMoth * pzDaug;
-    float cosAngle = dotProduct / (pMoth * pDaug);
-    
-    // Clamp to valid range for acos
-    if (cosAngle > 1.0f) cosAngle = 1.0f;
-    if (cosAngle < -1.0f) cosAngle = -1.0f;
-    
-    return std::acos(cosAngle);
-  });
-
 } // namespace kinkcand
 
 DECLARE_SOA_TABLE(KinkCands, "AOD", "KINKCANDS",
@@ -157,11 +118,7 @@ DECLARE_SOA_TABLE(KinkCands, "AOD", "KINKCANDS",
                   kinkcand::PtDaug<kinkcand::PxDaug, kinkcand::PyDaug>,
                   kinkcand::MSigmaMinus<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth, kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug>,
                   kinkcand::MSigmaPlus<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth, kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug>,
-                  kinkcand::MXiMinus<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth, kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug>,
-                  kinkcand::Eta<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth>,
-                  kinkcand::Phi<kinkcand::PxMoth, kinkcand::PyMoth>,
-                  kinkcand::TransRadius<kinkcand::XDecVtx, kinkcand::YDecVtx>,
-                  kinkcand::KinkAngle<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth, kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug>);
+                  kinkcand::MXiMinus<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth, kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug>);
 
 DECLARE_SOA_TABLE(KinkCandsUnbound, "AOD", "UBKINKCANDS",
                   o2::soa::Index<>, kinkcand::XDecVtx, kinkcand::YDecVtx, kinkcand::ZDecVtx,
@@ -177,30 +134,16 @@ DECLARE_SOA_TABLE(KinkCandsUnbound, "AOD", "UBKINKCANDS",
                   kinkcand::PtDaug<kinkcand::PxDaug, kinkcand::PyDaug>,
                   kinkcand::MSigmaMinus<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth, kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug>,
                   kinkcand::MSigmaPlus<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth, kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug>,
-                  kinkcand::MXiMinus<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth, kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug>,
-                  kinkcand::Eta<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth>,
-                  kinkcand::Phi<kinkcand::PxMoth, kinkcand::PyMoth>,
-                  kinkcand::TransRadius<kinkcand::XDecVtx, kinkcand::YDecVtx>,
-                  kinkcand::KinkAngle<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth, kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug>);
+                  kinkcand::MXiMinus<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth, kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug>);
 
 DECLARE_SOA_TABLE(SlimKinkCands, "AOD", "SLIMKINKCANDS",
-                  kinkcand::CollisionId, kinkcand::TrackMothId, kinkcand::TrackDaugId,
                   kinkcand::XDecVtx, kinkcand::YDecVtx, kinkcand::ZDecVtx,
                   kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth,
                   kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug,
                   kinkcand::DcaMothPv, kinkcand::DcaDaugPv, kinkcand::DcaKinkTopo,
                   kinkcand::MothSign,
                   kinkcand::NSigmaTPCPi, kinkcand::NSigmaTPCPr, kinkcand::NSigmaTPCKa,
-                  kinkcand::NSigmaTOFPi, kinkcand::NSigmaTOFPr, kinkcand::NSigmaTOFKa,
-
-                  kinkcand::PtMoth<kinkcand::PxMoth, kinkcand::PyMoth>,
-                  kinkcand::PtDaug<kinkcand::PxDaug, kinkcand::PyDaug>,
-                  kinkcand::MSigmaMinus<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth, kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug>,
-                  kinkcand::MSigmaPlus<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth, kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug>,
-                  kinkcand::Eta<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth>,
-                  kinkcand::Phi<kinkcand::PxMoth, kinkcand::PyMoth>,
-                  kinkcand::TransRadius<kinkcand::XDecVtx, kinkcand::YDecVtx>,
-                  kinkcand::KinkAngle<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth, kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug>);
+                  kinkcand::NSigmaTOFPi, kinkcand::NSigmaTOFPr, kinkcand::NSigmaTOFKa);
 
 DECLARE_SOA_TABLE(SlimKinkCandsMC, "AOD", "SLIMKINKCANDSMC",
                   kinkcand::XDecVtx, kinkcand::YDecVtx, kinkcand::ZDecVtx,
@@ -211,19 +154,7 @@ DECLARE_SOA_TABLE(SlimKinkCandsMC, "AOD", "SLIMKINKCANDSMC",
                   kinkcand::NSigmaTPCPi, kinkcand::NSigmaTPCPr, kinkcand::NSigmaTPCKa,
                   kinkcand::NSigmaTOFPi, kinkcand::NSigmaTOFPr, kinkcand::NSigmaTOFKa,
                   kinkcand::MothPdgCode, kinkcand::DaugPdgCode,
-                  kinkcand::PtMC, kinkcand::PzMC, kinkcand::MassMC, kinkcand::DecayRadiusMC, kinkcand::CollisionIdCheck,
-
-                  kinkcand::PtMoth<kinkcand::PxMoth, kinkcand::PyMoth>,
-                  kinkcand::PtDaug<kinkcand::PxDaug, kinkcand::PyDaug>,
-                  kinkcand::MSigmaMinus<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth, kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug>,
-                  kinkcand::MSigmaPlus<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth, kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug>,
-                  kinkcand::Eta<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth>,
-                  kinkcand::Phi<kinkcand::PxMoth, kinkcand::PyMoth>,
-                  kinkcand::TransRadius<kinkcand::XDecVtx, kinkcand::YDecVtx>,
-                  kinkcand::KinkAngle<kinkcand::PxMoth, kinkcand::PyMoth, kinkcand::PzMoth, kinkcand::PxDaug, kinkcand::PyDaug, kinkcand::PzDaug>);
-                  
-using KinkDatas = KinkCands;
-using SlimKinkDatas = SlimKinkCands;
+                  kinkcand::PtMC, kinkcand::PzMC, kinkcand::MassMC, kinkcand::DecayRadiusMC, kinkcand::CollisionIdCheck);
 
 } // namespace o2::aod
 
