@@ -48,7 +48,7 @@ using namespace o2::analysis::femto;
 struct FemtoKinkQa {
 
   // setup for collisions
-  collisionbuilder::ConfCollisionFilter collisionSelection;
+  collisionbuilder::ConfCollisionFilters collisionSelection;
   Filter collisionFilter = MAKE_COLLISION_FILTER(collisionSelection);
 
   colhistmanager::CollisionHistManager<modes::Mode::kAnalysis_Qa> colHistManager;
@@ -90,16 +90,13 @@ struct FemtoKinkQa {
 
   void init(InitContext&)
   {
-    // create a map for histogram specs
-    auto colHistSpec = colhistmanager::makeColHistSpecMap(confCollisionBinning);
-    colHistManager.init(&hRegistry, colHistSpec);
+    auto sigmaHistSpec = kinkhistmanager::makeKinkQaHistSpecMap(confSigmaBinning, confSigmaQaBinning);
+    auto chaDauHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confKinkChaDaughterBinning, confKinkChaDaughterQaBinning);
+    
+    sigmaHistManager.init(&hRegistry, sigmaHistSpec, chaDauHistSpec);
 
-    // auto chaDaughterHistSpec = trackhistmanager::makeTrackQaHistSpecMap(confKinkChaDaughterBinning, confKinkChaDaughterQaBinning);
-
-    if (doprocessSigma) {
-      auto sigmaHistSpec = kinkhistmanager::makeKinkQaHistSpecMap(confSigmaBinning, confSigmaQaBinning);
-      sigmaHistManager.init(&hRegistry, sigmaHistSpec);
-    }
+    auto collisionHistSpec = colhistmanager::makeColHistSpecMap(confCollisionBinning);
+    colHistManager.init(&hRegistry, collisionHistSpec);
   };
 
   // Process function for sigma particles from femto tables

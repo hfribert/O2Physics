@@ -68,17 +68,11 @@ using Run3FullPidTracks =
             pidTOFFullEl, pidTOFFullPi, pidTOFFullKa, pidTOFFullPr, pidTOFFullDe, pidTOFFullTr, pidTOFFullHe,
             pidTOFbeta, pidTOFmass>;
 
-using Run3FullPidTracksIU =
-  soa::Join<Tracks, TracksExtra, TracksDCA, TracksIU, TracksCovIU,
-            pidTPCFullEl, pidTPCFullPi, pidTPCFullKa, pidTPCFullPr, pidTPCFullDe, pidTPCFullTr, pidTPCFullHe,
-            pidTOFFullEl, pidTOFFullPi, pidTOFFullKa, pidTOFFullPr, pidTOFFullDe, pidTOFFullTr, pidTOFFullHe,
-            pidTOFbeta, pidTOFmass>;
-
 using Run3PpVzeros = V0Datas;
 
 using Run3PpCascades = CascDatas;
 
-using Run3PpKinks = SlimKinkDatas;
+using Run3PpKinks = KinkCands;
 
 } // namespace consumeddata
 } // namespace o2::analysis::femto
@@ -221,11 +215,14 @@ struct FemtoProducer {
     kstar0Builder.init(confKstar0Bits, confKstarFilters, confResonanceDaughterFilters, confTwoTrackResonanceTables, context);
     kstar0barBuilder.init(confKstar0Bits, confKstarFilters, confResonanceDaughterFilters, confTwoTrackResonanceTables, context);
 
-    if ((xiBuilder.fillAnyTable() || omegaBuilder.fillAnyTable()) && !doprocessTracksV0sCascadesRun3pp) {
-      LOG(fatal) << "At least one cascade tabel is enabled, but wrong process function is enabled. Breaking...";
+    if ((xiBuilder.fillAnyTable() || omegaBuilder.fillAnyTable()) && (!doprocessTracksV0sCascadesRun3pp && !doprocessTracksV0sCascadesKinksRun3pp)) {
+      LOG(fatal) << "At least one cascade table is enabled, but wrong process function is enabled. Breaking...";
     }
-    if ((lambdaBuilder.fillAnyTable() || antilambdaBuilder.fillAnyTable() || k0shortBuilder.fillAnyTable()) && (!doprocessTracksV0sCascadesRun3pp && !doprocessTracksV0sRun3pp)) {
-      LOG(info) << "At least one v0 tabel is enbaled, but wrong process function is enabled. Breaking...";
+    if ((lambdaBuilder.fillAnyTable() || antilambdaBuilder.fillAnyTable() || k0shortBuilder.fillAnyTable()) && (!doprocessTracksV0sCascadesRun3pp && !doprocessTracksV0sRun3pp && !doprocessTracksV0sCascadesKinksRun3pp)) {
+      LOG(info) << "At least one v0 table is enabled, but wrong process function is enabled. Breaking...";
+    }
+    if (sigmaBuilder.fillAnyTable() && !doprocessTracksKinksRun3pp && !doprocessTracksV0sCascadesKinksRun3pp) {
+      LOG(fatal) << "At least one kink table is enabled, but wrong process function is enabled. Breaking...";
     }
   }
 
@@ -254,21 +251,6 @@ struct FemtoProducer {
     kstar0barBuilder.fillResonances(collisionBuilderProducts, trackBuilderProducts, twoTrackResonanceBuilderProducts, groupPositiveTracks, groupNegativeTracks, trackBuilder, indexMapTracks);
   }
 
-  template <modes::System system, typename T1, typename T2, typename T3, typename T4>
-  void processTracksIU(T1 const& col, T2 const& /* bcs*/, T3 const& tracks, T4 const& tracksWithItsPid)
-  {
-    initFromCcdb(col.template bc_as<T2>());
-    collisionBuilder.buildCollision<system>(col, tracks, magField);
-    if (!collisionBuilder.checkCuts(col)) {
-      return;
-    }
-    collisionBuilder.fillCollision<system>(collisionBuilderProducts, col);
-
-    // tracks
-    indexMapTracks.clear();
-    trackBuilder.fillTracks(tracksWithItsPid, trackBuilderProducts, collisionBuilderProducts, indexMapTracks);
-  }
-
   // add v0s
   template <modes::System system, typename T1, typename T2, typename T3, typename T4, typename T5>
   void processTracksV0s(T1 const& col, T2 const& bcs, T3 const& tracks, T4 const& tracksWithItsPid, T5 const& v0s)
@@ -283,7 +265,7 @@ struct FemtoProducer {
   template <modes::System system, typename T1, typename T2, typename T3, typename T4, typename T5>
   void processTracksKinks(T1 const& col, T2 const& bcs, T3 const& tracks, T4 const& tracksWithItsPid, T5 const& kinks)
   {
-    processTracksIU<system>(col, bcs, tracks, tracksWithItsPid);
+    processTracks<system>(col, bcs, tracks, tracksWithItsPid);
     sigmaBuilder.fillKinks(collisionBuilderProducts, trackBuilderProducts, kinkBuilderProducts, kinks, tracks, trackBuilder, indexMapTracks);
   }
 
@@ -296,6 +278,18 @@ struct FemtoProducer {
                            cascades, tracks, col, trackBuilder, indexMapTracks);
     omegaBuilder.fillCascades(collisionBuilderProducts, trackBuilderProducts, cascadeBuilderProducts,
                               cascades, tracks, col, trackBuilder, indexMapTracks);
+  }
+
+  // add kinks
+  template <modes::System system, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
+  void processTracksV0sCascadesKinks(T1 const& col, T2 const& bcs, T3 const& tracks, T4 const& tracksWithItsPid, T5 const& v0s, T6 const& cascades, T7 const& kinks)
+  {
+    processTracksV0s<system>(col, bcs, tracks, tracksWithItsPid, v0s);
+    xiBuilder.fillCascades(collisionBuilderProducts, trackBuilderProducts, cascadeBuilderProducts,
+                           cascades, tracks, col, trackBuilder, indexMapTracks);
+    omegaBuilder.fillCascades(collisionBuilderProducts, trackBuilderProducts, cascadeBuilderProducts,
+                              cascades, tracks, col, trackBuilder, indexMapTracks);
+    processTracksKinks<system>(col, bcs, tracks, tracksWithItsPid, kinks);
   }
 
   // proccess functions
@@ -323,7 +317,20 @@ struct FemtoProducer {
   };
   PROCESS_SWITCH(FemtoProducer, processTracksV0sRun3pp, "Process tracks and v0s", false);
 
-  // process tracks, v0s and casacades
+  // process tracks and kinks
+  void processTracksKinksRun3pp(consumeddata::Run3PpCollisions::iterator const& col,
+                                BCsWithTimestamps const& bcs,
+                                consumeddata::Run3FullPidTracks const& tracks,
+                                consumeddata::Run3PpKinks const& kinks)
+  {
+    // its pid information is generated dynamically, so we need to add it here
+    auto tracksWithItsPid = o2::soa::Attach<consumeddata::Run3FullPidTracks, pidits::ITSNSigmaEl, pidits::ITSNSigmaPi,
+                                            pidits::ITSNSigmaKa, pidits::ITSNSigmaPr, pidits::ITSNSigmaDe, pidits::ITSNSigmaTr, pidits::ITSNSigmaHe>(tracks);
+    processTracksKinks<modes::System::kPP_Run3>(col, bcs, tracks, tracksWithItsPid, kinks);
+  }
+  PROCESS_SWITCH(FemtoProducer, processTracksKinksRun3pp, "Process tracks and kinks", false);
+
+  // process tracks, v0s and cascades
   void processTracksV0sCascadesRun3pp(consumeddata::Run3PpCollisions::iterator const& col,
                                       BCsWithTimestamps const& bcs,
                                       consumeddata::Run3FullPidTracks const& tracks,
@@ -337,18 +344,20 @@ struct FemtoProducer {
   }
   PROCESS_SWITCH(FemtoProducer, processTracksV0sCascadesRun3pp, "Provide Tracks, V0s and Cascades for Run3", false);
 
-  // process tracks and kinks
-  void processTracksKinksRun3pp(consumeddata::Run3PpCollisions::iterator const& col,
-                                BCsWithTimestamps const& bcs,
-                                consumeddata::Run3FullPidTracks const& tracks,
-                                consumeddata::Run3PpKinks const& kinks)
+  // process tracks, v0s, cascades and kinks
+  void processTracksV0sCascadesKinksRun3pp(consumeddata::Run3PpCollisions::iterator const& col,
+                                      BCsWithTimestamps const& bcs,
+                                      consumeddata::Run3FullPidTracks const& tracks,
+                                      consumeddata::Run3PpVzeros const& v0s,
+                                      consumeddata::Run3PpCascades const& cascades,
+                                      consumeddata::Run3PpKinks const& kinks)
   {
     // its pid information is generated dynamically, so we need to add it here
     auto tracksWithItsPid = o2::soa::Attach<consumeddata::Run3FullPidTracks, pidits::ITSNSigmaEl, pidits::ITSNSigmaPi,
                                             pidits::ITSNSigmaKa, pidits::ITSNSigmaPr, pidits::ITSNSigmaDe, pidits::ITSNSigmaTr, pidits::ITSNSigmaHe>(tracks);
-    processTracksKinks<modes::System::kPP_Run3>(col, bcs, tracks, tracksWithItsPid, kinks);
+    processTracksV0sCascadesKinks<modes::System::kPP_Run3>(col, bcs, tracks, tracksWithItsPid, v0s, cascades, kinks);
   }
-  PROCESS_SWITCH(FemtoProducer, processTracksKinksRun3pp, "Process tracks and kinks", false);
+  PROCESS_SWITCH(FemtoProducer, processTracksV0sCascadesKinksRun3pp, "Provide Tracks, V0s and Cascades for Run3", false);
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)

@@ -53,12 +53,19 @@ enum KinkHist {
   kDecayVtxZ,
   kDecayVtx,
   kTransRadius,
+  kAlphaAP,
+  kQtAP,
+  kCosPointingAngle,
+  kKinkTopoDCA,
   // 2d qa
   kPtVsEta,
   kPtVsPhi,
   kPhiVsEta,
   kPtVsKinkAngle,
   kPtVsDecayRadius,
+  kQtVsAlphaAP,
+  kPtVsAlphaAP,
+  kPtVsQtAP,
   kKinkHistLast
 };
 
@@ -84,9 +91,13 @@ struct ConfKinkQaBinning : o2::framework::ConfigurableGroup {
   std::string prefix = Prefix;
   o2::framework::ConfigurableAxis kinkAngle{"kinkAngle", {{100, 0, 3.15}}, "Kink Angle (rad)"};
   o2::framework::ConfigurableAxis dcaMothToPV{"dcaMothToPV", {{150, 0, 1.5}}, "Mother DCA to PV (cm)"};
-  o2::framework::ConfigurableAxis dcaDaugToPV{"dcaDaugToPV", {{150, 0, 1.5}}, "Daughter DCA to PV (cm)"};
+  o2::framework::ConfigurableAxis dcaDaugToPV{"dcaDaugToPV", {{1000, 0, 100}}, "Daughter DCA to PV (cm)"};
   o2::framework::ConfigurableAxis decayVertex{"decayVertex", {{100, 0, 100}}, "Decay vertex position (cm)"};
   o2::framework::ConfigurableAxis transRadius{"transRadius", {{100, 0, 100}}, "Transverse radius (cm)"};
+  o2::framework::ConfigurableAxis alphaAP{"alphaAP", {{200, -1.0, 1.0}}, "Alpha AP"};
+  o2::framework::ConfigurableAxis qtAP{"qtAP", {{100, 0, 0.5}}, "qT AP (GeV/c)"};
+  o2::framework::ConfigurableAxis cosPointingAngle{"cosPointingAngle", {{200, 0.8, 1.0}}, "Cosine Pointing Angle"};
+  o2::framework::ConfigurableAxis kinkTopoDCA{"kinkTopoDCA", {{100, 0, 5.0}}, "Kink Topological DCA (cm)"};
 };
 
 constexpr const char PrefixSigmaQaBinning1[] = "SigmaQaBinning1";
@@ -108,11 +119,18 @@ constexpr std::array<histmanager::HistInfo<KinkHist>, kKinkHistLast> HistTable =
   {kDecayVtxZ, o2::framework::kTH1F, "hDecayVtxZ", "Decay Vertex Z; z (cm); Entries"},
   {kDecayVtx, o2::framework::kTH1F, "hDecayVtx", "Decay Distance from PV; r (cm); Entries"},
   {kTransRadius, o2::framework::kTH1F, "hTransRadius", "Transverse Decay Radius; r_{xy} (cm); Entries"},
+  {kAlphaAP, o2::framework::kTH1F, "hAlphaAP", "Alpha AP; #alpha_{AP}; Entries"},
+  {kQtAP, o2::framework::kTH1F, "hQtAP", "qT AP; q_{T} (GeV/#it{c}); Entries"},
+  {kCosPointingAngle, o2::framework::kTH1F, "hCosPointingAngle", "Cosine Pointing Angle; cos(#theta_{PA}); Entries"},
+  {kKinkTopoDCA, o2::framework::kTH1F, "hKinkTopoDCA", "Kink Topological DCA; DCA (cm); Entries"},
   {kPtVsEta, o2::framework::kTH2F, "hPtVsEta", "p_{T} vs #eta; p_{T} (GeV/#it{c}); #eta"},
   {kPtVsPhi, o2::framework::kTH2F, "hPtVsPhi", "p_{T} vs #varphi; p_{T} (GeV/#it{c}); #varphi"},
   {kPhiVsEta, o2::framework::kTH2F, "hPhiVsEta", "#varphi vs #eta; #varphi; #eta"},
   {kPtVsKinkAngle, o2::framework::kTH2F, "hPtVsKinkAngle", "p_{T} vs kink angle; p_{T} (GeV/#it{c}); kink angle (rad)"},
-  {kPtVsDecayRadius, o2::framework::kTH2F, "hPtVsDecayRadius", "p_{T} vs transverse decay radius; p_{T} (GeV/#it{c}); r_{xy} (cm)"}}};
+  {kPtVsDecayRadius, o2::framework::kTH2F, "hPtVsDecayRadius", "p_{T} vs transverse decay radius; p_{T} (GeV/#it{c}); r_{xy} (cm)"},
+  {kQtVsAlphaAP, o2::framework::kTH2F, "hQtVsAlphaAP", "Armenteros Plot; #alpha_{AP}; q_{T} (GeV/#it{c})"},
+  {kPtVsAlphaAP, o2::framework::kTH2F, "hPtVsAlphaAP", "p_{T} vs #alpha_{AP}; p_{T} (GeV/#it{c}); #alpha_{AP}"},
+  {kPtVsQtAP, o2::framework::kTH2F, "hPtVsQtAP", "p_{T} vs q_{T}; p_{T} (GeV/#it{c}); q_{T} (GeV/#it{c})"}}};
 
 template <typename T>
 auto makeKinkHistSpecMap(const T& confBinningAnalysis)
@@ -142,15 +160,24 @@ std::map<KinkHist, std::vector<framework::AxisSpec>> makeKinkQaHistSpecMap(T1 co
     {kDecayVtxZ, {confBinningQa.decayVertex}},
     {kDecayVtx, {confBinningQa.decayVertex}},
     {kTransRadius, {confBinningQa.transRadius}},
+    {kAlphaAP, {confBinningQa.alphaAP}},
+    {kQtAP, {confBinningQa.qtAP}},
+    {kCosPointingAngle, {confBinningQa.cosPointingAngle}},
+    {kKinkTopoDCA, {confBinningQa.kinkTopoDCA}},
     {kPtVsEta, {confBinningAnalysis.pt, confBinningAnalysis.eta}},
     {kPtVsPhi, {confBinningAnalysis.pt, confBinningAnalysis.phi}},
     {kPhiVsEta, {confBinningAnalysis.phi, confBinningAnalysis.eta}},
     {kPtVsKinkAngle, {confBinningAnalysis.pt, confBinningQa.kinkAngle}},
-    {kPtVsDecayRadius, {confBinningAnalysis.pt, confBinningQa.transRadius}}};
+    {kPtVsDecayRadius, {confBinningAnalysis.pt, confBinningQa.transRadius}},
+    {kQtVsAlphaAP, {confBinningQa.alphaAP, confBinningQa.qtAP}},
+    {kPtVsAlphaAP, {confBinningAnalysis.pt, confBinningQa.alphaAP}},
+    {kPtVsQtAP, {confBinningAnalysis.pt, confBinningQa.qtAP}}};
 }
 
 constexpr char PrefixSigmaQa[] = "SigmaQA/";
 constexpr char PrefixSigma[] = "Sigma/";
+constexpr char PrefixKinkChaDaughter[] = "KinkChaDau/";
+constexpr char PrefixKinkChaDaughterQa[] = "KinkChaDauQa/";
 
 constexpr std::string_view AnalysisDir = "Kinematics/";
 constexpr std::string_view QaDir = "QA/";
@@ -172,10 +199,12 @@ class KinkHistManager
   /// \param registry Histogram registry to be passed
   ///
   void init(o2::framework::HistogramRegistry* registry,
-            std::map<KinkHist, std::vector<o2::framework::AxisSpec>> KinkSpecs)
+            std::map<KinkHist, std::vector<o2::framework::AxisSpec>> KinkSpecs,
+            std::map<trackhistmanager::TrackHist, std::vector<o2::framework::AxisSpec>> ChaDauSpecs)
   {
     mHistogramRegistry = registry;
-    
+    mChaDauManager.init(registry, ChaDauSpecs);
+
     if constexpr (isFlagSet(mode, modes::Mode::kAnalysis)) {
       std::string analysisDir = std::string(kinkPrefix) + std::string(AnalysisDir);
       mHistogramRegistry->add(analysisDir + GetHistNamev2(kPt, HistTable), GetHistDesc(kPt, HistTable), GetHistType(kPt, HistTable), {KinkSpecs[kPt]});
@@ -204,6 +233,10 @@ class KinkHistManager
       mHistogramRegistry->add(qaDir + GetHistNamev2(kDecayVtxZ, HistTable), GetHistDesc(kDecayVtxZ, HistTable), GetHistType(kDecayVtxZ, HistTable), {KinkSpecs[kDecayVtxZ]});
       mHistogramRegistry->add(qaDir + GetHistNamev2(kDecayVtx, HistTable), GetHistDesc(kDecayVtx, HistTable), GetHistType(kDecayVtx, HistTable), {KinkSpecs[kDecayVtx]});
       mHistogramRegistry->add(qaDir + GetHistNamev2(kTransRadius, HistTable), GetHistDesc(kTransRadius, HistTable), GetHistType(kTransRadius, HistTable), {KinkSpecs[kTransRadius]});
+      mHistogramRegistry->add(qaDir + GetHistNamev2(kAlphaAP, HistTable), GetHistDesc(kAlphaAP, HistTable), GetHistType(kAlphaAP, HistTable), {KinkSpecs[kAlphaAP]});
+      mHistogramRegistry->add(qaDir + GetHistNamev2(kQtAP, HistTable), GetHistDesc(kQtAP, HistTable), GetHistType(kQtAP, HistTable), {KinkSpecs[kQtAP]});
+      mHistogramRegistry->add(qaDir + GetHistNamev2(kCosPointingAngle, HistTable), GetHistDesc(kCosPointingAngle, HistTable), GetHistType(kCosPointingAngle, HistTable), {KinkSpecs[kCosPointingAngle]});
+      mHistogramRegistry->add(qaDir + GetHistNamev2(kKinkTopoDCA, HistTable), GetHistDesc(kKinkTopoDCA, HistTable), GetHistType(kKinkTopoDCA, HistTable), {KinkSpecs[kKinkTopoDCA]});
 
       // 2D QA histograms
       mHistogramRegistry->add(qaDir + GetHistNamev2(kPtVsEta, HistTable), GetHistDesc(kPtVsEta, HistTable), GetHistType(kPtVsEta, HistTable), {KinkSpecs[kPtVsEta]});
@@ -211,6 +244,9 @@ class KinkHistManager
       mHistogramRegistry->add(qaDir + GetHistNamev2(kPhiVsEta, HistTable), GetHistDesc(kPhiVsEta, HistTable), GetHistType(kPhiVsEta, HistTable), {KinkSpecs[kPhiVsEta]});
       mHistogramRegistry->add(qaDir + GetHistNamev2(kPtVsKinkAngle, HistTable), GetHistDesc(kPtVsKinkAngle, HistTable), GetHistType(kPtVsKinkAngle, HistTable), {KinkSpecs[kPtVsKinkAngle]});
       mHistogramRegistry->add(qaDir + GetHistNamev2(kPtVsDecayRadius, HistTable), GetHistDesc(kPtVsDecayRadius, HistTable), GetHistType(kPtVsDecayRadius, HistTable), {KinkSpecs[kPtVsDecayRadius]});
+      mHistogramRegistry->add(qaDir + GetHistNamev2(kQtVsAlphaAP, HistTable), GetHistDesc(kQtVsAlphaAP, HistTable), GetHistType(kQtVsAlphaAP, HistTable), {KinkSpecs[kQtVsAlphaAP]});
+      mHistogramRegistry->add(qaDir + GetHistNamev2(kPtVsAlphaAP, HistTable), GetHistDesc(kPtVsAlphaAP, HistTable), GetHistType(kPtVsAlphaAP, HistTable), {KinkSpecs[kPtVsAlphaAP]});
+      mHistogramRegistry->add(qaDir + GetHistNamev2(kPtVsQtAP, HistTable), GetHistDesc(kPtVsQtAP, HistTable), GetHistType(kPtVsQtAP, HistTable), {KinkSpecs[kPtVsQtAP]});
     }
   }
 
@@ -267,15 +303,18 @@ class KinkHistManager
 
   /// Fill histograms for kink candidates - overload with track table argument
   /// \param kinkcandidate Kink candidate to fill histograms for  
-  /// \param tracks Track table (ignored for kinks)
+  /// \param tracks Track table for daughter access
   template <typename T1, typename T2>
   void fill(T1 const& kinkcandidate, T2 const& /*tracks*/)
   {
+    auto chaDaughter = kinkcandidate.template chaDau_as<T2>();
+    mChaDauManager.fill(chaDaughter);
     fill(kinkcandidate);
   }
 
  private:
   o2::framework::HistogramRegistry* mHistogramRegistry;
+  trackhistmanager::TrackHistManager<chaDauPrefix, mode> mChaDauManager;
 };
 }; // namespace kinkhistmanager
 }; // namespace o2::analysis::femto
