@@ -64,10 +64,10 @@ struct ConfKinkFilters : o2::framework::ConfigurableGroup {
 // selections bits for all kinks
 #define KINK_DEFAULT_BITS                                                                                                                     \
   o2::framework::Configurable<std::vector<float>> kinkTopoDcaMax{"kinkTopoDcaMax", {2.0f}, "Maximum kink topological DCA"};                   \
-  o2::framework::Configurable<std::vector<float>> transRadMin{"transRadMin", {0.2f}, "Minimum transverse radius (cm)"};                       \
+  o2::framework::Configurable<std::vector<float>> transRadMin{"transRadMin", {20.f}, "Minimum transverse radius (cm)"};                       \
   o2::framework::Configurable<std::vector<float>> transRadMax{"transRadMax", {100.f}, "Maximum transverse radius (cm)"};                      \
-  o2::framework::Configurable<std::vector<float>> dauAbsEtaMax{"dauAbsEtaMax", {0.8f}, "Maximum absolute pseudorapidity for daughter track"}; \
-  o2::framework::Configurable<std::vector<float>> dauDcaPvMin{"dauDcaPvMin", {0.0f}, "Minimum DCA of daughter from primary vertex (cm)"};     \
+  o2::framework::Configurable<std::vector<float>> dauAbsEtaMax{"dauAbsEtaMax", {1.0f}, "Maximum absolute pseudorapidity for daughter track"}; \
+  o2::framework::Configurable<std::vector<float>> dauDcaPvMin{"dauDcaPvMin", {0.1f}, "Minimum DCA of daughter from primary vertex (cm)"};     \
   o2::framework::Configurable<std::vector<float>> mothDcaPvMax{"mothDcaPvMax", {1.0f}, "Maximum DCA of mother from primary vertex (cm)"};     \
   o2::framework::Configurable<std::vector<float>> alphaAPMin{"alphaAPMin", {-1.0f}, "Minimum Alpha_AP for Sigma candidates"};                 \
   o2::framework::Configurable<std::vector<float>> alphaAPMax{"alphaAPMax", {0.0f}, "Maximum Alpha_AP for Sigma candidates"};                  \
@@ -224,8 +224,8 @@ class KinkSelection : public BaseSelection<float, o2::aod::femtodatatypes::KinkM
     this->setupContainers<HistName>(registry);
   };
 
-  template <typename T1, typename T2>
-  void computeQaVariables(T1 const& kinkCand, T2 const& /*tracks*/)
+  template <typename T1, typename T2, typename T3>
+  void computeQaVariables(T1 const& kinkCand, T2 const& /*tracks*/, T3 const& col)
   {
     std::array<float, 3> momMother = {kinkCand.pxMoth(), kinkCand.pyMoth(), kinkCand.pzMoth()};
     float kinkMomP = RecoDecay::p(momMother);
@@ -244,7 +244,10 @@ class KinkSelection : public BaseSelection<float, o2::aod::femtodatatypes::KinkM
     float p2A = kinkDauP * kinkDauP;
     mQtAp = std::sqrt(std::max(0.f, p2A - dp * dp / p2V0));
 
-    std::array<float, 3> vMother = {kinkCand.xDecVtx(), kinkCand.yDecVtx(), kinkCand.zDecVtx()};
+    // Cosine of pointing angle
+    std::array<float, 3> vMother = {kinkCand.xDecVtx() - col.posX(),
+                                    kinkCand.yDecVtx() - col.posY(),
+                                    kinkCand.zDecVtx() - col.posZ()};
     float vMotherNorm = std::sqrt(std::inner_product(vMother.begin(), vMother.end(), vMother.begin(), 0.f));
     mCosPointingAngle = (vMotherNorm > 0.f && kinkMomP > 0.f) ? (std::inner_product(momMother.begin(), momMother.end(), vMother.begin(), 0.f)) / (kinkMomP * vMotherNorm) : 0.f;
     mTransRadius = std::hypot(kinkCand.xDecVtx(), kinkCand.yDecVtx());
@@ -315,11 +318,7 @@ class KinkSelection : public BaseSelection<float, o2::aod::femtodatatypes::KinkM
     // Recalculate pT using kinematic constraints
     float ptRecalc = utils::calcPtnew(momMother[0], momMother[1], momMother[2],
                                       momDaughter[0], momDaughter[1], momDaughter[2]);
-    if (ptRecalc > 0.f) {
-      mKinkMotherPt = ptRecalc;
-    } else {
-      mKinkMotherPt = -1.f;
-    }
+    mKinkMotherPt = (ptRecalc > 0.f) ? ptRecalc : std::hypot(momMother[0], momMother[1]);
   }
 
   template <typename T>
@@ -450,20 +449,18 @@ class KinkBuilder
         continue;
       }
       // compute qa variables before applying selections
-      mKinkSelection.computeQaVariables(kink, tracks);
+      mKinkSelection.computeQaVariables(kink, tracks, col);
       mKinkSelection.applySelections(kink, tracks);
       if (!mKinkSelection.passesAllRequiredSelections()) {
         continue;
       }
 
       collisionBuilder.template fillCollision<system>(collisionProducts, col);
-      // cleaner, but without ITS pid: auto daughter = kink.template trackDaug_as<T7>();
-      int64_t idx = kink.trackDaugId() - tracksWithItsPid.offset();
-      // check for valid index
-      if (idx < 0 || idx >= static_cast<int64_t>(tracksWithItsPid.size())) {
-        return;
-      }
-      auto daughter = tracksWithItsPid.iteratorAt(idx);
+      // int64_t idx = kink.trackDaugId() - tracksWithItsPid.offset();
+      // if (idx < 0 || idx >= static_cast<int64_t>(tracksWithItsPid.size())) {
+      //   return;
+      // }
+      auto daughter = kink.template trackDaug_as<T7>();
       daughterIndex = trackBuilder.template getDaughterIndex<modes::Track::kKinkDaughter>(daughter, trackProducts, collisionProducts);
       if constexpr (modes::isEqual(kinkType, modes::Kink::kSigma)) {
         fillSigma(collisionProducts, kinkProducts, kink, daughterIndex);
@@ -489,7 +486,7 @@ class KinkBuilder
         continue;
       }
       // compute qa variables before applying selections
-      mKinkSelection.computeQaVariables(kink, tracks);
+      mKinkSelection.computeQaVariables(kink, tracks, col);
       mKinkSelection.applySelections(kink, tracks);
       if (!mKinkSelection.passesAllRequiredSelections()) {
         continue;
@@ -497,13 +494,11 @@ class KinkBuilder
 
       collisionBuilder.template fillMcCollision<system>(collisionProducts, col, mcCols, mcProducts, mcBuilder);
 
-      int64_t idx = kink.trackDaugId() - tracks.offset();
-      // check for valid index
-      if (idx < 0 || idx >= static_cast<int64_t>(tracks.size())) {
-        return;
-      }
-      auto daughter = tracks.iteratorAt(idx);
-      auto daughterWithItsPid = tracksWithItsPid.iteratorAt(idx);
+      // Same fix as fillKinks: relationship navigation on T8 (tracks) resolves cross-collision
+      // daughters. T8 = Run3McRecoTracks has MC labels needed for MC processing. ITS NSigma
+      // is unavailable (stored as 0.f via fillTrack's if constexpr), which is acceptable.
+      auto daughter = kink.template trackDaug_as<T8>();
+      auto daughterWithItsPid = kink.template trackDaug_as<T8>();
       daughterIndex = trackBuilder.template getDaughterIndex<system, modes::Track::kKinkDaughter>(col, collisionProducts, mcCols, daughter, daughterWithItsPid, trackProducts, mcParticles, mcBuilder, mcProducts);
 
       if constexpr (modes::isEqual(kinkType, modes::Kink::kSigma)) {

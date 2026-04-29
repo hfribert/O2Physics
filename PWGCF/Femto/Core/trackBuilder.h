@@ -585,25 +585,53 @@ class TrackBuilder
                                         track.beta());
     }
     if (mProduceElectronPids) {
-      trackProducts.producedElectronPids(track.itsNSigmaEl(), track.tpcNSigmaEl(), track.tofNSigmaEl());
+      float itsEl = 0.f;
+      if constexpr (requires(T1 t) { t.itsNSigmaEl(); }) {
+        itsEl = track.itsNSigmaEl();
+      }
+      trackProducts.producedElectronPids(itsEl, track.tpcNSigmaEl(), track.tofNSigmaEl());
     }
     if (mProducePionPids) {
-      trackProducts.producedPionPids(track.itsNSigmaPi(), track.tpcNSigmaPi(), track.tofNSigmaPi());
+      float itsPi = 0.f;
+      if constexpr (requires(T1 t) { t.itsNSigmaPi(); }) {
+        itsPi = track.itsNSigmaPi();
+      }
+      trackProducts.producedPionPids(itsPi, track.tpcNSigmaPi(), track.tofNSigmaPi());
     }
     if (mProduceKaonPids) {
-      trackProducts.producedKaonPids(track.itsNSigmaKa(), track.tpcNSigmaKa(), track.tofNSigmaKa());
+      float itsKa = 0.f;
+      if constexpr (requires(T1 t) { t.itsNSigmaKa(); }) {
+        itsKa = track.itsNSigmaKa();
+      }
+      trackProducts.producedKaonPids(itsKa, track.tpcNSigmaKa(), track.tofNSigmaKa());
     }
     if (mProduceProtonPids) {
-      trackProducts.producedProtonPids(track.itsNSigmaPr(), track.tpcNSigmaPr(), track.tofNSigmaPr());
+      float itsPr = 0.f;
+      if constexpr (requires(T1 t) { t.itsNSigmaPr(); }) {
+        itsPr = track.itsNSigmaPr();
+      }
+      trackProducts.producedProtonPids(itsPr, track.tpcNSigmaPr(), track.tofNSigmaPr());
     }
     if (mProduceDeuteronPids) {
-      trackProducts.producedDeuteronPids(track.itsNSigmaDe(), track.tpcNSigmaDe(), track.tofNSigmaDe());
+      float itsDe = 0.f;
+      if constexpr (requires(T1 t) { t.itsNSigmaDe(); }) {
+        itsDe = track.itsNSigmaDe();
+      }
+      trackProducts.producedDeuteronPids(itsDe, track.tpcNSigmaDe(), track.tofNSigmaDe());
     }
     if (mProduceTritonPids) {
-      trackProducts.producedTritonPids(track.itsNSigmaTr(), track.tpcNSigmaTr(), track.tofNSigmaTr());
+      float itsTr = 0.f;
+      if constexpr (requires(T1 t) { t.itsNSigmaTr(); }) {
+        itsTr = track.itsNSigmaTr();
+      }
+      trackProducts.producedTritonPids(itsTr, track.tpcNSigmaTr(), track.tofNSigmaTr());
     }
     if (mProduceHeliumPids) {
-      trackProducts.producedHeliumPids(track.itsNSigmaHe(), track.tpcNSigmaHe(), track.tofNSigmaHe());
+      float itsHe = 0.f;
+      if constexpr (requires(T1 t) { t.itsNSigmaHe(); }) {
+        itsHe = track.itsNSigmaHe();
+      }
+      trackProducts.producedHeliumPids(itsHe, track.tpcNSigmaHe(), track.tofNSigmaHe());
     }
   }
 
